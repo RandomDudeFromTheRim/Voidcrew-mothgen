@@ -18,7 +18,7 @@
 	///Boolean on whether the ORM can claim points without being connected to an ore silo.
 	// VOIDCREW EDIT CHANGE START - was TRUE. An ore silo is a station fixture; on the ships this
 	// fork is built around, requiring one before the machine would hand out a single point meant
-	// most crews never claimed at all. The local-storage path further down (!requires_silo, which
+	// most crews never claimed at all until they built one which is not that horrible but still fucking annoying. The local-storage path further down (!requires_silo, which
 	// registers local_redeem_points) already exists, so this variable was all that gated it.
 	var/requires_silo = FALSE
 	// VOIDCREW EDIT CHANGE END
