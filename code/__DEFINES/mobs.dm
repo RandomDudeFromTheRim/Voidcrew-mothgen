@@ -1020,7 +1020,15 @@ GLOBAL_LIST_INIT(layers_to_offset, list(
 #define NO_OBSERVED_ATTACKS (1<<2)
 
 /// Types of bullets that mining mobs take full damage from
-#define MINING_MOB_PROJECTILE_VULNERABILITY list(BRUTE)
+// VOIDCREW EDIT CHANGE - was list(BRUTE). With only brute listed, any other projectile damage type
+// (energy weapons, in practice) below 30 force was multiplied by 0.3 by the ranged_armour element on
+// /mob/living/basic/mining and /mob/living/simple_animal/hostile/asteroid. On tg that reads as "bring
+// a PKA to lavaland"; here the same fauna spawns across the ship-side maps, so it read as "nothing
+// you carry works". Listing every projectile damage type (BRUTE, BURN, TOX, OXY and STAMINA are the
+// five any projectile in the tree actually uses - see code/__DEFINES/combat.dm) leaves the element in
+// place, thrown items still bounce off, with nothing left for it to resist. A new projectile damage
+// type would be resisted again until it is added here, so this list has to stay complete.
+#define MINING_MOB_PROJECTILE_VULNERABILITY list(BRUTE, BURN, TOX, OXY, STAMINA)
 
 /// Helper macro that determines if the mob is at the threshold to start vomitting due to high toxin levels
 #define AT_TOXIN_VOMIT_THRESHOLD(mob) (mob.getToxLoss() > 45 && mob.nutrition > 20)

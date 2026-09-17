@@ -1,0 +1,6 @@
+author: RandomDudeFromTheRim
+delete-after: true
+changes:
+  - qol: "Ore redemption machines no longer need an ore silo connection to pay out points; they redeem from their own local storage instead."
+  - balance: "Lavaland and icebox fauna no longer reduce projectile damage. Energy weapons now hurt them as much as a proto-kinetic accelerator does."
+  - qol: "The mining equipment order console now quotes the price it actually charges, instead of the cheaper cargo price you could never take."
