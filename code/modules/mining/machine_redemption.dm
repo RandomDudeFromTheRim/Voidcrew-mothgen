@@ -16,9 +16,7 @@
 	processing_flags = START_PROCESSING_MANUALLY
 
 	///Boolean on whether the ORM can claim points without being connected to an ore silo.
-	// VOIDCREW EDIT CHANGE - was TRUE. A ship has no ore silo, and the local-storage redemption
-	// path below (!requires_silo, which registers local_redeem_points) already existed.
-	var/requires_silo = FALSE
+	var/requires_silo = TRUE
 	/// The current amount of unclaimed points in the machine
 	var/points = 0
 	/// Smelted ore's amount is multiplied by this
