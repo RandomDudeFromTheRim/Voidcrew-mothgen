@@ -175,7 +175,10 @@
 	var/mid_to_y = root_y - upper_length * upper_scale * cos(upper_angle)
 	var/end_x = mid_x - lower_length * lower_scale * sin(lower_angle)
 	var/end_to_y = mid_to_y - lower_length * lower_scale * cos(lower_angle)
-	var/finger_scale = finger_stretch * (lower_scale / stretch)
+	// Fingers foreshorten with the forearm, but never all the way: pointed straight at the
+	// viewer they'd collapse into a flat line.
+	var/finger_foreshorten = lower_scale / stretch
+	var/finger_scale = finger_stretch * (finger_foreshorten < 0 ? -1 : 1) * max(abs(finger_foreshorten), 0.4)
 	return list(
 		rig_joint_matrix(root[1], root[2], upper_scale, upper_angle, root_x, root_y),
 		rig_joint_matrix(root[1], mid_y, lower_scale, lower_angle, mid_x, mid_to_y),
@@ -398,6 +401,26 @@
 			RIG_R_ARM = list("raise" = 110, "elbow" = 40),
 			RIG_HEAD = list("nod" = -6),
 			RIG_CHEST = list("dx" = 1),
+		)
+	else if(owner.move_intent == MOVE_INTENT_RUN)
+		// Running, after Kris's run in Deltarune: leaning hard into it, legs in a wide split with
+		// the back foot kicked up high, fists pumping with the elbows bent, then a little hang
+		// in the air as the legs swap.
+		stride = list(
+			RIG_L_LEG = list("swing" = 45 * lead, "knee" = lead > 0 ? 15 : 75),
+			RIG_R_LEG = list("swing" = -45 * lead, "knee" = lead > 0 ? 75 : 15),
+			RIG_L_ARM = list("swing" = -45 * lead, "raise" = 6, "elbow" = 95),
+			RIG_R_ARM = list("swing" = 45 * lead, "raise" = 6, "elbow" = 95),
+			RIG_CHEST = list("bend" = 16, "lean" = 3 * lead),
+			RIG_HEAD = list("nod" = -10, "tilt" = -3 * lead),
+		)
+		passing = list(
+			RIG_L_LEG = list("swing" = lead > 0 ? 5 : 30, "knee" = lead > 0 ? 10 : 100),
+			RIG_R_LEG = list("swing" = lead > 0 ? 30 : 5, "knee" = lead > 0 ? 100 : 10),
+			RIG_L_ARM = list("swing" = 5, "raise" = 6, "elbow" = 100),
+			RIG_R_ARM = list("swing" = 5, "raise" = 6, "elbow" = 100),
+			RIG_CHEST = list("bend" = 14, "dy" = 2),
+			RIG_HEAD = list("nod" = -8),
 		)
 	else if(walk_style == RIG_WALK_LOPE)
 		// Long legs: huge strides, the trailing knee hauled up high, the body swaying side to
