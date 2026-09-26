@@ -222,6 +222,8 @@ GLOBAL_LIST_INIT(hand_fingers, list("thumb", "index finger", "middle finger", "r
 			finger = image(FINGER_MOB_ICON, "[sprite_set]_[side]_[finger_index][pose]", finger_layer)
 			if(finger_color)
 				finger.color = "[finger_color]"
+		// Keeps one-pixel fingers crisp under any transform (dancing, resizing) instead of blurring.
+		finger.appearance_flags |= PIXEL_SCALE
 		. += finger
 
 /// Examine lines about this hand's fingers, with "The" or a possessive already in front.

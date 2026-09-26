@@ -29,6 +29,7 @@
 
 /obj/item/food/finger/Initialize(mapload)
 	. = ..()
+	appearance_flags |= PIXEL_SCALE // It twitches by rotating, and blurs without this.
 	update_appearance(UPDATE_OVERLAYS)
 
 /obj/item/food/finger/update_overlays()
