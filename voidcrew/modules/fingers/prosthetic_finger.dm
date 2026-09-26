@@ -25,7 +25,7 @@
 	for(var/finger_name in GLOB.hand_fingers)
 		if(finger_name in hand.missing_fingers)
 			gaps += finger_name
-	var/finger_name = length(gaps) == 1 ? gaps[1] : tgui_input_list(user, "Which finger is it replacing?", "Prosthetic finger", gaps)
+	var/finger_name = length(gaps) == 1 ? gaps[1] : tgui_pick_finger(user, "Which finger on the [hand.get_hand_side()] [hand.appendage_noun] is it replacing?", "Prosthetic finger", gaps)
 	if(!finger_name || QDELETED(src) || QDELETED(hand) || !user.is_holding(src))
 		return
 	press_finger_on(user, src, hand, finger_name, prosthetic = TRUE)

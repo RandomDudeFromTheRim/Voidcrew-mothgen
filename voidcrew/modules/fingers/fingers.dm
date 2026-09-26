@@ -33,6 +33,17 @@
 /// Every finger on a hand, in order from thumb to pinky.
 GLOBAL_LIST_INIT(hand_fingers, list("thumb", "index finger", "middle finger", "ring finger", "pinky"))
 
+/// Short labels for finger pickers, keyed by finger name.
+GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "Index", "middle finger" = "Middle", "ring finger" = "Ring", "pinky" = "Pinky"))
+
+/// Asks the user to pick one of the given fingers, listed by short label. Returns the finger name or null.
+/proc/tgui_pick_finger(mob/user, message, title, list/finger_names)
+	var/list/options = list()
+	for(var/finger_name in finger_names)
+		options[GLOB.hand_finger_labels[finger_name] || finger_name] = finger_name
+	var/picked = tgui_input_list(user, message, title, options)
+	return picked ? options[picked] : null
+
 /// On-mob finger sprites. States are "[limb_id or glove]_[l|r]_[1-5]", with "_wild" (*wiggle) and "_grip" (holding something) variants.
 #define FINGER_MOB_ICON 'voidcrew/modules/fingers/icons/fingers_mob.dmi'
 /// Sampled when worn clothing over a hand has no pixels there to take a colour from.
@@ -407,7 +418,7 @@ GLOBAL_LIST_INIT(hand_fingers, list("thumb", "index finger", "middle finger", "r
 	return ITEM_INTERACT_SUCCESS
 
 /mob/living/carbon/proc/cut_off_finger(mob/living/user, obj/item/tool, obj/item/bodypart/arm/hand)
-	var/finger_name = tgui_input_list(user, "Which finger?", "Cut off a finger", hand.get_remaining_fingers())
+	var/finger_name = tgui_pick_finger(user, "Which finger on the [hand.get_hand_side()] [hand.appendage_noun]?", "Cut off a finger", hand.get_remaining_fingers())
 	if(!finger_name || hand.owner != src || !hand.has_finger(finger_name))
 		return
 	if(!user.can_perform_action(src) || user.get_active_held_item() != tool)
