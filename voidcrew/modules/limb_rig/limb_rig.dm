@@ -46,9 +46,10 @@
 	var/list/obj/effect/abstract/limb_rig_part/finger_parts = list()
 	/// A hand's middle finger on its own, while it's being held up at someone, "l" and "r".
 	var/list/obj/effect/abstract/limb_rig_part/bird_parts = list()
-	/// Whether the rig is holding the empty-handed combat stance, and whether it has finished reaching out.
+	/// Whether the rig is holding the empty-handed combat stance.
 	var/menacing = FALSE
-	var/menace_extended = FALSE
+	/// How far the fingers have stretched out so far in the stance. Only grows until it ends.
+	var/menace_reach = 0
 	/// The overlays_standing layers currently copied onto the pieces, by cache index: list(body, left fingers, right fingers).
 	var/list/mirrored_layers = list()
 	/// What the rig is currently doing, a RIG_ACTIVITY_ define.

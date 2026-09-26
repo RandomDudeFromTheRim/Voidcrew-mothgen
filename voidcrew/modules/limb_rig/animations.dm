@@ -282,7 +282,7 @@
 		play_menace()
 		return
 	menacing = FALSE
-	menace_extended = FALSE
+	menace_reach = 0
 	stop_menace_fx()
 	var/deep = owner.stat != CONSCIOUS
 	var/list/inhale = list(RIG_CHEST = list("breath" = deep ? 0.05 : 0.035), RIG_HEAD = list("nod" = deep ? 4 : 0))
@@ -302,16 +302,29 @@
 			return FALSE
 	return TRUE
 
+/// How far the fingers can stretch in the combat stance, on top of their usual length (2 is triple).
+#define MENACE_MAX_REACH 2
+/// Each beat of the stance closes this much of the gap to MENACE_MAX_REACH: fast at first, then
+/// slower and slower as the fingers strain toward their limit.
+#define MENACE_REACH_RATE 0.12
+
+/// Stretches the fingers one beat further toward their limit. They never shrink back mid-stance.
+/datum/limb_rig/proc/grow_menace_reach(beats = 1)
+	for(var/beat in 1 to beats)
+		menace_reach += (MENACE_MAX_REACH - menace_reach) * MENACE_REACH_RATE
+	return menace_reach
+
+/// Stance arms: straight out in front, twitching sideways, fingers at their current stretch.
+/// The forward swing and elbow stay put, since from the front they'd change how long the arms
+/// and fingers look, and read as pulsing.
+/proc/rig_menace_arm(reach, twitch)
+	return list("swing" = 80, "raise" = 10 + rand(-twitch, twitch), "elbow" = -5, "reach" = reach)
+
 /// A walking keyframe with the arms swapped for the reaching, twitching combat stance.
-/proc/rig_menace_step(list/step)
+/proc/rig_menace_step(list/step, reach)
 	var/list/stalking = step.Copy()
-	for(var/arm_id in list(RIG_L_ARM, RIG_R_ARM))
-		stalking[arm_id] = list(
-			"swing" = 78 + rand(-8, 8),
-			"raise" = 10 + rand(-6, 6),
-			"elbow" = rand(-10, 6),
-			"reach" = 1.4 + rand(-4, 4) / 10,
-		)
+	stalking[RIG_L_ARM] = rig_menace_arm(reach, 6)
+	stalking[RIG_R_ARM] = rig_menace_arm(reach, 6)
 	var/list/old_chest = step[RIG_CHEST] || list()
 	var/list/chest = old_chest.Copy()
 	chest["bend"] = (chest["bend"] || 0) + 8 + rand(-3, 3)
@@ -327,33 +340,20 @@
 /**
  * Arms out in front, fingers stretching out after them, the whole body trembling.
  *
- * The first time through it reaches out slowly; after that it just holds and shakes.
+ * Plays a short stretch of tremble and comes back here when it's done, so the fingers keep
+ * stretching from wherever they got to until they hit their limit, and then hold.
  */
 /datum/limb_rig/proc/play_menace()
 	menacing = TRUE
 	start_menace_fx()
-	var/list/reach = list(
-		RIG_L_ARM = list("swing" = 80, "raise" = 10, "elbow" = -5, "reach" = 1.4),
-		RIG_R_ARM = list("swing" = 80, "raise" = 10, "elbow" = -5, "reach" = 1.4),
-		RIG_CHEST = list("bend" = 8),
-		RIG_HEAD = list("nod" = -6),
-	)
-	if(!menace_extended)
-		menace_extended = TRUE
-		var/list/halfway = list(
-			RIG_L_ARM = list("swing" = 60, "raise" = 8, "reach" = 0.4),
-			RIG_R_ARM = list("swing" = 55, "raise" = 8, "reach" = 0.3),
-			RIG_CHEST = list("bend" = 5),
-		)
-		play(list(list(halfway, 6), list(reach, 10)), activity = RIG_ACTIVITY_MENACE)
-		return
 	var/list/tremble = list()
 	for(var/shudder in 1 to 12)
+		var/reach = grow_menace_reach()
 		if(!(shudder % 4))
 			// Stop-motion: hold the last pose, then snap to a worse one, sheared and wrenched.
 			tremble += list(list(list(
-				RIG_L_ARM = list("swing" = 80 + rand(-15, 15), "raise" = 10 + rand(-12, 12), "elbow" = rand(-20, 25), "reach" = 1.4 + rand(-5, 8) / 10),
-				RIG_R_ARM = list("swing" = 80 + rand(-15, 15), "raise" = 10 + rand(-12, 12), "elbow" = rand(-20, 25), "reach" = 1.4 + rand(-5, 8) / 10),
+				RIG_L_ARM = rig_menace_arm(reach, 14),
+				RIG_R_ARM = rig_menace_arm(reach, 14),
 				RIG_CHEST = list("bend" = 8 + rand(-8, 12), "lean" = rand(-10, 10), "skew" = rand(-25, 25) / 100),
 				RIG_HEAD = list("nod" = rand(-30, 25), "tilt" = rand(-35, 35), "skew" = rand(-40, 40) / 100),
 				RIG_L_LEG = list("knee" = rand(0, 20)),
@@ -361,14 +361,14 @@
 			), rand(2, 4), JUMP_EASING))
 			continue
 		tremble += list(list(list(
-			RIG_L_ARM = list("swing" = 80 + rand(-5, 5), "raise" = 10 + rand(-4, 4), "elbow" = rand(-8, 4), "reach" = 1.4 + rand(-3, 3) / 10),
-			RIG_R_ARM = list("swing" = 80 + rand(-5, 5), "raise" = 10 + rand(-4, 4), "elbow" = rand(-8, 4), "reach" = 1.4 + rand(-3, 3) / 10),
+			RIG_L_ARM = rig_menace_arm(reach, 4),
+			RIG_R_ARM = rig_menace_arm(reach, 4),
 			RIG_CHEST = list("bend" = 8 + rand(-3, 3), "lean" = rand(-3, 3), "dx" = rand(-1, 1) / 2),
 			RIG_HEAD = list("nod" = -6 + rand(-6, 6), "tilt" = rand(-7, 7)),
 			RIG_L_LEG = list("knee" = rand(0, 6)),
 			RIG_R_LEG = list("knee" = rand(0, 6)),
 		), 0.5))
-	play(tremble, loop = -1, activity = RIG_ACTIVITY_MENACE)
+	play(tremble, activity = RIG_ACTIVITY_MENACE)
 
 /// How long one step takes, in deciseconds, from how fast the mob glides between tiles.
 /datum/limb_rig/proc/get_step_time()
@@ -440,10 +440,9 @@
 		// Stalking: the legs keep loping, but the arms stay out in front, fingers stretching and
 		// twitching, and the rest of the body shudders as it goes.
 		menacing = TRUE
-		menace_extended = TRUE
 		start_menace_fx()
-		stride = rig_menace_step(stride)
-		passing = rig_menace_step(passing)
+		stride = rig_menace_step(stride, grow_menace_reach(2))
+		passing = rig_menace_step(passing, grow_menace_reach(2))
 	play(list(
 		list(stride, step_time * 0.5),
 		list(passing, step_time * 0.5),
@@ -654,3 +653,5 @@
 #undef RIG_HAND_Y
 #undef RIG_KNEE_Y
 #undef RIG_SOLE_Y
+#undef MENACE_MAX_REACH
+#undef MENACE_REACH_RATE
