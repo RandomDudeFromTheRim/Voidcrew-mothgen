@@ -13,9 +13,9 @@
  * hand, and a mask big enough for them would tear a chunk of trouser off with it.
  *
  * The pieces are vis_contents, so they follow the mob, turn with it, pass clicks through
- * to it, and inherit its transform when it lies down. The head, arms and held items sit
- * inside a torso pivot, so bending or breathing the torso carries them along; the legs
- * hang off the mob directly.
+ * to it, and inherit its transform when it lies down. Arms and legs are two pieces each
+ * (upper arm and forearm, thigh and shin). The head and arms sit inside a torso pivot, so
+ * bending or breathing the torso carries them along; the legs hang off the mob directly.
  *
  * Idea and joint positions from the dancing PR, tgstation/tgstation#95581. That PR paints
  * each dancer's clothes into new icons every time; this masks the existing overlays instead,
@@ -61,7 +61,7 @@
 	src.owner = owner
 	pivot = new_part(RIG_CHEST)
 	owner.vis_contents += pivot
-	for(var/part_id in list(RIG_CHEST, RIG_HEAD, RIG_L_ARM, RIG_R_ARM))
+	for(var/part_id in list(RIG_CHEST, RIG_HEAD, RIG_L_ARM, RIG_R_ARM, "l_forearm", "r_forearm"))
 		parts[part_id] = new_part(part_id)
 		pivot.vis_contents += parts[part_id]
 	for(var/side in list("l", "r"))
@@ -69,7 +69,7 @@
 		pivot.vis_contents += item_parts[side]
 		finger_parts[side] = new_part(side == "l" ? RIG_L_ARM : RIG_R_ARM)
 		pivot.vis_contents += finger_parts[side]
-	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG))
+	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
 		parts[part_id] = new_part(part_id)
 		owner.vis_contents += parts[part_id]
 
@@ -109,7 +109,7 @@
 		if(standing)
 			owner.add_overlay(standing)
 	owner.vis_contents -= pivot
-	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG))
+	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
 		owner.vis_contents -= parts[part_id]
 	QDEL_LIST_ASSOC_VAL(parts)
 	QDEL_LIST_ASSOC_VAL(item_parts)
@@ -204,14 +204,16 @@
 	// Seen side-on, the arm on the far side goes behind the torso.
 	var/far_side = facing == EAST ? "l" : (facing == WEST ? "r" : null)
 	pivot.layer = -2
-	parts[RIG_L_LEG].layer = -3
-	parts[RIG_R_LEG].layer = -3
+	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
+		parts[part_id].layer = -3
 	parts[RIG_CHEST].layer = -5
 	parts[RIG_HEAD].layer = -4
 	for(var/side in list("l", "r"))
 		var/obj/effect/abstract/limb_rig_part/arm = parts[side == "l" ? RIG_L_ARM : RIG_R_ARM]
 		var/obj/effect/abstract/limb_rig_part/item = item_parts[side]
+		var/obj/effect/abstract/limb_rig_part/forearm = parts["[side]_forearm"]
 		arm.layer = side == far_side ? -7 : -3
+		forearm.layer = arm.layer + 0.2
 		item.layer = side == far_side ? -6 : -2
 	update_finger_layers()
 

@@ -7,6 +7,10 @@
 #define RIG_L_LEG "l_leg"
 #define RIG_R_LEG "r_leg"
 
+/// How much longer arms and legs are drawn than the sprite, along their length.
+#define RIG_ARM_STRETCH 1.25
+#define RIG_LEG_STRETCH 1.3
+
 /// What the rig is doing, which decides what it goes back to after a one-off animation.
 #define RIG_ACTIVITY_IDLE "idle"
 #define RIG_ACTIVITY_MOVING "moving"
