@@ -12,7 +12,7 @@ Every flesh-and-blood hand has five fingers: thumb, index, middle, ring and pink
 Fingers come off in two ways:
 
 - **Wounds.** A severe slash or pierce wound on an arm has a 20% chance to take a finger with it, and a critical one 40%. A critical blunt wound has a 15% chance to crush one off.
-- **On purpose.** Right-click someone's hand with anything bladed, out of combat mode and aiming at the hand, and you pick a finger to cut off. It takes 6 seconds on someone else and 9 on yourself, and they can walk away.
+- **On purpose.** Right-click someone with anything bladed (a knife, a scalpel, a glass shard), out of combat mode and aiming at their left or right arm, and you pick a finger to cut off. It works on yourself too. It takes 6 seconds on someone else and 9 on yourself, and they can walk away.
 
 A severed finger drops on the floor and twitches for a little while. It's also meat.
 
@@ -32,7 +32,7 @@ Try `*wiggle` to see what you've got left.
 
 There are two ways to fill a gap:
 
-- **Your own finger.** Hold the severed finger and click the hand it came off, aiming at that arm or hand. It only fits back in its own gap.
+- **Your own finger.** Hold the severed finger and click the person it came off, aiming at that arm. It only fits back in its own gap.
 - **A prosthetic finger.** The autolathe, protolathe and exosuit fabricator all print them from the start of the round, for about half a sheet of iron. A prosthetic fits any gap. If the hand is missing more than one finger, you pick which one it replaces.
 
 Pressing a finger on takes 3 seconds on someone else and 5 on yourself, and the hand has to be bare. The finger works straight away, but it's **loose**.
@@ -40,6 +40,6 @@ Pressing a finger on takes 3 seconds on someone else and 5 on yourself, and the 
 !!! warning "Loose fingers fall off"
     Any hit of 5 damage or more on that arm can knock a loose finger off: 4% per point of damage, up to 60%. Stitch it in before you go anywhere dangerous.
 
-To secure a loose finger, click that arm or hand with a **suture**. Each suture secures one finger and takes 4 seconds, or 6 on yourself. Once it's stitched in, it stays until something cuts it off again.
+To secure a loose finger, click the person with a **suture**, aiming at that arm. Each suture secures one finger and takes 4 seconds, or 6 on yourself. Once it's stitched in, it stays until something cuts it off again.
 
 A full heal regrows every missing finger and secures any loose ones. A replacement arm, flesh or robotic, comes with a full set.

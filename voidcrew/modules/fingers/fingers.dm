@@ -8,7 +8,7 @@
  * Fingers come off two ways:
  * - A severe or critical slash or pierce wound on the arm, or a critical blunt one, can
  *   take one with it.
- * - Someone takes a bladed tool to a hand on purpose (right-click, aiming at the hand,
+ * - Someone takes a bladed tool to a hand on purpose (right-click, aiming at the arm,
  *   out of combat mode) and picks which finger goes.
  *
  * Losing fingers matters: a hand drops things more often the fewer it has, a hand with
@@ -392,18 +392,16 @@ GLOBAL_LIST_INIT(hand_fingers, list("thumb", "index finger", "middle finger", "r
 		span_userdanger("Your [finger_name] comes clean off!"),
 	)
 
-/// Right-clicking a hand with a bladed tool, out of combat mode, starts cutting a finger off.
+/// Right-clicking an arm with a bladed tool, out of combat mode, starts cutting a finger off.
+/// The zone selector has no hand zones, so aiming at the arm is how you aim at its hand.
 /mob/living/carbon/proc/try_cut_off_finger(mob/living/carbon/source, mob/living/user, obj/item/tool, list/modifiers)
 	SIGNAL_HANDLER
 	if(user.combat_mode || !(tool.get_sharpness() & SHARP_EDGED))
 		return NONE
-	var/zone = user.zone_selected
-	if(zone != BODY_ZONE_PRECISE_L_HAND && zone != BODY_ZONE_PRECISE_R_HAND)
-		return NONE
 	if(length(surgeries))
 		return NONE // Don't get in the way of an operation in progress.
-	var/obj/item/bodypart/arm/hand = get_bodypart(check_zone(zone))
-	if(!istype(hand) || !hand.can_have_fingers() || hand.get_finger_count() <= 0)
+	var/obj/item/bodypart/arm/hand = get_finger_target_hand(src, user)
+	if(!hand || !hand.can_have_fingers() || hand.get_finger_count() <= 0)
 		return NONE
 	INVOKE_ASYNC(src, PROC_REF(cut_off_finger), user, tool, hand)
 	return ITEM_INTERACT_SUCCESS
