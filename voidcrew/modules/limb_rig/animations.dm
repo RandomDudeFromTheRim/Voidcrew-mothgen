@@ -7,7 +7,8 @@
  *   is out: 0 is all the way, -1 is still curled)
  * - legs: "raise", "swing" and "knee" (shin bends back)
  * - head: "nod" (down is positive) and "tilt" (toward the mob's right)
- * - torso: "bend" (forward) and "lean" (toward the mob's right), plus "breath" (0.03 = 3% taller)
+ * - torso: "bend" (forward) and "lean" (toward the mob's right), plus "breath" (0.03 = 3% taller,
+ *   negative squashes), and "air" (pixels the whole body is off the floor)
  * - head and torso: "skew", sheared sideways by this much (0.3 is a lot)
  * - any part: "dx" and "dy" in pixels
  *
@@ -223,7 +224,10 @@
 		legs[parts["[side]_shin"]] = leg[2]
 		lowest_foot = min(lowest_foot, leg[5])
 	// Stand the body up (or crouch it down) so the lowest foot is on the floor.
-	var/lift = RIG_SOLE_Y - lowest_foot
+	// "air" on the torso then lifts the whole body off the floor on top of that, for jumps and
+	// the airborne part of a run.
+	var/list/chest_entry = pose?[RIG_CHEST]
+	var/lift = RIG_SOLE_Y - lowest_foot + (chest_entry?["air"] || 0)
 	for(var/obj/effect/abstract/limb_rig_part/leg_part as anything in legs)
 		var/matrix/leg_matrix = legs[leg_part]
 		leg_matrix.Translate(0, lift)
@@ -387,6 +391,7 @@
 	var/lead = left_foot_forward ? 1 : -1
 	var/list/stride
 	var/list/passing
+	var/list/keyframes
 	if(owner.body_position == LYING_DOWN)
 		// Crawling: one arm reaches past the head and drags, the legs kick a little.
 		stride = list(
@@ -403,24 +408,49 @@
 			RIG_CHEST = list("dx" = 1),
 		)
 	else if(owner.move_intent == MOVE_INTENT_RUN)
-		// Running, after Kris's run in Deltarune: leaning hard into it, legs in a wide split with
-		// the back foot kicked up high, fists pumping with the elbows bent, then a little hang
-		// in the air as the legs swap.
-		stride = list(
-			RIG_L_LEG = list("swing" = 45 * lead, "knee" = lead > 0 ? 15 : 75),
-			RIG_R_LEG = list("swing" = -45 * lead, "knee" = lead > 0 ? 75 : 15),
-			RIG_L_ARM = list("swing" = -45 * lead, "raise" = 6, "elbow" = 95),
-			RIG_R_ARM = list("swing" = 45 * lead, "raise" = 6, "elbow" = 95),
-			RIG_CHEST = list("bend" = 16, "lean" = 3 * lead),
+		// Running, after Kris's run in Deltarune, in the four poses a good run needs:
+		// contact (front leg reaching, nearly straight), down (the stomp: body drops and squashes,
+		// the planted knee gives), push (driving off) and up (off the ground, stretched out,
+		// trailing knee tucked). Slamming fast into the down pose and holding it for a moment is
+		// what gives it weight.
+		var/list/contact = list(
+			RIG_L_LEG = list("swing" = 40 * lead, "knee" = lead > 0 ? 5 : 60),
+			RIG_R_LEG = list("swing" = -40 * lead, "knee" = lead > 0 ? 60 : 5),
+			RIG_L_ARM = list("swing" = -50 * lead, "raise" = 6, "elbow" = 95),
+			RIG_R_ARM = list("swing" = 50 * lead, "raise" = 6, "elbow" = 95),
+			RIG_CHEST = list("bend" = 14, "lean" = 3 * lead),
 			RIG_HEAD = list("nod" = -10, "tilt" = -3 * lead),
 		)
-		passing = list(
-			RIG_L_LEG = list("swing" = lead > 0 ? 5 : 30, "knee" = lead > 0 ? 10 : 100),
-			RIG_R_LEG = list("swing" = lead > 0 ? 30 : 5, "knee" = lead > 0 ? 100 : 10),
-			RIG_L_ARM = list("swing" = 5, "raise" = 6, "elbow" = 100),
-			RIG_R_ARM = list("swing" = 5, "raise" = 6, "elbow" = 100),
-			RIG_CHEST = list("bend" = 14, "dy" = 2),
+		var/list/down = list(
+			RIG_L_LEG = list("swing" = lead > 0 ? 25 : -20, "knee" = lead > 0 ? 45 : 70),
+			RIG_R_LEG = list("swing" = lead > 0 ? -20 : 25, "knee" = lead > 0 ? 70 : 45),
+			RIG_L_ARM = list("swing" = -40 * lead, "raise" = 8, "elbow" = 105),
+			RIG_R_ARM = list("swing" = 40 * lead, "raise" = 8, "elbow" = 105),
+			RIG_CHEST = list("bend" = 20, "lean" = 4 * lead, "breath" = -0.07),
+			RIG_HEAD = list("nod" = 4, "tilt" = -4 * lead),
+		)
+		var/list/push = list(
+			RIG_L_LEG = list("swing" = lead > 0 ? -15 : 40, "knee" = lead > 0 ? 10 : 110),
+			RIG_R_LEG = list("swing" = lead > 0 ? 40 : -15, "knee" = lead > 0 ? 110 : 10),
+			RIG_L_ARM = list("swing" = 10 * lead, "raise" = 6, "elbow" = 95),
+			RIG_R_ARM = list("swing" = -10 * lead, "raise" = 6, "elbow" = 95),
+			RIG_CHEST = list("bend" = 16, "air" = 1),
 			RIG_HEAD = list("nod" = -8),
+		)
+		var/list/up = list(
+			RIG_L_LEG = list("swing" = lead > 0 ? -35 : 50, "knee" = lead > 0 ? 50 : 90),
+			RIG_R_LEG = list("swing" = lead > 0 ? 50 : -35, "knee" = lead > 0 ? 90 : 50),
+			RIG_L_ARM = list("swing" = 45 * lead, "raise" = 6, "elbow" = 90),
+			RIG_R_ARM = list("swing" = -45 * lead, "raise" = 6, "elbow" = 90),
+			RIG_CHEST = list("bend" = 12, "lean" = -3 * lead, "breath" = 0.04, "air" = 3),
+			RIG_HEAD = list("nod" = -12, "tilt" = 3 * lead),
+		)
+		keyframes = list(
+			list(contact, step_time * 0.15, SINE_EASING | EASE_IN),
+			list(down, step_time * 0.2, CUBIC_EASING | EASE_OUT),
+			list(down, step_time * 0.1),
+			list(push, step_time * 0.2, QUAD_EASING | EASE_OUT),
+			list(up, step_time * 0.35, SINE_EASING | EASE_OUT),
 		)
 	else if(walk_style == RIG_WALK_LOPE)
 		// Long legs: huge strides, the trailing knee hauled up high, the body swaying side to
@@ -464,12 +494,15 @@
 		// twitching, and the rest of the body shudders as it goes.
 		menacing = TRUE
 		start_menace_fx()
-		stride = rig_menace_step(stride, grow_menace_reach(2))
-		passing = rig_menace_step(passing, grow_menace_reach(2))
-	play(list(
-		list(stride, step_time * 0.5),
-		list(passing, step_time * 0.5),
-	), activity = RIG_ACTIVITY_MOVING, settle_after = FALSE)
+		if(keyframes)
+			for(var/list/keyframe as anything in keyframes)
+				keyframe[1] = rig_menace_step(keyframe[1], grow_menace_reach(1))
+		else
+			stride = rig_menace_step(stride, grow_menace_reach(2))
+			passing = rig_menace_step(passing, grow_menace_reach(2))
+	if(!keyframes)
+		keyframes = list(list(stride, step_time * 0.5), list(passing, step_time * 0.5))
+	play(keyframes, activity = RIG_ACTIVITY_MOVING, settle_after = FALSE)
 	// Stand still again if no step follows.
 	settle_timer = addtimer(CALLBACK(src, PROC_REF(settle)), step_time + 1, TIMER_STOPPABLE|TIMER_DELETE_ME)
 
