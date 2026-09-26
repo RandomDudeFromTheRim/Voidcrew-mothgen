@@ -56,6 +56,14 @@
 	var/left_foot_forward = FALSE
 	/// Timer that puts the rig back to its idle loop after a one-off animation or a walk.
 	var/settle_timer
+	/// How much longer than the sprite the arms, legs and fingers are drawn.
+	var/arm_stretch = RIG_ARM_STRETCH
+	var/leg_stretch = RIG_LEG_STRETCH
+	var/finger_stretch = 1
+	/// Angles added to every pose, from the species.
+	var/list/posture
+	/// How this body walks, a RIG_WALK_ define.
+	var/walk_style = RIG_WALK_NORMAL
 
 /datum/limb_rig/New(mob/living/carbon/owner)
 	src.owner = owner
@@ -87,6 +95,7 @@
 	RegisterSignal(owner, COMSIG_DO_AFTER_ENDED, PROC_REF(on_work_ended))
 	RegisterSignals(owner, list(COMSIG_MOB_STATCHANGE, COMSIG_LIVING_SET_BODY_POSITION), PROC_REF(on_posture_change))
 	RegisterSignal(owner, COMSIG_MOB_EMOTE, PROC_REF(on_emote))
+	refresh_shape()
 	refresh_facing()
 	settle()
 
@@ -118,6 +127,16 @@
 	mirrored_layers = null
 	owner = null
 	return ..()
+
+/// Takes the limb lengths, posture and walk from the owner's species.
+/datum/limb_rig/proc/refresh_shape()
+	var/mob/living/carbon/human/human_owner = owner
+	var/list/shape = istype(human_owner) ? human_owner.dna?.species?.limb_rig_shape : null
+	arm_stretch = shape?["arm_stretch"] || RIG_ARM_STRETCH
+	leg_stretch = shape?["leg_stretch"] || RIG_LEG_STRETCH
+	finger_stretch = shape?["finger_stretch"] || 1
+	posture = shape?["posture"]
+	walk_style = shape?["walk"] || RIG_WALK_NORMAL
 
 /datum/limb_rig/proc/new_part(part_id)
 	var/obj/effect/abstract/limb_rig_part/part = new
@@ -305,11 +324,14 @@
 	// The masks are cut for a human-shaped body. Monkeys and xenos are built differently.
 	return chest && (chest.bodyshape & BODYSHAPE_HUMANOID) && !(chest.bodyshape & BODYSHAPE_MONKEY)
 
-/// Adds or removes the rig to match can_have_limb_rig().
+/// Adds or removes the rig to match can_have_limb_rig(), and keeps its shape matching the species.
 /mob/living/carbon/proc/update_limb_rig()
 	if(can_have_limb_rig())
 		if(!limb_rig)
 			limb_rig = new(src)
+		else
+			limb_rig.refresh_shape()
+			limb_rig.settle()
 	else if(limb_rig)
 		QDEL_NULL(limb_rig)
 
@@ -324,6 +346,15 @@
 	. = ..()
 	if(stat == DEAD || limb_rig == null)
 		update_limb_rig()
+
+/datum/species
+	/**
+	 * How the limb rig draws this species, or null for the usual. Keys:
+	 * - "arm_stretch", "leg_stretch", "finger_stretch": how much longer than the sprite
+	 * - "posture": a pose added to every pose (see animations.dm)
+	 * - "walk": a RIG_WALK_ define
+	 */
+	var/list/limb_rig_shape
 
 /mob/living/carbon/human/Initialize(mapload)
 	. = ..()

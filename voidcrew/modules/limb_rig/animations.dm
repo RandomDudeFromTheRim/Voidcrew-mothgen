@@ -16,8 +16,10 @@
  * Arms and legs are two pieces each, laid along a little joint chain: shoulder to elbow to
  * hand, hip to knee to foot. Each piece gets its own complete transform rather than hanging
  * off the one above it, so foreshortening the upper arm doesn't squash the forearm too.
- * Limbs are also drawn a bit longer than the sprite (RIG_ARM_STRETCH, RIG_LEG_STRETCH), and
- * the whole body stands up by the extra leg length so the feet stay on the floor.
+ * Limbs are also drawn longer than the sprite (RIG_ARM_STRETCH, RIG_LEG_STRETCH, or whatever
+ * the species' limb_rig_shape says), and the body is lifted so the lowest foot always rests on
+ * the floor, whatever the legs are doing. A species can also give the rig a posture, which is
+ * added to every pose (a hunch, say), and its own walk.
  *
  * A sequence is a list of keyframes, each list(pose, time in deciseconds).
  */
@@ -75,10 +77,6 @@
 					return list(17, 10)
 	return list(16, 16)
 
-/// How far the body stands up so the stretched legs still reach the floor.
-/proc/get_rig_lift()
-	return (RIG_LEG_STRETCH - 1) * 10
-
 /// A transform that scales a piece along its length from a point, turns it about that point,
 /// then moves that point somewhere else. Points are in BYOND pixel coordinates.
 /proc/rig_joint_matrix(from_x, from_y, length_scale, angle, to_x, to_y)
@@ -121,15 +119,17 @@
 	return pose
 
 /**
- * Transforms for one arm or leg in a pose: list(upper piece, lower piece, end), where the end
- * is for whatever rides on the hand (fingers, held items) without being stretched.
+ * Transforms for one arm or leg in a pose.
+ *
+ * Returns list(upper piece, lower piece, end, fingers, end height). The end is for whatever
+ * rides on the hand without being stretched (held items); fingers get stretched by
+ * finger_stretch. The end height is where the hand or foot finished up, before any lift.
  */
-/proc/rig_limb_matrices(part_id, list/entry, facing)
+/proc/rig_limb_matrices(part_id, list/entry, facing, stretch, finger_stretch = 1)
 	var/is_leg = (part_id == RIG_L_LEG || part_id == RIG_R_LEG)
 	var/list/root = get_rig_joint(part_id, facing)
 	var/mid_y = is_leg ? RIG_KNEE_Y : RIG_ELBOW_Y
 	var/end_y = is_leg ? RIG_SOLE_Y : RIG_HAND_Y
-	var/stretch = is_leg ? RIG_LEG_STRETCH : RIG_ARM_STRETCH
 	var/upper_length = root[2] - mid_y
 	var/lower_length = mid_y - end_y
 
@@ -160,7 +160,7 @@
 	lower_scale *= stretch
 
 	var/offset_x = entry?["dx"] || 0
-	var/offset_y = (entry?["dy"] || 0) + (is_leg ? get_rig_lift() : 0)
+	var/offset_y = entry?["dy"] || 0
 	var/root_x = root[1] + offset_x
 	var/root_y = root[2] + offset_y
 	// Where the elbow or knee ends up, and then the hand or foot. Turn() is clockwise.
@@ -172,26 +172,53 @@
 		rig_joint_matrix(root[1], root[2], upper_scale, upper_angle, root_x, root_y),
 		rig_joint_matrix(root[1], mid_y, lower_scale, lower_angle, mid_x, mid_to_y),
 		rig_joint_matrix(root[1], end_y, 1, lower_angle, end_x, end_to_y),
+		rig_joint_matrix(root[1], end_y, finger_stretch, lower_angle, end_x, end_to_y),
+		end_to_y,
 	)
+
+/// Adds a posture to a pose, angle by angle.
+/proc/rig_merge_pose(list/posture, list/pose)
+	if(!posture)
+		return pose
+	. = list()
+	for(var/part_id in posture | (pose || list()))
+		var/list/merged = list()
+		var/list/base_entry = posture[part_id]
+		var/list/pose_entry = pose?[part_id]
+		for(var/key in base_entry)
+			merged[key] = base_entry[key]
+		for(var/key in pose_entry)
+			merged[key] = (merged[key] || 0) + pose_entry[key]
+		.[part_id] = merged
 
 /// The transform for every moving piece in a pose, seen from the given direction.
 /datum/limb_rig/proc/get_pose_matrices(list/pose, facing)
 	. = list()
-	var/matrix/torso = rig_pose_matrix(RIG_CHEST, pose?[RIG_CHEST], facing)
-	torso.Translate(0, get_rig_lift())
-	.[pivot] = torso
-	.[parts[RIG_HEAD]] = rig_pose_matrix(RIG_HEAD, pose?[RIG_HEAD], facing)
+	pose = rig_merge_pose(posture, pose)
+	var/list/legs = list()
+	var/lowest_foot = INFINITY
 	for(var/side in list("l", "r"))
 		var/arm_id = side == "l" ? RIG_L_ARM : RIG_R_ARM
-		var/list/arm = rig_limb_matrices(arm_id, pose?[arm_id], facing)
+		var/list/arm = rig_limb_matrices(arm_id, pose?[arm_id], facing, arm_stretch, finger_stretch)
 		.[parts[arm_id]] = arm[1]
 		.[parts["[side]_forearm"]] = arm[2]
-		.[finger_parts[side]] = arm[3]
 		.[item_parts[side]] = arm[3]
+		.[finger_parts[side]] = arm[4]
 		var/leg_id = side == "l" ? RIG_L_LEG : RIG_R_LEG
-		var/list/leg = rig_limb_matrices(leg_id, pose?[leg_id], facing)
-		.[parts[leg_id]] = leg[1]
-		.[parts["[side]_shin"]] = leg[2]
+		var/list/leg = rig_limb_matrices(leg_id, pose?[leg_id], facing, leg_stretch)
+		legs[parts[leg_id]] = leg[1]
+		legs[parts["[side]_shin"]] = leg[2]
+		lowest_foot = min(lowest_foot, leg[5])
+	// Stand the body up (or crouch it down) so the lowest foot is on the floor.
+	var/lift = RIG_SOLE_Y - lowest_foot
+	for(var/obj/effect/abstract/limb_rig_part/leg_part as anything in legs)
+		var/matrix/leg_matrix = legs[leg_part]
+		leg_matrix.Translate(0, lift)
+		.[leg_part] = leg_matrix
+	var/matrix/torso = rig_pose_matrix(RIG_CHEST, pose?[RIG_CHEST], facing)
+	torso.Translate(0, lift)
+	.[pivot] = torso
+	.[parts[RIG_HEAD]] = rig_pose_matrix(RIG_HEAD, pose?[RIG_HEAD], facing)
 
 /// Puts every piece in a pose immediately.
 /datum/limb_rig/proc/snap_to(list/pose)
@@ -277,6 +304,25 @@
 			RIG_R_ARM = list("raise" = 110, "elbow" = 40),
 			RIG_HEAD = list("nod" = -6),
 			RIG_CHEST = list("dx" = 1),
+		)
+	else if(walk_style == RIG_WALK_LOPE)
+		// Long legs: huge strides, the trailing knee hauled up high, the body swaying side to
+		// side and the arms swinging loose from the elbow.
+		stride = list(
+			RIG_L_LEG = list("swing" = 38 * lead, "knee" = lead > 0 ? 4 : 35),
+			RIG_R_LEG = list("swing" = -38 * lead, "knee" = lead > 0 ? 35 : 4),
+			RIG_L_ARM = list("swing" = -30 * lead, "raise" = 6, "elbow" = lead > 0 ? 5 : 50),
+			RIG_R_ARM = list("swing" = 30 * lead, "raise" = 6, "elbow" = lead > 0 ? 50 : 5),
+			RIG_CHEST = list("lean" = 7 * lead, "bend" = 4),
+			RIG_HEAD = list("tilt" = -8 * lead, "nod" = 4),
+		)
+		passing = list(
+			RIG_L_LEG = list("swing" = lead > 0 ? 0 : 30, "knee" = lead > 0 ? 0 : 80),
+			RIG_R_LEG = list("swing" = lead > 0 ? 30 : 0, "knee" = lead > 0 ? 80 : 0),
+			RIG_L_ARM = list("raise" = 8, "elbow" = 30),
+			RIG_R_ARM = list("raise" = 8, "elbow" = 30),
+			RIG_CHEST = list("lean" = 2 * lead, "bend" = -2),
+			RIG_HEAD = list("nod" = -4),
 		)
 	else
 		// Front leg planted almost straight, back leg pushing off with a bent knee.

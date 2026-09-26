@@ -16,3 +16,8 @@
 #define RIG_ACTIVITY_MOVING "moving"
 #define RIG_ACTIVITY_ONESHOT "oneshot"
 #define RIG_ACTIVITY_WORKING "working"
+
+/// How a rigged body walks.
+#define RIG_WALK_NORMAL "normal"
+/// Long, loping, high-kneed strides with a sway. For very long legs.
+#define RIG_WALK_LOPE "lope"
