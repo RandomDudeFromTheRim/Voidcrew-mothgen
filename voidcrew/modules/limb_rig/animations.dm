@@ -263,7 +263,11 @@
 	var/bend = chest_entry?["bend"] || 0
 	for(var/side in list("l", "r"))
 		var/arm_id = side == "l" ? RIG_L_ARM : RIG_R_ARM
-		var/list/arm = rig_limb_matrices(arm_id, pose?[arm_id], facing, arm_stretch, finger_stretch, bend)
+		// With no fingers dangling off the end, a stretched arm stops short of whatever it's
+		// holding, so it reaches a little further to get there.
+		var/obj/item/bodypart/arm/hand = owner.get_bodypart(side == "l" ? BODY_ZONE_L_ARM : BODY_ZONE_R_ARM)
+		var/stretch = arm_stretch * (hand?.should_draw_fingers() ? 1 : RIG_FINGERLESS_ARM_STRETCH)
+		var/list/arm = rig_limb_matrices(arm_id, pose?[arm_id], facing, stretch, finger_stretch, bend)
 		.[parts[arm_id]] = arm[1]
 		.[parts["[side]_forearm"]] = arm[2]
 		.[item_parts[side]] = arm[3]

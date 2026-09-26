@@ -208,14 +208,21 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 		return "_grip"
 	return ""
 
-/// Whether this hand's fingers should be drawn at all right now.
-/obj/item/bodypart/arm/proc/should_draw_fingers()
-	if(!can_have_fingers() || is_invisible || is_husked || !(bodyshape & BODYSHAPE_HUMANOID))
+/// Whether this is a visible, human-shaped flesh hand that fingers could be drawn on.
+/obj/item/bodypart/arm/proc/has_drawable_hand()
+	if(!IS_ORGANIC_LIMB(src) || (bodytype & BODYTYPE_ALIEN) || is_invisible || is_husked || !(bodyshape & BODYSHAPE_HUMANOID))
 		return FALSE
 	// Arms that shift their gloves around per direction (monkeys) don't have a human-shaped hand.
-	if(!isnull(worn_glove_offset))
-		return FALSE
-	return get_finger_count() > 0
+	return isnull(worn_glove_offset)
+
+/// Whether this hand's fingers should be drawn at all right now.
+/obj/item/bodypart/arm/proc/should_draw_fingers()
+	return fingered && has_drawable_hand() && get_finger_count() > 0
+
+/// A hand without the Fingers quirk still grows a middle finger to flip someone off with, and
+/// only that one.
+/obj/item/bodypart/arm/proc/should_draw_lone_bird()
+	return fingers_bird && !fingered && has_drawable_hand()
 
 /// The colour of whatever is worn over this hand, or null if it's bare.
 /obj/item/bodypart/arm/proc/get_finger_covering_color()
@@ -224,6 +231,9 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 /obj/item/bodypart/arm/generate_icon_key()
 	RETURN_TYPE(/list)
 	. = ..()
+	if(should_draw_lone_bird())
+		. += "-lonebird[get_finger_covering_color()]"
+		return
 	if(!should_draw_fingers())
 		return
 	var/finger_key = ""
@@ -236,7 +246,8 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 
 /obj/item/bodypart/arm/get_limb_icon(dropped, mob/living/carbon/update_on)
 	. = ..()
-	if(!should_draw_fingers())
+	var/lone_bird = should_draw_lone_bird()
+	if(!lone_bird && !should_draw_fingers())
 		return
 	var/covering_color = get_finger_covering_color()
 	// Gloved fingers use a pale set the glove colour can tint without darkening it.
@@ -249,7 +260,7 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 		finger_layer = -FINGER_GRIP_LAYER
 	for(var/finger_index in 1 to length(GLOB.hand_fingers))
 		var/finger_name = GLOB.hand_fingers[finger_index]
-		if(finger_name in missing_fingers)
+		if(lone_bird ? finger_index != 3 : (finger_name in missing_fingers))
 			continue
 		// Flipping the bird: a fist, with the middle finger held straight.
 		var/finger_pose = fingers_bird ? (finger_index == 3 ? "" : "_grip") : pose

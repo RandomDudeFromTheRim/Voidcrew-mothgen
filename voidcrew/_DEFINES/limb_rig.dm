@@ -10,6 +10,8 @@
 /// How much longer arms and legs are drawn than the sprite, along their length.
 #define RIG_ARM_STRETCH 1.25
 #define RIG_LEG_STRETCH 1.3
+/// Extra length for an arm whose hand has no fingers drawn on it, so it still reaches what it holds.
+#define RIG_FINGERLESS_ARM_STRETCH 1.2
 
 /// What the rig is doing, which decides what it goes back to after a one-off animation.
 #define RIG_ACTIVITY_IDLE "idle"

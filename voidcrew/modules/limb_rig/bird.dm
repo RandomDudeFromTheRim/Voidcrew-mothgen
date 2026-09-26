@@ -4,7 +4,8 @@
  * *bird makes a fist with the active hand and raises the middle finger. *crankbird raises the
  * fist first, then the other hand cranks an invisible lever while the middle finger slowly
  * unfurls. The fist-and-finger is on the hand sprite itself, so any carbon with fingers does
- * it; a rigged body also acts it out with its arms (see /datum/limb_rig/proc/play_bird()).
+ * it. Hands without the Fingers quirk sprout just the middle finger for the occasion. An
+ * Overanimated body also acts it out with its arms (see /datum/limb_rig/proc/play_bird()).
  */
 /datum/emote/living/carbon/bird
 	key = "bird"
