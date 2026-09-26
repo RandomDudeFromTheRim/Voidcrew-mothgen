@@ -801,16 +801,6 @@
 			// Hand flying up to the mouth, head jerking back.
 			var/list/gasp = list(RIG_HEAD = list("nod" = -18), RIG_CHEST = list("bend" = -6, "breath" = 0.06), RIG_R_ARM = list("swing" = 50, "raise" = 25, "hand_y" = 24))
 			return list(list(gasp, 1), list(gasp, 5), list(null, 3))
-		if("67", "sixseven")
-			// Palms up, forearms out, hands bobbing in turns like they're weighing something.
-			// Upper arms at the sides, forearms out flat, bobbing at the elbow.
-			var/list/six = list(RIG_L_ARM = list("swing" = 15, "raise" = 12, "elbow" = 105), RIG_R_ARM = list("swing" = 15, "raise" = 12, "elbow" = 65), RIG_HEAD = list("tilt" = 6), RIG_CHEST = list("lean" = 2))
-			var/list/seven = list(RIG_L_ARM = list("swing" = 15, "raise" = 12, "elbow" = 65), RIG_R_ARM = list("swing" = 15, "raise" = 12, "elbow" = 105), RIG_HEAD = list("tilt" = -6), RIG_CHEST = list("lean" = -2))
-			. = list()
-			for(var/bob in 1 to 8)
-				. += list(list((bob % 2) ? six : seven, 1.5))
-			. += list(list(null, 2))
-			return .
 		if("collapse", "faint")
 			var/list/slump = list(RIG_CHEST = list("bend" = 25, "dy" = -2), RIG_HEAD = list("nod" = 30), RIG_L_ARM = list("raise" = 20), RIG_R_ARM = list("raise" = 20))
 			return list(list(slump, 3), list(null, 3))
