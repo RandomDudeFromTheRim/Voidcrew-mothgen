@@ -7046,7 +7046,6 @@
 #include "voidcrew\modules\limb_rig\loomer.dm"
 #include "voidcrew\modules\limb_rig\menace_fx.dm"
 #include "voidcrew\modules\limb_rig\quirk.dm"
-#include "voidcrew\modules\limb_rig\sixseven.dm"
 #include "voidcrew\modules\loot\abandoned_crate.dm"
 #include "voidcrew\modules\loot\loot_guns.dm"
 #include "voidcrew\modules\loot\zone_loot.dm"
