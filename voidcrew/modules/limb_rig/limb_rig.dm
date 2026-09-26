@@ -252,7 +252,8 @@
 			flags = MASK_INVERSE
 		part.add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask(mask_state, facing), flags = flags))
 
-	// Seen side-on, the arm on the far side goes behind the torso.
+	// Seen side-on, the arm on the far side goes behind the torso. Seen from behind, both do:
+	// anything the arms do in front of the body happens on the other side of the spine.
 	var/far_side = facing == EAST ? "l" : (facing == WEST ? "r" : null)
 	pivot.layer = -2
 	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
@@ -263,9 +264,10 @@
 		var/obj/effect/abstract/limb_rig_part/arm = parts[side == "l" ? RIG_L_ARM : RIG_R_ARM]
 		var/obj/effect/abstract/limb_rig_part/item = item_parts[side]
 		var/obj/effect/abstract/limb_rig_part/forearm = parts["[side]_forearm"]
-		arm.layer = side == far_side ? -7 : -3
+		var/behind = (side == far_side || facing == NORTH)
+		arm.layer = behind ? -7 : -3
 		forearm.layer = arm.layer + 0.2
-		item.layer = side == far_side ? -6 : -2
+		item.layer = behind ? -6 : -2
 	update_finger_layers()
 
 /// Dangling fingers sit just over the arm; gripping ones go over the held item, to wrap it.
