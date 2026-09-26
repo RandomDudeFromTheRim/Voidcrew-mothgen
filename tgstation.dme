@@ -7041,6 +7041,7 @@
 #include "voidcrew\modules\lich\lich_wards.dm"
 #include "voidcrew\modules\limb_rig\animations.dm"
 #include "voidcrew\modules\limb_rig\limb_rig.dm"
+#include "voidcrew\modules\limb_rig\sixseven.dm"
 #include "voidcrew\modules\loot\abandoned_crate.dm"
 #include "voidcrew\modules\loot\loot_guns.dm"
 #include "voidcrew\modules\loot\zone_loot.dm"
