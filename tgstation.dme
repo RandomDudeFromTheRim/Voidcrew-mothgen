@@ -7043,6 +7043,7 @@
 #include "voidcrew\modules\limb_rig\bird.dm"
 #include "voidcrew\modules\limb_rig\limb_rig.dm"
 #include "voidcrew\modules\limb_rig\loomer.dm"
+#include "voidcrew\modules\limb_rig\menace_fx.dm"
 #include "voidcrew\modules\limb_rig\sixseven.dm"
 #include "voidcrew\modules\loot\abandoned_crate.dm"
 #include "voidcrew\modules\loot\loot_guns.dm"

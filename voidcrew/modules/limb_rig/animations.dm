@@ -8,6 +8,7 @@
  * - legs: "raise", "swing" and "knee" (shin bends back)
  * - head: "nod" (down is positive) and "tilt" (toward the mob's right)
  * - torso: "bend" (forward) and "lean" (toward the mob's right), plus "breath" (0.03 = 3% taller)
+ * - head and torso: "skew", sheared sideways by this much (0.3 is a lot)
  * - any part: "dx" and "dy" in pixels
  *
  * Angles are in 3D terms, and the pose maths works out how they look from the way the mob is
@@ -117,6 +118,9 @@
 			scale_y *= 1 + (entry?["breath"] || 0)
 	var/list/joint = get_rig_joint(part_id, facing)
 	var/matrix/pose = rig_joint_matrix(joint[1], joint[2], scale_y, angle, joint[1], joint[2])
+	var/skew = entry?["skew"]
+	if(skew)
+		pose = matrix(1, skew, 0, 0, 1, 0) * pose
 	pose.Translate(entry?["dx"] || 0, dy)
 	return pose
 
@@ -235,7 +239,7 @@
 /**
  * Animates every piece through a sequence of keyframes.
  *
- * * keyframes - list of list(pose, deciseconds)
+ * * keyframes - list of list(pose, deciseconds), with an optional third entry for the easing
  * * loop - how many times to play it, -1 for forever
  * * activity - what the rig is doing while this plays
  * * settle_after - go back to idle once the sequence has played through (ignored when looping)
@@ -257,10 +261,11 @@
 		for(var/i in 1 to length(keyframes))
 			var/list/keyframe = keyframes[i]
 			var/list/matrices = matrices_per_keyframe[i]
+			var/easing = length(keyframe) >= 3 ? keyframe[3] : SINE_EASING
 			if(i == 1)
-				animate(part, transform = matrices[part], time = keyframe[2], loop = loop, easing = SINE_EASING)
+				animate(part, transform = matrices[part], time = keyframe[2], loop = loop, easing = easing)
 			else
-				animate(transform = matrices[part], time = keyframe[2], easing = SINE_EASING)
+				animate(transform = matrices[part], time = keyframe[2], easing = easing)
 	if(settle_after && loop == 1)
 		settle_timer = addtimer(CALLBACK(src, PROC_REF(settle)), total_time, TIMER_STOPPABLE|TIMER_DELETE_ME)
 
@@ -278,6 +283,7 @@
 		return
 	menacing = FALSE
 	menace_extended = FALSE
+	stop_menace_fx()
 	var/deep = owner.stat != CONSCIOUS
 	var/list/inhale = list(RIG_CHEST = list("breath" = deep ? 0.05 : 0.035), RIG_HEAD = list("nod" = deep ? 4 : 0))
 	var/list/exhale = list(RIG_HEAD = list("nod" = deep ? 4 : 0))
@@ -325,6 +331,7 @@
  */
 /datum/limb_rig/proc/play_menace()
 	menacing = TRUE
+	start_menace_fx()
 	var/list/reach = list(
 		RIG_L_ARM = list("swing" = 80, "raise" = 10, "elbow" = -5, "reach" = 1.4),
 		RIG_R_ARM = list("swing" = 80, "raise" = 10, "elbow" = -5, "reach" = 1.4),
@@ -341,7 +348,18 @@
 		play(list(list(halfway, 6), list(reach, 10)), activity = RIG_ACTIVITY_MENACE)
 		return
 	var/list/tremble = list()
-	for(var/shudder in 1 to 10)
+	for(var/shudder in 1 to 12)
+		if(!(shudder % 4))
+			// Stop-motion: hold the last pose, then snap to a worse one, sheared and wrenched.
+			tremble += list(list(list(
+				RIG_L_ARM = list("swing" = 80 + rand(-15, 15), "raise" = 10 + rand(-12, 12), "elbow" = rand(-20, 25), "reach" = 1.4 + rand(-5, 8) / 10),
+				RIG_R_ARM = list("swing" = 80 + rand(-15, 15), "raise" = 10 + rand(-12, 12), "elbow" = rand(-20, 25), "reach" = 1.4 + rand(-5, 8) / 10),
+				RIG_CHEST = list("bend" = 8 + rand(-8, 12), "lean" = rand(-10, 10), "skew" = rand(-25, 25) / 100),
+				RIG_HEAD = list("nod" = rand(-30, 25), "tilt" = rand(-35, 35), "skew" = rand(-40, 40) / 100),
+				RIG_L_LEG = list("knee" = rand(0, 20)),
+				RIG_R_LEG = list("knee" = rand(0, 20)),
+			), rand(2, 4), JUMP_EASING))
+			continue
 		tremble += list(list(list(
 			RIG_L_ARM = list("swing" = 80 + rand(-5, 5), "raise" = 10 + rand(-4, 4), "elbow" = rand(-8, 4), "reach" = 1.4 + rand(-3, 3) / 10),
 			RIG_R_ARM = list("swing" = 80 + rand(-5, 5), "raise" = 10 + rand(-4, 4), "elbow" = rand(-8, 4), "reach" = 1.4 + rand(-3, 3) / 10),
@@ -423,6 +441,7 @@
 		// twitching, and the rest of the body shudders as it goes.
 		menacing = TRUE
 		menace_extended = TRUE
+		start_menace_fx()
 		stride = rig_menace_step(stride)
 		passing = rig_menace_step(passing)
 	play(list(

@@ -119,6 +119,7 @@
 		COMSIG_MOB_EMOTE,
 	))
 	deltimer(settle_timer)
+	deltimer(glitch_timer)
 	// Give the body back to the mob, as it stands now.
 	if(owner.limb_rig == src)
 		owner.limb_rig = null
