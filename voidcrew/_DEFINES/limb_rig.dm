@@ -16,6 +16,7 @@
 #define RIG_ACTIVITY_MOVING "moving"
 #define RIG_ACTIVITY_ONESHOT "oneshot"
 #define RIG_ACTIVITY_WORKING "working"
+#define RIG_ACTIVITY_MENACE "menace"
 
 /// How a rigged body walks.
 #define RIG_WALK_NORMAL "normal"

@@ -44,6 +44,11 @@
 	var/list/obj/effect/abstract/limb_rig_part/item_parts = list()
 	/// Unmasked pieces holding each hand's fingers, "l" and "r".
 	var/list/obj/effect/abstract/limb_rig_part/finger_parts = list()
+	/// A hand's middle finger on its own, while it's being held up at someone, "l" and "r".
+	var/list/obj/effect/abstract/limb_rig_part/bird_parts = list()
+	/// Whether the rig is holding the empty-handed combat stance, and whether it has finished reaching out.
+	var/menacing = FALSE
+	var/menace_extended = FALSE
 	/// The overlays_standing layers currently copied onto the pieces, by cache index: list(body, left fingers, right fingers).
 	var/list/mirrored_layers = list()
 	/// What the rig is currently doing, a RIG_ACTIVITY_ define.
@@ -64,6 +69,8 @@
 	var/list/posture
 	/// How this body walks, a RIG_WALK_ define.
 	var/walk_style = RIG_WALK_NORMAL
+	/// Whether this body reaches out and trembles in combat mode with empty hands.
+	var/can_menace = FALSE
 
 /datum/limb_rig/New(mob/living/carbon/owner)
 	src.owner = owner
@@ -77,6 +84,8 @@
 		pivot.vis_contents += item_parts[side]
 		finger_parts[side] = new_part(side == "l" ? RIG_L_ARM : RIG_R_ARM)
 		pivot.vis_contents += finger_parts[side]
+		bird_parts[side] = new_part(side == "l" ? RIG_L_ARM : RIG_R_ARM)
+		pivot.vis_contents += bird_parts[side]
 	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
 		parts[part_id] = new_part(part_id)
 		owner.vis_contents += parts[part_id]
@@ -123,20 +132,24 @@
 	QDEL_LIST_ASSOC_VAL(parts)
 	QDEL_LIST_ASSOC_VAL(item_parts)
 	QDEL_LIST_ASSOC_VAL(finger_parts)
+	QDEL_LIST_ASSOC_VAL(bird_parts)
 	QDEL_NULL(pivot)
 	mirrored_layers = null
 	owner = null
 	return ..()
 
-/// Takes the limb lengths, posture and walk from the owner's species.
+/// Takes the limb lengths, posture and walk from the owner's quirks, or failing that, species.
 /datum/limb_rig/proc/refresh_shape()
 	var/mob/living/carbon/human/human_owner = owner
 	var/list/shape = istype(human_owner) ? human_owner.dna?.species?.limb_rig_shape : null
+	if(owner.has_quirk(/datum/quirk/loomer))
+		shape = GLOB.loomer_rig_shape
 	arm_stretch = shape?["arm_stretch"] || RIG_ARM_STRETCH
 	leg_stretch = shape?["leg_stretch"] || RIG_LEG_STRETCH
 	finger_stretch = shape?["finger_stretch"] || 1
 	posture = shape?["posture"]
 	walk_style = shape?["walk"] || RIG_WALK_NORMAL
+	can_menace = !!shape?["menace"]
 
 /datum/limb_rig/proc/new_part(part_id)
 	var/obj/effect/abstract/limb_rig_part/part = new
@@ -156,6 +169,8 @@
 			part.cut_overlay(old[1])
 		finger_parts["l"].cut_overlay(old[2])
 		finger_parts["r"].cut_overlay(old[3])
+		bird_parts["l"].cut_overlay(old[4])
+		bird_parts["r"].cut_overlay(old[5])
 		mirrored_layers -= key
 	if(!standing)
 		return
@@ -163,12 +178,24 @@
 	var/list/body = list()
 	var/list/left_fingers = list()
 	var/list/right_fingers = list()
+	var/list/left_bird = list()
+	var/list/right_bird = list()
+	var/obj/item/bodypart/arm/left_hand = owner.get_bodypart(BODY_ZONE_L_ARM)
+	var/obj/item/bodypart/arm/right_hand = owner.get_bodypart(BODY_ZONE_R_ARM)
 	for(var/overlay in (islist(standing) ? standing : list(standing)))
+		// A raised middle finger gets its own piece, so it can unfurl on its own.
+		var/bird = is_middle_finger_overlay(overlay)
 		switch(get_finger_overlay_side(overlay))
 			if("l")
-				left_fingers += overlay
+				if(bird && left_hand?.fingers_bird)
+					left_bird += overlay
+				else
+					left_fingers += overlay
 			if("r")
-				right_fingers += overlay
+				if(bird && right_hand?.fingers_bird)
+					right_bird += overlay
+				else
+					right_fingers += overlay
 			else
 				body += overlay
 	for(var/part_id in parts)
@@ -176,7 +203,9 @@
 		part.add_overlay(body)
 	finger_parts["l"].add_overlay(left_fingers)
 	finger_parts["r"].add_overlay(right_fingers)
-	mirrored_layers[key] = list(body, left_fingers, right_fingers)
+	bird_parts["l"].add_overlay(left_bird)
+	bird_parts["r"].add_overlay(right_bird)
+	mirrored_layers[key] = list(body, left_fingers, right_fingers, left_bird, right_bird)
 	if(cache_index == BODYPARTS_LAYER)
 		update_finger_layers() // Grips change the finger sprites, and with them which way the fingers layer.
 
@@ -186,6 +215,9 @@
 		var/obj/effect/abstract/limb_rig_part/part = item_parts[side]
 		part.cut_overlays()
 	update_finger_layers()
+	// Picking something up or emptying both hands starts or ends the combat stance.
+	if(wants_menace() != menacing && (activity == RIG_ACTIVITY_IDLE || activity == RIG_ACTIVITY_MENACE))
+		settle()
 	if(owner.handcuffed)
 		return
 	for(var/obj/item/held in owner.held_items)
@@ -242,7 +274,9 @@
 		var/obj/effect/abstract/limb_rig_part/item = item_parts[side]
 		var/obj/effect/abstract/limb_rig_part/fingers = finger_parts[side]
 		var/obj/item/bodypart/arm/hand = owner.get_bodypart(side == "l" ? BODY_ZONE_L_ARM : BODY_ZONE_R_ARM)
-		fingers.layer = item.layer + (hand?.fingers_gripping ? 0.5 : -0.5)
+		fingers.layer = item.layer + ((hand?.fingers_gripping || hand?.fingers_bird) ? 0.5 : -0.5)
+		var/obj/effect/abstract/limb_rig_part/bird = bird_parts[side]
+		bird.layer = fingers.layer + 0.1
 
 /// The mask icon for one piece facing one way. Built once each and kept.
 /proc/get_rig_mask(mask_state, facing)
@@ -262,7 +296,7 @@
 	// A pose looks different from every side, so snap to how the current one reads from here,
 	// then carry on with whatever loop was running.
 	snap_to(held_pose)
-	if(activity == RIG_ACTIVITY_IDLE || activity == RIG_ACTIVITY_WORKING)
+	if(activity == RIG_ACTIVITY_IDLE || activity == RIG_ACTIVITY_WORKING || activity == RIG_ACTIVITY_MENACE)
 		settle()
 
 /datum/limb_rig/proc/on_moved(mob/living/carbon/source, atom/old_loc, movement_dir, forced, list/old_locs, momentum_change)
@@ -365,6 +399,12 @@
 /mob/living/carbon/Destroy()
 	QDEL_NULL(limb_rig)
 	return ..()
+
+/// Combat mode can start or end the empty-handed stance.
+/mob/living/carbon/human/set_combat_mode(new_mode, silent = TRUE)
+	. = ..()
+	if(limb_rig && (limb_rig.activity == RIG_ACTIVITY_IDLE || limb_rig.activity == RIG_ACTIVITY_MENACE))
+		limb_rig.settle()
 
 /// Swinging at something swings an arm.
 /mob/living/carbon/human/do_attack_animation(atom/A, visual_effect_icon, obj/item/used_item, no_effect)

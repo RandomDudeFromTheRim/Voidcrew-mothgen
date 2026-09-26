@@ -33,6 +33,10 @@
 /// On-mob finger sprites. States are "[limb_id or glove]_[l|r]_[1-5]", with "_wild" (*wiggle) and "_grip" (holding something) variants.
 #define FINGER_MOB_ICON 'voidcrew/modules/fingers/icons/fingers_mob.dmi'
 
+/// Whether an overlay is a middle finger. Only matters while a hand is flipping someone off.
+/proc/is_middle_finger_overlay(image/overlay)
+	return isimage(overlay) && overlay.icon == FINGER_MOB_ICON && findtext(overlay.icon_state, "_3")
+
 /// Which hand an overlay's finger belongs to, "l" or "r", or null if it isn't one of ours.
 /// The limb rig pulls fingers out of the masked body so they can move with their arm.
 /proc/get_finger_overlay_side(image/overlay)
@@ -89,6 +93,8 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 	var/fingers_wiggling = FALSE
 	/// Whether this hand is holding something, so its fingers curl around it.
 	var/fingers_gripping = FALSE
+	/// Whether this hand is a fist with the middle finger up.
+	var/fingers_bird = FALSE
 	/// Colour of the glove or suit worn over this hand, or null when it's bare. Kept by the owner.
 	var/finger_covering_color
 
@@ -184,6 +190,13 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 	fingers_wiggling = wiggling
 	on_fingers_changed()
 
+/// Makes this hand a fist with the middle finger up, or puts it back.
+/obj/item/bodypart/arm/proc/set_fingers_bird(bird)
+	if(fingers_bird == bird)
+		return
+	fingers_bird = bird
+	on_fingers_changed()
+
 /// Which pose the fingers are in: "" for the idle dangle, "_wild" or "_grip".
 /obj/item/bodypart/arm/proc/get_finger_pose()
 	if(fingers_wiggling)
@@ -216,7 +229,7 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 			finger_key += "0"
 		else
 			finger_key += (finger_name in prosthetic_fingers) ? "p" : "1"
-	. += "-fingers[finger_key][get_finger_pose()][get_finger_covering_color()]"
+	. += "-fingers[finger_key][get_finger_pose()][fingers_bird ? "bird" : ""][get_finger_covering_color()]"
 
 /obj/item/bodypart/arm/get_limb_icon(dropped, mob/living/carbon/update_on)
 	. = ..()
@@ -229,16 +242,20 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 	var/side = body_zone == BODY_ZONE_L_ARM ? "l" : "r"
 	var/pose = get_finger_pose()
 	var/finger_layer = pose == "_grip" ? -FINGER_GRIP_LAYER : -aux_layer
+	if(fingers_bird)
+		finger_layer = -FINGER_GRIP_LAYER
 	for(var/finger_index in 1 to length(GLOB.hand_fingers))
 		var/finger_name = GLOB.hand_fingers[finger_index]
 		if(finger_name in missing_fingers)
 			continue
+		// Flipping the bird: a fist, with the middle finger held straight.
+		var/finger_pose = fingers_bird ? (finger_index == 3 ? "" : "_grip") : pose
 		var/image/finger
 		if(!covering_color && (finger_name in prosthetic_fingers))
-			finger = image(FINGER_MOB_ICON, "glove_[side]_[finger_index][pose]", finger_layer)
+			finger = image(FINGER_MOB_ICON, "glove_[side]_[finger_index][finger_pose]", finger_layer)
 			finger.color = FINGER_PROSTHETIC_COLOR
 		else
-			finger = image(FINGER_MOB_ICON, "[sprite_set]_[side]_[finger_index][pose]", finger_layer)
+			finger = image(FINGER_MOB_ICON, "[sprite_set]_[side]_[finger_index][finger_pose]", finger_layer)
 			if(finger_color)
 				finger.color = "[finger_color]"
 		// Keeps one-pixel fingers crisp under any transform (dancing, resizing) instead of blurring.
