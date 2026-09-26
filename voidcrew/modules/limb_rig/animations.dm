@@ -296,6 +296,28 @@
 			return FALSE
 	return TRUE
 
+/// A walking keyframe with the arms swapped for the reaching, twitching combat stance.
+/proc/rig_menace_step(list/step)
+	var/list/stalking = step.Copy()
+	for(var/arm_id in list(RIG_L_ARM, RIG_R_ARM))
+		stalking[arm_id] = list(
+			"swing" = 78 + rand(-8, 8),
+			"raise" = 10 + rand(-6, 6),
+			"elbow" = rand(-10, 6),
+			"reach" = 1.4 + rand(-4, 4) / 10,
+		)
+	var/list/old_chest = step[RIG_CHEST] || list()
+	var/list/chest = old_chest.Copy()
+	chest["bend"] = (chest["bend"] || 0) + 8 + rand(-3, 3)
+	chest["dx"] = rand(-1, 1) / 2
+	stalking[RIG_CHEST] = chest
+	var/list/old_head = step[RIG_HEAD] || list()
+	var/list/head = old_head.Copy()
+	head["nod"] = (head["nod"] || 0) - 6 + rand(-6, 6)
+	head["tilt"] = (head["tilt"] || 0) + rand(-8, 8)
+	stalking[RIG_HEAD] = head
+	return stalking
+
 /**
  * Arms out in front, fingers stretching out after them, the whole body trembling.
  *
@@ -396,6 +418,13 @@
 			RIG_L_ARM = list("raise" = 4, "elbow" = 15),
 			RIG_R_ARM = list("raise" = 4, "elbow" = 15),
 		)
+	if(owner.body_position != LYING_DOWN && wants_menace())
+		// Stalking: the legs keep loping, but the arms stay out in front, fingers stretching and
+		// twitching, and the rest of the body shudders as it goes.
+		menacing = TRUE
+		menace_extended = TRUE
+		stride = rig_menace_step(stride)
+		passing = rig_menace_step(passing)
 	play(list(
 		list(stride, step_time * 0.5),
 		list(passing, step_time * 0.5),
