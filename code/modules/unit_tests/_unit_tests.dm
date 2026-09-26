@@ -202,6 +202,7 @@
 #include "late_initialization_reentry.dm"
 #include "leash.dm"
 #include "lesserform.dm"
+#include "../../../voidcrew/modules/unit_tests/limb_rig.dm" // VOIDCREW EDIT ADDITION
 #include "limbsanity.dm"
 #include "ling_decap.dm"
 #include "liver.dm"

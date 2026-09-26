@@ -30,6 +30,16 @@
  * around the handle of whatever it is.
  */
 
+/// On-mob finger sprites. States are "[limb_id or glove]_[l|r]_[1-5]", with "_wild" (*wiggle) and "_grip" (holding something) variants.
+#define FINGER_MOB_ICON 'voidcrew/modules/fingers/icons/fingers_mob.dmi'
+
+/// Which hand an overlay's finger belongs to, "l" or "r", or null if it isn't one of ours.
+/// The limb rig pulls fingers out of the masked body so they can move with their arm.
+/proc/get_finger_overlay_side(image/overlay)
+	if(!isimage(overlay) || overlay.icon != FINGER_MOB_ICON)
+		return null
+	return findtext(overlay.icon_state, "_l_") ? "l" : "r"
+
 /// Every finger on a hand, in order from thumb to pinky.
 GLOBAL_LIST_INIT(hand_fingers, list("thumb", "index finger", "middle finger", "ring finger", "pinky"))
 
@@ -44,8 +54,6 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 	var/picked = tgui_input_list(user, message, title, options)
 	return picked ? options[picked] : null
 
-/// On-mob finger sprites. States are "[limb_id or glove]_[l|r]_[1-5]", with "_wild" (*wiggle) and "_grip" (holding something) variants.
-#define FINGER_MOB_ICON 'voidcrew/modules/fingers/icons/fingers_mob.dmi'
 /// Sampled when worn clothing over a hand has no pixels there to take a colour from.
 #define FINGER_FALLBACK_COVERING_COLOR "#8f8f8f"
 /// What printed prosthetic fingers look like on a bare hand.

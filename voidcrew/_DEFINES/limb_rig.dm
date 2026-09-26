@@ -1,0 +1,14 @@
+// Limb rig (voidcrew/modules/limb_rig): the pieces a human's sprite is cut into so each can move.
+
+#define RIG_HEAD "head"
+#define RIG_CHEST "chest"
+#define RIG_L_ARM "l_arm"
+#define RIG_R_ARM "r_arm"
+#define RIG_L_LEG "l_leg"
+#define RIG_R_LEG "r_leg"
+
+/// What the rig is doing, which decides what it goes back to after a one-off animation.
+#define RIG_ACTIVITY_IDLE "idle"
+#define RIG_ACTIVITY_MOVING "moving"
+#define RIG_ACTIVITY_ONESHOT "oneshot"
+#define RIG_ACTIVITY_WORKING "working"
