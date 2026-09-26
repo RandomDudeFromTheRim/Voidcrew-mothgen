@@ -326,7 +326,10 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 		if(hand.finger_covering_color == new_color)
 			continue
 		hand.finger_covering_color = new_color
-		changed = TRUE
+		// Only a hand that draws its fingers needs redrawing. The colour is still kept for the rest,
+		// for the middle finger a *bird grows.
+		if(hand.fingered)
+			changed = TRUE
 	if(changed)
 		update_body_parts()
 
@@ -348,6 +351,8 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 /mob/living/carbon/proc/update_finger_grips()
 	var/changed = FALSE
 	for(var/obj/item/bodypart/arm/hand in bodyparts)
+		if(!hand.fingered)
+			continue // No fingers to curl, so nothing to redraw.
 		var/obj/item/held = hand.held_index ? get_item_for_held_index(hand.held_index) : null
 		var/gripping = !isnull(held) && !(held.item_flags & HAND_ITEM)
 		if(hand.fingers_gripping == gripping)

@@ -22,6 +22,8 @@
 	RegisterSignal(carbon_holder, COMSIG_CARBON_POST_ATTACH_LIMB, PROC_REF(on_limb_attached))
 	for(var/obj/item/bodypart/arm/hand in carbon_holder.bodyparts)
 		hand.fingered = TRUE
+	// Grips aren't tracked on hands without fingers, so catch up on whatever is held now.
+	carbon_holder.update_finger_grips()
 	carbon_holder.update_body_parts()
 
 /datum/quirk/fingers/remove()
@@ -40,4 +42,5 @@
 	var/obj/item/bodypart/arm/hand = new_limb
 	if(istype(hand) && !hand.fingered)
 		hand.fingered = TRUE
+		source.update_finger_grips()
 		source.update_body_parts()
