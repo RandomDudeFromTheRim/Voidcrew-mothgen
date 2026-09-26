@@ -4,6 +4,8 @@
 /datum/unit_test/limb_rig/Run()
 	var/mob/living/carbon/human/consistent/dummy = allocate(/mob/living/carbon/human/consistent)
 	dummy.update_limb_rig()
+	TEST_ASSERT_NULL(dummy.limb_rig, "A human without the Overanimated quirk got a limb rig.")
+	dummy.add_quirk(/datum/quirk/overanimated)
 	TEST_ASSERT_NOTNULL(dummy.limb_rig, "A living human did not get a limb rig.")
 	var/body = dummy.overlays_standing[BODYPARTS_LAYER]
 	TEST_ASSERT_NOTNULL(body, "The human has no body overlays to rig.")

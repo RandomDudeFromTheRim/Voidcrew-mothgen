@@ -4,7 +4,10 @@
  * A pose is a list of part id -> joint angles:
  * - arms: "raise" (out to the side), "swing" (forward and back) and "elbow" (forearm bends forward),
  *   plus "reach" (fingers stretch by this much more) and "bird" (how far a raised middle finger
- *   is out: 0 is all the way, -1 is still curled)
+ *   is out: 0 is all the way, -1 is still curled). Arms hang off the torso, so they bend with it;
+ *   "aim" instead of "swing" points the whole arm that way in the world, whatever the torso and
+ *   posture are doing (90 is straight out in front). "hand_y" works the elbow out for you so the
+ *   hand ends up at that height on the sprite (the face is about 26), however long the arm is.
  * - legs: "raise", "swing" and "knee" (shin bends back)
  * - head: "nod" (down is positive) and "tilt" (toward the mob's right)
  * - torso: "bend" (forward) and "lean" (toward the mob's right), plus "breath" (0.03 = 3% taller,
@@ -81,12 +84,13 @@
 					return list(17, 10)
 	return list(16, 16)
 
-/// A transform that scales a piece along its length from a point, turns it about that point,
-/// then moves that point somewhere else. Points are in BYOND pixel coordinates.
-/proc/rig_joint_matrix(from_x, from_y, length_scale, angle, to_x, to_y)
+/// A transform that scales a piece along its length (and optionally across it) from a point,
+/// turns it about that point, then moves that point somewhere else. Points are in BYOND pixel
+/// coordinates.
+/proc/rig_joint_matrix(from_x, from_y, length_scale, angle, to_x, to_y, width_scale = 1)
 	var/matrix/joint = matrix()
 	joint.Translate(16.5 - from_x, 16.5 - from_y)
-	joint.Scale(1, length_scale)
+	joint.Scale(width_scale, length_scale)
 	joint.Turn(angle)
 	joint.Translate(to_x - 16.5, to_y - 16.5)
 	return joint
@@ -132,8 +136,10 @@
  * for whatever rides on the hand without being stretched (held items). Fingers are stretched by
  * finger_stretch and foreshortened with the forearm, so they point the way the hand does. The
  * end height is where the hand or foot finished up, before any lift.
+ *
+ * * bend - how far the torso is bent forward, for arms: they hang off it and tip back with it.
  */
-/proc/rig_limb_matrices(part_id, list/entry, facing, stretch, finger_stretch = 1)
+/proc/rig_limb_matrices(part_id, list/entry, facing, stretch, finger_stretch = 1, bend = 0)
 	var/is_leg = (part_id == RIG_L_LEG || part_id == RIG_R_LEG)
 	var/list/root = get_rig_joint(part_id, facing)
 	var/mid_y = is_leg ? RIG_KNEE_Y : RIG_ELBOW_Y
@@ -145,20 +151,40 @@
 	var/swing = entry?["swing"] || 0
 	// Elbows fold the forearm forward; knees fold the shin back.
 	var/lower_swing = swing + (is_leg ? -(entry?["knee"] || 0) : (entry?["elbow"] || 0))
+	var/hand_y = entry?["hand_y"]
+	if(!isnull(hand_y))
+		// Bend the elbow however far it takes to put the hand at that height. Heights come out
+		// the same from every side, so this holds whichever way the mob faces. It's worked out
+		// as things really stand with the torso bent over, which takes the face down with it.
+		var/hips_y = get_rig_joint(RIG_CHEST, facing)[2]
+		var/shoulder_height = hips_y + (root[2] - hips_y) * cos(bend)
+		var/target_height = hips_y + (hand_y - hips_y) * cos(bend)
+		var/elbow_height = shoulder_height - upper_length * stretch * cos(swing - bend) * cos(raise)
+		var/forearm_drop = lower_length * stretch * max(cos(raise), 0.1)
+		lower_swing = arccos(clamp((elbow_height - target_height) / forearm_drop, -1, 1)) + bend
 
 	var/upper_angle
 	var/lower_angle
 	var/upper_scale
 	var/lower_scale
+	// How much bigger the hand draws for being closer to the viewer.
+	var/near = 1
 	if(facing == NORTH || facing == SOUTH)
 		// From the front, the mob's right side is on the left of the screen. From behind it flips.
 		var/right = (part_id == RIG_R_ARM || part_id == RIG_R_LEG)
 		upper_angle = (right == (facing == SOUTH)) ? raise : -raise
 		lower_angle = upper_angle
 		// Swinging toward or away from the viewer just shortens the limb. Past 90 degrees the
-		// scale goes negative and the piece flips up over its joint.
-		upper_scale = cos(swing)
-		lower_scale = cos(lower_swing)
+		// scale goes negative and the piece flips up over its joint. Arms go by where they really
+		// point once the torso's bend tips them back, and undo the squash the bending torso already
+		// gives everything on it.
+		var/torso_squash = max(cos(bend), 0.25)
+		upper_scale = cos(swing - bend) / torso_squash
+		lower_scale = cos(lower_swing - bend) / torso_squash
+		if(!is_leg)
+			// Closer is bigger: a hand reaching out at the viewer grows, one reaching away shrinks.
+			var/toward = sin(lower_swing - bend) * (facing == SOUTH ? 1 : -1)
+			near = 1 + toward * (toward > 0 ? 0.35 : 0.15)
 	else
 		upper_angle = facing == EAST ? -swing : swing
 		lower_angle = facing == EAST ? -lower_swing : lower_swing
@@ -179,14 +205,14 @@
 	// Fingers foreshorten with the forearm, but never all the way: pointed straight at the
 	// viewer they'd collapse into a flat line.
 	var/finger_foreshorten = lower_scale / stretch
-	var/finger_scale = finger_stretch * (finger_foreshorten < 0 ? -1 : 1) * max(abs(finger_foreshorten), 0.4)
+	var/finger_scale = near * finger_stretch * (finger_foreshorten < 0 ? -1 : 1) * max(abs(finger_foreshorten), 0.4)
 	return list(
 		rig_joint_matrix(root[1], root[2], upper_scale, upper_angle, root_x, root_y),
-		rig_joint_matrix(root[1], mid_y, lower_scale, lower_angle, mid_x, mid_to_y),
-		rig_joint_matrix(root[1], end_y, 1, lower_angle, end_x, end_to_y),
-		rig_joint_matrix(root[1], end_y, finger_scale * (1 + (entry?["reach"] || 0)), lower_angle, end_x, end_to_y),
+		rig_joint_matrix(root[1], mid_y, lower_scale, lower_angle, mid_x, mid_to_y, near),
+		rig_joint_matrix(root[1], end_y, near, lower_angle, end_x, end_to_y, near),
+		rig_joint_matrix(root[1], end_y, finger_scale * (1 + (entry?["reach"] || 0)), lower_angle, end_x, end_to_y, near),
 		end_to_y,
-		rig_joint_matrix(root[1], end_y, finger_scale * max(0.05, 1 + (entry?["bird"] || 0)), lower_angle, end_x, end_to_y),
+		rig_joint_matrix(root[1], end_y, finger_scale * max(0.05, 1 + (entry?["bird"] || 0)), lower_angle, end_x, end_to_y, near),
 	)
 
 /// Adds a posture to a pose, angle by angle.
@@ -204,15 +230,40 @@
 			merged[key] = (merged[key] || 0) + pose_entry[key]
 		.[part_id] = merged
 
+/**
+ * Turns any "aim" on the arms of a pose into the swing that points them that way, once the
+ * posture and the torso's bend are added on. Returns the pose, or a changed copy.
+ */
+/proc/rig_resolve_aim(list/posture, list/pose)
+	. = pose
+	for(var/arm_id in list(RIG_L_ARM, RIG_R_ARM))
+		var/list/entry = pose?[arm_id]
+		if(isnull(entry?["aim"]))
+			continue
+		if(. == pose)
+			. = pose.Copy()
+		var/list/posture_chest = posture?[RIG_CHEST]
+		var/list/pose_chest = pose[RIG_CHEST]
+		var/bend = (posture_chest?["bend"] || 0) + (pose_chest?["bend"] || 0)
+		var/list/posture_arm = posture?[arm_id]
+		var/list/aimed = entry.Copy()
+		aimed -= "aim"
+		// The posture's swing and elbow are added back on when it's merged, so take them off here.
+		aimed["swing"] = entry["aim"] + bend - (posture_arm?["swing"] || 0)
+		aimed["elbow"] = (entry["elbow"] || 0) - (posture_arm?["elbow"] || 0)
+		.[arm_id] = aimed
+
 /// The transform for every moving piece in a pose, seen from the given direction.
 /datum/limb_rig/proc/get_pose_matrices(list/pose, facing)
 	. = list()
-	pose = rig_merge_pose(posture, pose)
+	pose = rig_merge_pose(posture, rig_resolve_aim(posture, pose))
 	var/list/legs = list()
 	var/lowest_foot = INFINITY
+	var/list/chest_entry = pose?[RIG_CHEST]
+	var/bend = chest_entry?["bend"] || 0
 	for(var/side in list("l", "r"))
 		var/arm_id = side == "l" ? RIG_L_ARM : RIG_R_ARM
-		var/list/arm = rig_limb_matrices(arm_id, pose?[arm_id], facing, arm_stretch, finger_stretch)
+		var/list/arm = rig_limb_matrices(arm_id, pose?[arm_id], facing, arm_stretch, finger_stretch, bend)
 		.[parts[arm_id]] = arm[1]
 		.[parts["[side]_forearm"]] = arm[2]
 		.[item_parts[side]] = arm[3]
@@ -226,7 +277,6 @@
 	// Stand the body up (or crouch it down) so the lowest foot is on the floor.
 	// "air" on the torso then lifts the whole body off the floor on top of that, for jumps and
 	// the airborne part of a run.
-	var/list/chest_entry = pose?[RIG_CHEST]
 	var/lift = RIG_SOLE_Y - lowest_foot + (chest_entry?["air"] || 0)
 	for(var/obj/effect/abstract/limb_rig_part/leg_part as anything in legs)
 		var/matrix/leg_matrix = legs[leg_part]
@@ -321,11 +371,11 @@
 		menace_reach += (MENACE_MAX_REACH - menace_reach) * MENACE_REACH_RATE
 	return menace_reach
 
-/// Stance arms: straight out in front, twitching sideways, fingers at their current stretch.
-/// The forward swing and elbow stay put, since from the front they'd change how long the arms
-/// and fingers look, and read as pulsing.
+/// Stance arms: dead level out in front however hunched the body is, spread a little so they
+/// read from the front too, twitching sideways, fingers at their current stretch. The aim stays
+/// put, since from the front it'd change how long the arms and fingers look, and read as pulsing.
 /proc/rig_menace_arm(reach, twitch)
-	return list("swing" = 80, "raise" = 10 + rand(-twitch, twitch), "elbow" = -5, "reach" = reach)
+	return list("aim" = 90, "raise" = 20 + rand(-twitch, twitch), "reach" = reach)
 
 /// A walking keyframe with the arms swapped for the reaching, twitching combat stance.
 /proc/rig_menace_step(list/step, reach)
@@ -348,7 +398,8 @@
  * Arms out in front, fingers stretching out after them, the whole body trembling.
  *
  * Plays a short stretch of tremble and comes back here when it's done, so the fingers keep
- * stretching from wherever they got to until they hit their limit, and then hold.
+ * stretching from wherever they got to until they hit their limit, and then hold. The tremble
+ * itself is a smooth shiver; the jerks are the odd stop-motion snap in among it.
  */
 /datum/limb_rig/proc/play_menace()
 	menacing = TRUE
@@ -356,7 +407,7 @@
 	var/list/tremble = list()
 	for(var/shudder in 1 to 12)
 		var/reach = grow_menace_reach()
-		if(!(shudder % 4))
+		if(shudder == 6 || shudder == 12)
 			// Stop-motion: hold the last pose, then snap to a worse one, sheared and wrenched.
 			tremble += list(list(list(
 				RIG_L_ARM = rig_menace_arm(reach, 14),
@@ -367,32 +418,72 @@
 				RIG_R_LEG = list("knee" = rand(0, 20)),
 			), rand(2, 4), JUMP_EASING))
 			continue
+		// Swaying from side to side and back, a little off each time.
+		var/sway = (shudder % 2) ? 1 : -1
 		tremble += list(list(list(
-			RIG_L_ARM = rig_menace_arm(reach, 4),
-			RIG_R_ARM = rig_menace_arm(reach, 4),
-			RIG_CHEST = list("bend" = 8 + rand(-3, 3), "lean" = rand(-3, 3), "dx" = rand(-1, 1) / 2),
-			RIG_HEAD = list("nod" = -6 + rand(-6, 6), "tilt" = rand(-7, 7)),
+			RIG_L_ARM = rig_menace_arm(reach, 3),
+			RIG_R_ARM = rig_menace_arm(reach, 3),
+			RIG_CHEST = list("bend" = 8 + rand(-2, 2), "lean" = sway * rand(1, 3)),
+			RIG_HEAD = list("nod" = -6 + rand(-4, 4), "tilt" = sway * rand(2, 6)),
 			RIG_L_LEG = list("knee" = rand(0, 6)),
 			RIG_R_LEG = list("knee" = rand(0, 6)),
-		), 0.5))
+		), 1.2))
 	play(tremble, activity = RIG_ACTIVITY_MENACE)
 
-/// How long one step takes, in deciseconds, from how fast the mob glides between tiles.
-/datum/limb_rig/proc/get_step_time()
-	var/ticks = world.icon_size / max(owner.glide_size, 1)
-	return clamp(ticks * world.tick_lag, 1, 8)
+/// How long crossing one tile takes right now, in deciseconds: whatever slows or speeds the mob up.
+/datum/limb_rig/proc/get_move_delay()
+	var/delay = owner.cached_multiplicative_slowdown
+	if(!delay)
+		delay = world.icon_size / max(owner.glide_size, 1) * world.tick_lag
+	return clamp(delay, 0.5, 20)
 
-/// One step of walking, or one pull of crawling when lying down.
+/// How many tiles one step covers. Longer legs take longer strides, and running ones longer again.
+/datum/limb_rig/proc/get_stride_tiles(running)
+	return (running ? 1.4 : 1.25) * sqrt(leg_stretch / RIG_LEG_STRETCH)
+
+/// How big to make each step: moving faster than usual for the gait means bigger, bouncier
+/// strides, slower means little shuffling ones.
+/datum/limb_rig/proc/get_gait_scale(running)
+	var/usual_delay = running ? CONFIG_GET(number/movedelay/run_delay) : CONFIG_GET(number/movedelay/walk_delay)
+	return clamp(sqrt(max(usual_delay, 0.5) / get_move_delay()), 0.6, 1.4)
+
+/// A copy of a stepping pose with its swings, knees, lean and airtime scaled up or down.
+/proc/rig_scale_gait(list/pose, amount)
+	. = list()
+	for(var/part_id in pose)
+		var/list/entry = pose[part_id]
+		var/list/scaled = entry.Copy()
+		for(var/key in list("swing", "knee", "air", "lean", "tilt"))
+			if(scaled[key])
+				scaled[key] = scaled[key] * amount
+		.[part_id] = scaled
+
+/**
+ * One step of walking, or one pull of crawling when lying down.
+ *
+ * A step takes as long as the mob takes to cross however many tiles one stride covers, so the
+ * legs keep time with the actual movement speed, and long legs stride slower. Moves that land
+ * mid-stride just keep it going.
+ */
 /datum/limb_rig/proc/play_step()
 	if(activity == RIG_ACTIVITY_ONESHOT)
 		return // Let an emote or a swing finish; the next step catches up.
+	var/move_delay = get_move_delay()
+	if(activity == RIG_ACTIVITY_MOVING && world.time < step_ends_at - move_delay * 0.5)
+		// Still mid-stride. Put off standing still until this move is over too.
+		deltimer(settle_timer)
+		settle_timer = addtimer(CALLBACK(src, PROC_REF(settle)), step_ends_at - world.time + move_delay + 1, TIMER_STOPPABLE|TIMER_DELETE_ME)
+		return
+	var/lying = owner.body_position == LYING_DOWN
+	var/running = !lying && owner.move_intent == MOVE_INTENT_RUN
+	var/step_time = lying ? move_delay : move_delay * get_stride_tiles(running)
+	step_ends_at = world.time + step_time
 	left_foot_forward = !left_foot_forward
-	var/step_time = get_step_time()
 	var/lead = left_foot_forward ? 1 : -1
 	var/list/stride
 	var/list/passing
 	var/list/keyframes
-	if(owner.body_position == LYING_DOWN)
+	if(lying)
 		// Crawling: one arm reaches past the head and drags, the legs kick a little.
 		stride = list(
 			RIG_L_ARM = list("raise" = lead > 0 ? 165 : 70, "elbow" = lead > 0 ? 10 : 70),
@@ -407,7 +498,7 @@
 			RIG_HEAD = list("nod" = -6),
 			RIG_CHEST = list("dx" = 1),
 		)
-	else if(owner.move_intent == MOVE_INTENT_RUN)
+	else if(running)
 		// Running, after Kris's run in Deltarune, in the four poses a good run needs:
 		// contact (front leg reaching, nearly straight), down (the stomp: body drops and squashes,
 		// the planted knee gives), push (driving off) and up (off the ground, stretched out,
@@ -489,7 +580,15 @@
 			RIG_L_ARM = list("raise" = 4, "elbow" = 15),
 			RIG_R_ARM = list("raise" = 4, "elbow" = 15),
 		)
-	if(owner.body_position != LYING_DOWN && wants_menace())
+	if(!lying)
+		var/gait = get_gait_scale(running)
+		if(keyframes)
+			for(var/list/keyframe as anything in keyframes)
+				keyframe[1] = rig_scale_gait(keyframe[1], gait)
+		else
+			stride = rig_scale_gait(stride, gait)
+			passing = rig_scale_gait(passing, gait)
+	if(!lying && wants_menace())
 		// Stalking: the legs keep loping, but the arms stay out in front, fingers stretching and
 		// twitching, and the rest of the body shudders as it goes.
 		menacing = TRUE
@@ -504,7 +603,7 @@
 		keyframes = list(list(stride, step_time * 0.5), list(passing, step_time * 0.5))
 	play(keyframes, activity = RIG_ACTIVITY_MOVING, settle_after = FALSE)
 	// Stand still again if no step follows.
-	settle_timer = addtimer(CALLBACK(src, PROC_REF(settle)), step_time + 1, TIMER_STOPPABLE|TIMER_DELETE_ME)
+	settle_timer = addtimer(CALLBACK(src, PROC_REF(settle)), max(step_time, move_delay) + 1, TIMER_STOPPABLE|TIMER_DELETE_ME)
 
 /// The working hand saws away until the progress bar is done.
 /datum/limb_rig/proc/play_work()
@@ -616,9 +715,15 @@
 			var/list/down = list(RIG_CHEST = list("bend" = 6), RIG_HEAD = list("nod" = -8))
 			return list(list(up, 1.5), list(down, 1.5), list(up, 1.5), list(down, 1.5), list(up, 1.5), list(null, 2.5))
 		if("cry", "sob", "whimper", "sniff")
-			var/list/cry = list(RIG_HEAD = list("nod" = 28), RIG_L_ARM = list("swing" = 50, "raise" = -20, "elbow" = 120), RIG_R_ARM = list("swing" = 50, "raise" = -20, "elbow" = 120), RIG_CHEST = list("bend" = 12))
-			var/list/heave = list(RIG_HEAD = list("nod" = 32), RIG_L_ARM = list("swing" = 55, "raise" = -20, "elbow" = 125), RIG_R_ARM = list("swing" = 55, "raise" = -20, "elbow" = 125), RIG_CHEST = list("bend" = 18, "dy" = -1))
-			return list(list(cry, 3), list(heave, 2), list(cry, 2), list(heave, 2), list(cry, 2), list(null, 4))
+			// Face buried in both hands, elbows up and out so the forearms fold in over it, shoulders
+			// hitching with each sob: a sharp gulp in, a slow shudder out.
+			var/list/cry = list(RIG_HEAD = list("nod" = 22), RIG_L_ARM = list("swing" = 55, "raise" = 25, "hand_y" = 25), RIG_R_ARM = list("swing" = 55, "raise" = 25, "hand_y" = 25), RIG_CHEST = list("bend" = 10))
+			var/list/sob = list(RIG_HEAD = list("nod" = 16), RIG_L_ARM = list("swing" = 58, "raise" = 27, "hand_y" = 26), RIG_R_ARM = list("swing" = 58, "raise" = 27, "hand_y" = 26), RIG_CHEST = list("bend" = 6, "breath" = 0.05, "dy" = 1))
+			. = list(list(cry, 3))
+			for(var/hitch in 1 to 3)
+				. += list(list(sob, 0.8, CUBIC_EASING | EASE_OUT), list(cry, 2.2, SINE_EASING | EASE_IN))
+			. += list(list(null, 4))
+			return .
 		if("scream", "screech", "shriek")
 			var/list/scream = list(RIG_L_ARM = list("raise" = 165), RIG_R_ARM = list("raise" = 165), RIG_HEAD = list("nod" = -25), RIG_CHEST = list("bend" = -10))
 			return list(list(scream, 1.5), list(scream, 8), list(null, 4))
@@ -652,7 +757,7 @@
 			var/list/flick = list(RIG_R_ARM = list("raise" = 80, "swing" = 70))
 			return list(list(snap, 1.5), list(flick, 0.5), list(null, 2))
 		if("facepalm")
-			var/list/palm = list(RIG_R_ARM = list("swing" = 50, "raise" = -15, "elbow" = 120), RIG_HEAD = list("nod" = 16))
+			var/list/palm = list(RIG_R_ARM = list("swing" = 55, "raise" = 22, "hand_y" = 26), RIG_HEAD = list("nod" = 20), RIG_CHEST = list("bend" = 4))
 			return list(list(palm, 1.5), list(palm, 8), list(null, 3))
 		if("stretch", "yawn")
 			var/list/stretch = list(RIG_L_ARM = list("raise" = 170), RIG_R_ARM = list("raise" = 170), RIG_CHEST = list("bend" = -10, "breath" = 0.05), RIG_HEAD = list("nod" = -20))
@@ -661,7 +766,8 @@
 			var/list/sigh = list(RIG_CHEST = list("dy" = -1, "bend" = 6), RIG_HEAD = list("nod" = 18), RIG_L_ARM = list("swing" = -6), RIG_R_ARM = list("swing" = -6))
 			return list(list(sigh, 5), list(null, 5))
 		if("cough", "sneeze")
-			var/list/hack = list(RIG_CHEST = list("bend" = 18), RIG_HEAD = list("nod" = 25), RIG_R_ARM = list("swing" = 120, "raise" = -15))
+			// Doubled over, a fist up at the mouth.
+			var/list/hack = list(RIG_CHEST = list("bend" = 18), RIG_HEAD = list("nod" = 25), RIG_R_ARM = list("swing" = 55, "raise" = 25, "hand_y" = 24))
 			return list(list(hack, 1), list(null, 1.5), list(hack, 1), list(null, 2))
 		if("shiver", "tremble", "twitch", "twitch_s", "shudder")
 			. = list()
@@ -688,7 +794,8 @@
 			var/list/glare = list(RIG_HEAD = list("nod" = 10), RIG_CHEST = list("bend" = 4))
 			return list(list(glare, 2), list(glare, 5), list(null, 3))
 		if("gasp", "choke")
-			var/list/gasp = list(RIG_HEAD = list("nod" = -18), RIG_CHEST = list("bend" = -6, "breath" = 0.06), RIG_R_ARM = list("swing" = 130, "raise" = -30))
+			// Hand flying up to the mouth, head jerking back.
+			var/list/gasp = list(RIG_HEAD = list("nod" = -18), RIG_CHEST = list("bend" = -6, "breath" = 0.06), RIG_R_ARM = list("swing" = 50, "raise" = 25, "hand_y" = 24))
 			return list(list(gasp, 1), list(gasp, 5), list(null, 3))
 		if("67", "sixseven")
 			// Palms up, forearms out, hands bobbing in turns like they're weighing something.

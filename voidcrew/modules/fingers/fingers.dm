@@ -1,7 +1,8 @@
 /**
  * Fingers.
  *
- * Every flesh-and-blood hand has five of them, and now they can come off. A hand keeps a
+ * With the Fingers quirk (quirk.dm), every flesh-and-blood hand has five of them, and they
+ * can come off. Everyone else's hands work as they always have. A hand keeps a
  * lazy list of the fingers it has lost, so a whole hand costs nothing and the list travels
  * with the arm if the arm itself is cut off and sewn back on.
  *
@@ -97,11 +98,13 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 	var/fingers_bird = FALSE
 	/// Colour of the glove or suit worn over this hand, or null when it's bare. Kept by the owner.
 	var/finger_covering_color
+	/// Whether this hand has individual fingers at all. Set by the Fingers quirk (quirk.dm).
+	var/fingered = FALSE
 
-/// Whether this hand has fingers that can be lost. Robotic hands don't bleed and don't come apart,
-/// and xenomorph claws are their own business.
+/// Whether this hand has fingers that can be lost. Only hands from someone with the Fingers quirk
+/// do. Robotic hands don't bleed and don't come apart, and xenomorph claws are their own business.
 /obj/item/bodypart/arm/proc/can_have_fingers()
-	return IS_ORGANIC_LIMB(src) && !(bodytype & BODYTYPE_ALIEN)
+	return fingered && IS_ORGANIC_LIMB(src) && !(bodytype & BODYTYPE_ALIEN)
 
 /// The fingers this hand still has, thumb first.
 /obj/item/bodypart/arm/proc/get_remaining_fingers()
@@ -508,12 +511,20 @@ GLOBAL_LIST_INIT(hand_finger_labels, list("thumb" = "Thumb", "index finger" = "I
 /**
  * The colour of the part of a worn item's sprite that sits over a hand.
  *
- * Tinted and greyscale items give their colour directly. Anything else is sampled from its
- * south-facing worn sprite over the hand, once per sprite, and cached.
+ * Tinted and greyscale items give their colour directly, as do a few two-tone gloves listed
+ * below. Anything else is sampled from its south-facing worn sprite over the hand, once per
+ * sprite, and cached.
  */
 /proc/get_worn_hand_color(obj/item/covering, left_hand)
 	if(istext(covering.color))
 		return covering.color
+	// Two-tone gloves whose trim covers most of the hand, so sampling it gets the trim's colour.
+	var/static/list/trimmed_gloves = list(
+		/obj/item/clothing/gloves/captain = "#3d4379",
+	)
+	for(var/glove_type in trimmed_gloves)
+		if(istype(covering, glove_type))
+			return trimmed_gloves[glove_type]
 	if(covering.greyscale_colors)
 		var/list/colors = splittext(covering.greyscale_colors, "#")
 		for(var/color_part in colors)

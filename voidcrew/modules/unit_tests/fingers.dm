@@ -5,6 +5,9 @@
 	var/mob/living/carbon/human/consistent/dummy = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/bodypart/arm/hand = dummy.get_bodypart(BODY_ZONE_R_ARM)
 	TEST_ASSERT_NOTNULL(hand, "The dummy has no right arm.")
+	TEST_ASSERT_NULL(hand.lose_finger("thumb"), "A hand came apart without the Fingers quirk.")
+	dummy.add_quirk(/datum/quirk/fingers)
+	TEST_ASSERT(hand.can_have_fingers(), "The Fingers quirk did not give the hand fingers.")
 	TEST_ASSERT_EQUAL(hand.get_finger_count(), 5, "A fresh hand does not have five fingers.")
 	var/whole_key = hand.generate_icon_key().Join()
 

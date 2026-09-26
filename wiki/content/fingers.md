@@ -2,10 +2,10 @@
 title: Fingers
 category: Danger
 order: 7
-blurb: Losing fingers, what a short-handed hand can still do, and how to get fingers back with a suture or a printed prosthetic.
+blurb: The Fingers quirk. Losing fingers, what a short-handed hand can still do, and how to get fingers back with a suture or a printed prosthetic.
 ---
 
-Every flesh-and-blood hand has five fingers: thumb, index, middle, ring and pinky. They show on your sprite, they curl around whatever you hold, and they can come off. A hand missing fingers still works, just worse, and a hand with none can't hold anything at all. Robotic hands don't lose fingers.
+Take the **Fingers** quirk and every flesh-and-blood hand you have gets five fingers: thumb, index, middle, ring and pinky. Without the quirk your hands work as normal and none of this applies. With it, they show on your sprite, they curl around whatever you hold, and they can come off. A hand missing fingers still works, just worse, and a hand with none can't hold anything at all. Robotic hands don't lose fingers.
 
 ## Losing fingers
 

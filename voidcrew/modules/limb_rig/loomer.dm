@@ -1,10 +1,13 @@
 /**
  * Loomer.
  *
- * A quirk any species can take: the limb rig draws you with legs four and a half times their
- * length, arms three times, long fingers, a permanent stoop so you still fit through doors,
- * and a long loping walk. In combat mode with your hands empty you reach out, arms straight,
- * fingers creeping longer, trembling all over.
+ * An admin smite: the limb rig draws you with legs four and a half times their length, arms
+ * three times, long fingers, a permanent stoop so you still fit through doors, and a long
+ * loping walk. In combat mode with your hands empty you reach out, arms straight, fingers
+ * creeping longer, trembling all over.
+ *
+ * It needs the Overanimated quirk, since that's what gives you a rig to stretch, and hands it
+ * out if it's missing. Taking the quirk away takes this with it.
  *
  * Loosely after the Serverblight and DOORS' Figure, minus the blindness: you see fine. It's
  * all looks; nothing about how you play changes.
@@ -27,23 +30,25 @@ GLOBAL_LIST_INIT(loomer_rig_shape, list(
 	),
 ))
 
-/datum/quirk/loomer
+/mob/living/carbon
+	/// Whether the limb rig draws this mob as a Loomer. Set by the smite.
+	var/limb_rig_loomer = FALSE
+
+/// Makes someone a Loomer, or turns a Loomer back.
+/datum/smite/loomer
 	name = "Loomer"
-	desc = "You have far too much arm and leg. You stoop to fit through doors, lope instead of walking, \
-		and reach out with long, twitching fingers when you square up empty-handed. Purely cosmetic."
-	icon = FA_ICON_RULER_VERTICAL
-	value = 0
-	gain_text = span_notice("You feel very, very tall.")
-	lose_text = span_notice("Your limbs settle back to a sensible length.")
-	medical_record_text = "Patient's limbs are several times longer than expected. Patient has asked us to stop measuring."
 
-/datum/quirk/loomer/add(client/client_source)
-	var/mob/living/carbon/carbon_holder = quirk_holder
-	if(istype(carbon_holder))
-		carbon_holder.update_limb_rig()
-
-/datum/quirk/loomer/remove()
-	var/mob/living/carbon/carbon_holder = quirk_holder
-	if(istype(carbon_holder))
-		// The quirk is still listed while this runs, so check again once it's gone.
-		addtimer(CALLBACK(carbon_holder, TYPE_PROC_REF(/mob/living/carbon, update_limb_rig)), 0.1 SECONDS, TIMER_UNIQUE)
+/datum/smite/loomer/effect(client/user, mob/living/target)
+	. = ..()
+	if(!ishuman(target))
+		to_chat(user, span_warning("This must be used on a human."), confidential = TRUE)
+		return
+	var/mob/living/carbon/human/victim = target
+	if(victim.limb_rig_loomer)
+		victim.limb_rig_loomer = FALSE
+		to_chat(victim, span_notice("Your limbs settle back to a sensible length."))
+	else
+		victim.add_quirk(/datum/quirk/overanimated, announce = FALSE)
+		victim.limb_rig_loomer = TRUE
+		to_chat(victim, span_warning("You feel very, very tall."))
+	victim.update_limb_rig()

@@ -1,8 +1,8 @@
 /**
  * Limb rig.
  *
- * Every living, human-shaped carbon has its sprite cut into moving pieces: head, torso,
- * both arms, both legs, and whatever each hand is holding. The pieces then walk, crawl,
+ * Every living, human-shaped carbon with the Overanimated quirk (quirk.dm) has its sprite cut
+ * into moving pieces: head, torso, both arms, both legs, and whatever each hand is holding. The pieces then walk, crawl,
  * breathe, work tools, swing at things and act out emotes (animations.dm).
  *
  * How the cut works: a human is drawn entirely from overlays_standing. While rigged, those
@@ -60,6 +60,8 @@
 	var/working = 0
 	/// Which leg leads on the next step.
 	var/left_foot_forward = FALSE
+	/// When the step in progress finishes, in world.time.
+	var/step_ends_at = 0
 	/// Timer that puts the rig back to its idle loop after a one-off animation or a walk.
 	var/settle_timer
 	/// How much longer than the sprite the arms, legs and fingers are drawn.
@@ -140,11 +142,11 @@
 	owner = null
 	return ..()
 
-/// Takes the limb lengths, posture and walk from the owner's quirks, or failing that, species.
+/// Takes the limb lengths, posture and walk from the Loomer smite, or failing that, species.
 /datum/limb_rig/proc/refresh_shape()
 	var/mob/living/carbon/human/human_owner = owner
 	var/list/shape = istype(human_owner) ? human_owner.dna?.species?.limb_rig_shape : null
-	if(owner.has_quirk(/datum/quirk/loomer))
+	if(owner.limb_rig_loomer)
 		shape = GLOB.loomer_rig_shape
 	arm_stretch = shape?["arm_stretch"] || RIG_ARM_STRETCH
 	leg_stretch = shape?["leg_stretch"] || RIG_LEG_STRETCH
@@ -273,12 +275,18 @@
 	update_finger_layers()
 
 /// Dangling fingers sit just over the arm; gripping ones go over the held item, to wrap it.
+/// Seen from behind they go under the arm instead: the arm piece carries whatever on the back
+/// covers the hands (wings, capes, backpacks), and that should cover the fingers too.
 /datum/limb_rig/proc/update_finger_layers()
 	for(var/side in list("l", "r"))
 		var/obj/effect/abstract/limb_rig_part/item = item_parts[side]
 		var/obj/effect/abstract/limb_rig_part/fingers = finger_parts[side]
 		var/obj/item/bodypart/arm/hand = owner.get_bodypart(side == "l" ? BODY_ZONE_L_ARM : BODY_ZONE_R_ARM)
-		fingers.layer = item.layer + ((hand?.fingers_gripping || hand?.fingers_bird) ? 0.5 : -0.5)
+		if(owner.dir == NORTH)
+			var/obj/effect/abstract/limb_rig_part/arm = parts[side == "l" ? RIG_L_ARM : RIG_R_ARM]
+			fingers.layer = arm.layer - 0.5
+		else
+			fingers.layer = item.layer + ((hand?.fingers_gripping || hand?.fingers_bird) ? 0.5 : -0.5)
 		var/obj/effect/abstract/limb_rig_part/bird = bird_parts[side]
 		bird.layer = fingers.layer + 0.1
 
@@ -357,6 +365,8 @@
 /// Whether this mob should be cut into moving pieces right now.
 /mob/living/carbon/proc/can_have_limb_rig()
 	if(QDELETED(src) || stat == DEAD || !ishuman(src) || istype(src, /mob/living/carbon/human/dummy))
+		return FALSE
+	if(!has_quirk(/datum/quirk/overanimated))
 		return FALSE
 	var/obj/item/bodypart/chest/chest = get_bodypart(BODY_ZONE_CHEST)
 	// The masks are cut for a human-shaped body. Monkeys and xenos are built differently.
