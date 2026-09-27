@@ -176,6 +176,7 @@
 		cloth_parts[part_id].layer = parts[part_id].layer + 0.1
 	for(var/side in shoe_parts)
 		shoe_parts[side].layer = parts["[side]_foot"].layer + 0.2
+	sort_pieces()
 
 /**
  * Poses a limb hanging straight down from points[1] through the rest of points.

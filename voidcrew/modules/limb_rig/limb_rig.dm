@@ -223,6 +223,20 @@
 		arm.layer = behind ? -7 : -3
 		forearm.layer = arm.layer + 0.2
 		item.layer = behind ? -6 : -2
+	sort_pieces()
+
+/// Pieces draw in the order they sit in vis_contents, whatever their layers say, so every time
+/// the layers change, put the pieces in layer order: lowest first, drawn at the back.
+/datum/limb_rig/proc/sort_pieces()
+	for(var/atom/movable/container as anything in list(owner, pivot))
+		var/list/pieces = list()
+		for(var/obj/effect/abstract/limb_rig_part/part in container.vis_contents)
+			pieces += part
+		if(length(pieces) < 2)
+			continue
+		sortTim(pieces, GLOBAL_PROC_REF(cmp_atom_layer_asc))
+		container.vis_contents -= pieces
+		container.vis_contents += pieces
 
 /// The mask icon for one piece facing one way. Built once each and kept.
 /proc/get_rig_mask(mask_state, facing, mask_icon = RIG_MASKS)
