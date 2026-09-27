@@ -37,5 +37,9 @@
 	var/obj/effect/abstract/limb_rig_part/torso_cloth = rig.cloth_parts["chest"]
 	TEST_ASSERT_EQUAL(length(torso.overlays), 1, "An Experiment's torso piece shows more than its own sprite.")
 	TEST_ASSERT(length(torso_cloth.overlays), "An Experiment's jumpsuit is not on its torso's cloth piece.")
+	TEST_ASSERT_EQUAL(expie.get_bloodtype()?.id, "EXP", "An Experiment does not have its yellow blood.")
+	expie.apply_damage(40, BRUTE, BODY_ZONE_CHEST)
+	expie.update_damage_overlays()
+	TEST_ASSERT(length(torso.overlays) > 1, "A wounded Experiment's torso piece shows no wounds.")
 	expie.death()
 	TEST_ASSERT_NULL(expie.limb_rig, "A dead Experiment kept its limb rig.")

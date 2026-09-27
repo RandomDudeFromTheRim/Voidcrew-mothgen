@@ -6,6 +6,8 @@
 
 /obj/item/bodypart/head/experiment
 	icon = EXPIE_BODYPARTS
+	// Human-shaped wounds don't fit; the rig draws the Experiment's own (see experiment.dm).
+	dmg_overlay_type = null
 	icon_static = EXPIE_BODYPARTS
 	limb_id = SPECIES_EXPERIMENT
 	is_dimorphic = FALSE
@@ -20,6 +22,8 @@
 
 /obj/item/bodypart/chest/experiment
 	icon = EXPIE_BODYPARTS
+	// Human-shaped wounds don't fit; the rig draws the Experiment's own (see experiment.dm).
+	dmg_overlay_type = null
 	icon_static = EXPIE_BODYPARTS
 	limb_id = SPECIES_EXPERIMENT
 	is_dimorphic = FALSE
@@ -32,6 +36,8 @@
 
 /obj/item/bodypart/arm/left/experiment
 	icon = EXPIE_BODYPARTS
+	// Human-shaped wounds don't fit; the rig draws the Experiment's own (see experiment.dm).
+	dmg_overlay_type = null
 	icon_static = EXPIE_BODYPARTS
 	limb_id = SPECIES_EXPERIMENT
 	should_draw_greyscale = FALSE
@@ -43,6 +49,8 @@
 
 /obj/item/bodypart/arm/right/experiment
 	icon = EXPIE_BODYPARTS
+	// Human-shaped wounds don't fit; the rig draws the Experiment's own (see experiment.dm).
+	dmg_overlay_type = null
 	icon_static = EXPIE_BODYPARTS
 	limb_id = SPECIES_EXPERIMENT
 	should_draw_greyscale = FALSE
@@ -54,6 +62,8 @@
 
 /obj/item/bodypart/leg/left/experiment
 	icon = EXPIE_BODYPARTS
+	// Human-shaped wounds don't fit; the rig draws the Experiment's own (see experiment.dm).
+	dmg_overlay_type = null
 	icon_static = EXPIE_BODYPARTS
 	limb_id = SPECIES_EXPERIMENT
 	should_draw_greyscale = FALSE
@@ -66,6 +76,8 @@
 
 /obj/item/bodypart/leg/right/experiment
 	icon = EXPIE_BODYPARTS
+	// Human-shaped wounds don't fit; the rig draws the Experiment's own (see experiment.dm).
+	dmg_overlay_type = null
 	icon_static = EXPIE_BODYPARTS
 	limb_id = SPECIES_EXPERIMENT
 	should_draw_greyscale = FALSE

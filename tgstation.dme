@@ -6876,6 +6876,7 @@
 #include "voidcrew\modules\expie\animations.dm"
 #include "voidcrew\modules\expie\bodyparts.dm"
 #include "voidcrew\modules\expie\experiment.dm"
+#include "voidcrew\modules\expie\traits.dm"
 #include "voidcrew\modules\throwing\diagnostics.dm"
 #include "voidcrew\modules\admin\feature_testing.dm"
 #include "voidcrew\modules\admin\overmap_management.dm"

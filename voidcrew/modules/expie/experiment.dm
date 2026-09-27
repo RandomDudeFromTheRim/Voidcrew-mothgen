@@ -14,6 +14,9 @@
 	inherent_biotypes = MOB_ORGANIC|MOB_HUMANOID
 	changesource_flags = MIRROR_BADMIN | WABBAJACK | MIRROR_MAGIC | MIRROR_PRIDE | RACE_SWAP | ERT_SPAWN | SLIME_EXTRACT
 	payday_modifier = 1.0
+	exotic_bloodtype = BLOOD_TYPE_EXPERIMENT
+	mutantbrain = /obj/item/organ/brain/experiment
+	death_sound = 'sound/mobs/non-humanoids/mouse/mousesqueek.ogg'
 	bodypart_overrides = list(
 		BODY_ZONE_HEAD = /obj/item/bodypart/head/experiment,
 		BODY_ZONE_CHEST = /obj/item/bodypart/chest/experiment,
@@ -27,6 +30,8 @@
 		"rig_type" = /datum/limb_rig/sprites/experiment,
 		"sprites" = 'voidcrew/modules/expie/icons/rig.dmi',
 		"cloth_masks" = 'voidcrew/modules/expie/icons/cloth_masks.dmi',
+		// Brute and burn marks for each piece, three levels each, brute tinted with the blood colour.
+		"damage" = 'voidcrew/modules/expie/icons/damage.dmi',
 		// Rest joints, in pixels from the bottom left of the tile, limbs hanging straight down:
 		// arms are shoulder, elbow, wrist; legs are hip, knee, hock, sole; crown is the top of the head.
 		"skeleton" = list(
@@ -49,8 +54,45 @@
 		),
 	)
 
+// The voice. Every sound an Experiment makes is picked here, so swapping in better ones is one list.
+
 /datum/species/experiment/get_scream_sound(mob/living/carbon/human/human)
 	return 'sound/mobs/non-humanoids/mouse/mousesqueek.ogg'
+
+/datum/species/experiment/get_hiss_sound(mob/living/carbon/human/human)
+	return pick(
+		'sound/mobs/non-humanoids/hiss/hiss1.ogg',
+		'sound/mobs/non-humanoids/hiss/hiss2.ogg',
+		'sound/mobs/non-humanoids/hiss/hiss3.ogg',
+	)
+
+/datum/species/experiment/get_laugh_sound(mob/living/carbon/human/human)
+	return pick(
+		'sound/mobs/non-humanoids/cat/cat_purr1.ogg',
+		'sound/mobs/non-humanoids/cat/cat_purr2.ogg',
+	)
+
+/datum/species/experiment/create_pref_unique_perks()
+	return list(
+		list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "paw",
+			SPECIES_PERK_NAME = "Claws and Teeth",
+			SPECIES_PERK_DESC = "Experiments slash with their claws instead of punching, and bite when their hands are tied or they have someone held tight. Both can open wounds.",
+		),
+		list(
+			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
+			SPECIES_PERK_ICON = "band-aid",
+			SPECIES_PERK_NAME = "Frail",
+			SPECIES_PERK_DESC = "Experiments tear easily. Every limb takes wounds more readily than a human's.",
+		),
+		list(
+			SPECIES_PERK_TYPE = SPECIES_NEUTRAL_PERK,
+			SPECIES_PERK_ICON = "tint",
+			SPECIES_PERK_NAME = "Yellow Blood",
+			SPECIES_PERK_DESC = "Experiments bleed a thin yellow-orange blood that nothing else can donate to them.",
+		),
+	)
 
 /datum/species/experiment/get_physical_attributes()
 	return "Experiments are lanky, with dark fur, long digitigrade legs, thick thighs, big orange eyes, \

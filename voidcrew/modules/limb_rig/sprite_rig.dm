@@ -49,6 +49,10 @@
 	var/list/obj/effect/abstract/limb_rig_part/cloth_parts = list()
 	/// Pieces showing each foot's shoe, "l" and "r".
 	var/list/obj/effect/abstract/limb_rig_part/shoe_parts = list()
+	/// Per-piece brute and burn marks ("<piece>_brute_<1-3>", "<piece>_burn_<1-3>"), or null to leave damage alone.
+	var/damage_icon
+	/// The marks currently on each piece, by piece id.
+	var/list/damage_marks = list()
 
 /datum/limb_rig/sprites/refresh_shape()
 	. = ..()
@@ -62,6 +66,7 @@
 	paw_height = shape["paw_height"] || 4
 	torso_width = shape["torso_width"] || 1
 	cloth_widths = shape["cloth_widths"]
+	damage_icon = shape["damage"]
 
 /datum/limb_rig/sprites/build_pieces()
 	pivot = new_part(RIG_CHEST)
@@ -112,6 +117,8 @@
 		// The body is the pieces' own sprites. The bodyparts only say which limbs are there.
 		refresh_limbs()
 		return
+	if(cache_index == DAMAGE_LAYER && damage_icon)
+		return // Drawn on the pieces themselves, by refresh_damage_marks().
 	// Shoes go on the shoe pieces, everything else on the cloth pieces.
 	var/list/targets = cache_index == SHOES_LAYER ? shoe_parts : cloth_parts
 	var/key = "[cache_index]"
@@ -128,18 +135,46 @@
 		cloth.add_overlay(standing)
 	mirrored_layers[key] = standing
 
-/// Hides the pieces of any limb that's gone.
-/datum/limb_rig/sprites/proc/refresh_limbs()
+/// Which bodypart each piece belongs to.
+/proc/get_rig_piece_zones()
 	var/static/list/zones = list(
 		RIG_HEAD = BODY_ZONE_HEAD,
+		RIG_CHEST = BODY_ZONE_CHEST,
 		"l_arm" = BODY_ZONE_L_ARM, "l_forearm" = BODY_ZONE_L_ARM,
 		"r_arm" = BODY_ZONE_R_ARM, "r_forearm" = BODY_ZONE_R_ARM,
 		"l_thigh" = BODY_ZONE_L_LEG, "l_shin" = BODY_ZONE_L_LEG, "l_foot" = BODY_ZONE_L_LEG,
 		"r_thigh" = BODY_ZONE_R_LEG, "r_shin" = BODY_ZONE_R_LEG, "r_foot" = BODY_ZONE_R_LEG,
 	)
+	return zones
+
+/// Hides the pieces of any limb that's gone.
+/datum/limb_rig/sprites/proc/refresh_limbs()
+	var/list/zones = get_rig_piece_zones()
 	for(var/part_id in zones)
 		var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
 		part.alpha = owner.get_bodypart(zones[part_id]) ? 255 : 0
+
+/datum/limb_rig/sprites/refresh_damage_marks()
+	if(!damage_icon)
+		return
+	var/blood_color = owner.get_bloodtype()?.get_damage_color(owner)
+	var/list/zones = get_rig_piece_zones()
+	for(var/part_id in zones)
+		var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
+		part.cut_overlay(damage_marks[part_id])
+		var/obj/item/bodypart/limb = owner.get_bodypart(zones[part_id])
+		var/list/marks = list()
+		if(limb?.brutestate)
+			var/image/brute = image(damage_icon, "[part_id]_brute_[limb.brutestate]")
+			brute.pixel_w = -16
+			brute.color = blood_color
+			marks += brute
+		if(limb?.burnstate)
+			var/image/burn = image(damage_icon, "[part_id]_burn_[limb.burnstate]")
+			burn.pixel_w = -16
+			marks += burn
+		part.add_overlay(marks)
+		damage_marks[part_id] = marks
 
 /datum/limb_rig/sprites/refresh_facing()
 	var/facing = owner.dir

@@ -185,6 +185,10 @@
 			isinhands = TRUE,
 		))
 
+/// Redraws wounds a body draws for itself, rather than the mob's damage overlay. Most don't.
+/datum/limb_rig/proc/refresh_damage_marks()
+	return
+
 /// Everything the rig took off the mob, for things that copy the mob's look (mirrors).
 /datum/limb_rig/proc/get_body_overlays()
 	. = list()
@@ -351,7 +355,8 @@
 	 * - "arm_stretch", "leg_stretch": how much longer than the sprite
 	 * - "head_scale": how much bigger than the sprite the head is drawn, hats and all
 	 * - "always": the species is always rigged, quirk or not, because it only looks right rigged
-	 * - "sprites", "skeleton", "leg_rest", "cloth_masks", "hat_scale", "torso_width", "cloth_widths", "paw_height":
+	 * - "sprites", "skeleton", "leg_rest", "cloth_masks", "hat_scale", "torso_width", "cloth_widths", "paw_height",
+	 *   "damage":
 	 *   a body built from its own piece sprites (see sprite_rig.dm)
 	 * - "rig_type": a /datum/limb_rig subtype with the species' own animations
 	 * - "posture": a pose added to every pose (see animations.dm)
@@ -368,6 +373,11 @@
 /mob/living/carbon/Destroy()
 	QDEL_NULL(limb_rig)
 	return ..()
+
+/// Bodies that draw their own wounds redraw them whenever the damage overlay would change.
+/mob/living/carbon/update_damage_overlays()
+	. = ..()
+	limb_rig?.refresh_damage_marks()
 
 /// Swinging at something swings an arm.
 /mob/living/carbon/human/do_attack_animation(atom/A, visual_effect_icon, obj/item/used_item, no_effect)
