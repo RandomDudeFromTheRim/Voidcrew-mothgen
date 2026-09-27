@@ -99,8 +99,9 @@
  * Transforms for the head or torso in a pose.
  *
  * * size - how much bigger to draw it, from the joint it hangs off (the neck, for a head)
+ * * joint - where it hangs off, if not the human joint (list(x, y))
  */
-/proc/rig_pose_matrix(part_id, list/entry, facing, size = 1)
+/proc/rig_pose_matrix(part_id, list/entry, facing, size = 1, list/joint)
 	var/front = (facing == NORTH || facing == SOUTH)
 	var/angle = 0
 	var/scale_y = 1
@@ -123,7 +124,7 @@
 			else
 				angle = facing == EAST ? bend : -bend
 			scale_y *= 1 + (entry?["breath"] || 0)
-	var/list/joint = get_rig_joint(part_id, facing)
+	joint = joint || get_rig_joint(part_id, facing)
 	var/matrix/pose = rig_joint_matrix(joint[1], joint[2], scale_y * size, angle, joint[1], joint[2], size)
 	var/skew = entry?["skew"]
 	if(skew)
@@ -294,8 +295,7 @@
 	torso.Translate(0, lift)
 	.[pivot] = torso
 	.[parts[RIG_HEAD]] = rig_pose_matrix(RIG_HEAD, pose?[RIG_HEAD], facing, head_scale)
-	if(tail_shape)
-		.[tail_part] = rig_tail_matrix(tail_shape["root"][dir2text(facing)], pose?[RIG_TAIL], facing)
+
 
 /// Puts every piece in a pose immediately.
 /datum/limb_rig/proc/snap_to(list/pose)

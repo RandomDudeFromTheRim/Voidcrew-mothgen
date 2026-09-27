@@ -21,15 +21,21 @@
 	TEST_ASSERT_NULL(dummy.limb_rig, "A dead human kept its limb rig.")
 	TEST_ASSERT(length(dummy.overlays), "A human that lost its rig didn't get its sprite back.")
 
-/// Experiments are always rigged, quirk or not, and their tail comes off the body onto its own piece.
+/// Experiments are always rigged, quirk or not, built from their own piece sprites, with worn
+/// clothes going on the cloth pieces rather than the body ones.
 /datum/unit_test/limb_rig_experiment
 
 /datum/unit_test/limb_rig_experiment/Run()
 	var/mob/living/carbon/human/consistent/expie = allocate(/mob/living/carbon/human/consistent)
 	expie.set_species(/datum/species/experiment)
 	expie.update_limb_rig()
-	TEST_ASSERT_NOTNULL(expie.limb_rig, "An Experiment without the Overanimated quirk has no limb rig.")
-	TEST_ASSERT(length(expie.limb_rig.tail_part.overlays), "An Experiment's tail did not go on the rig's tail piece.")
-	var/obj/effect/abstract/limb_rig_part/torso = expie.limb_rig.parts["chest"]
-	for(var/image/overlay as anything in torso.overlays)
-		TEST_ASSERT_NOTEQUAL(overlay.icon, 'voidcrew/modules/expie/icons/tail.dmi', "An Experiment's tail is still on its torso piece.")
+	TEST_ASSERT(istype(expie.limb_rig, /datum/limb_rig/sprites), "An Experiment without the Overanimated quirk has no sprite-built limb rig.")
+	var/datum/limb_rig/sprites/rig = expie.limb_rig
+	var/uniform = allocate(/obj/item/clothing/under/color/grey)
+	TEST_ASSERT(expie.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING), "The Experiment could not put on a jumpsuit.")
+	var/obj/effect/abstract/limb_rig_part/torso = rig.parts["chest"]
+	var/obj/effect/abstract/limb_rig_part/torso_cloth = rig.cloth_parts["chest"]
+	TEST_ASSERT_EQUAL(length(torso.overlays), 1, "An Experiment's torso piece shows more than its own sprite.")
+	TEST_ASSERT(length(torso_cloth.overlays), "An Experiment's jumpsuit is not on its torso's cloth piece.")
+	expie.death()
+	TEST_ASSERT_NULL(expie.limb_rig, "A dead Experiment kept its limb rig.")

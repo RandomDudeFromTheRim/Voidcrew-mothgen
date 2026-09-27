@@ -64,30 +64,13 @@
 	var/list/posture
 	/// How this body walks, a RIG_WALK_ define.
 	var/walk_style = RIG_WALK_NORMAL
-	/// The masks that cut the body into pieces, fitted to the species' sprites.
-	var/mask_icon = RIG_MASKS
-	/// Unmasked piece carrying the tail, for species whose shape has one.
-	var/obj/effect/abstract/limb_rig_part/tail_part
-	/// The species' tail: list("icon" = its overlays' icon, "root" = where it joins, by dir2text()).
-	var/list/tail_shape
+	/// Pieces hung directly on the mob (the rest hang off the pivot), to take back off.
+	var/list/obj/effect/abstract/limb_rig_part/owner_pieces = list()
 
 /datum/limb_rig/New(mob/living/carbon/owner)
 	src.owner = owner
-	pivot = new_part(RIG_CHEST)
-	owner.vis_contents += pivot
-	for(var/part_id in list(RIG_CHEST, RIG_HEAD, RIG_L_ARM, RIG_R_ARM, "l_forearm", "r_forearm"))
-		parts[part_id] = new_part(part_id)
-		pivot.vis_contents += parts[part_id]
-	for(var/side in list("l", "r"))
-		item_parts[side] = new_part(side == "l" ? RIG_L_ARM : RIG_R_ARM)
-		pivot.vis_contents += item_parts[side]
-	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
-		parts[part_id] = new_part(part_id)
-		owner.vis_contents += parts[part_id]
-	tail_part = new_part(RIG_TAIL)
-	pivot.vis_contents += tail_part
-	// Before the layers go on, so the tail can be picked out of them.
 	refresh_shape()
+	build_pieces()
 
 	// Take the body off the mob and put it on the pieces.
 	for(var/cache_index in 1 to length(owner.overlays_standing))
@@ -124,12 +107,10 @@
 		var/standing = owner.overlays_standing[cache_index]
 		if(standing)
 			owner.add_overlay(standing)
-	owner.vis_contents -= pivot
-	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
-		owner.vis_contents -= parts[part_id]
+	owner.vis_contents -= owner_pieces
+	owner_pieces = null
 	QDEL_LIST_ASSOC_VAL(parts)
 	QDEL_LIST_ASSOC_VAL(item_parts)
-	QDEL_NULL(tail_part)
 	QDEL_NULL(pivot)
 	mirrored_layers = null
 	owner = null
@@ -142,10 +123,26 @@
 	arm_stretch = shape?["arm_stretch"] || RIG_ARM_STRETCH
 	leg_stretch = shape?["leg_stretch"] || RIG_LEG_STRETCH
 	head_scale = shape?["head_scale"] || 1
-	mask_icon = shape?["masks"] || RIG_MASKS
-	tail_shape = shape?["tail"]
 	posture = shape?["posture"]
 	walk_style = shape?["walk"] || RIG_WALK_NORMAL
+
+/// Makes the pieces and hangs them up: the upper body off the pivot, the legs off the mob.
+/datum/limb_rig/proc/build_pieces()
+	pivot = new_part(RIG_CHEST)
+	hang_on_owner(pivot)
+	for(var/part_id in list(RIG_CHEST, RIG_HEAD, RIG_L_ARM, RIG_R_ARM, "l_forearm", "r_forearm"))
+		parts[part_id] = new_part(part_id)
+		pivot.vis_contents += parts[part_id]
+	for(var/side in list("l", "r"))
+		item_parts[side] = new_part(side == "l" ? RIG_L_ARM : RIG_R_ARM)
+		pivot.vis_contents += item_parts[side]
+	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
+		parts[part_id] = new_part(part_id)
+		hang_on_owner(parts[part_id])
+
+/datum/limb_rig/proc/hang_on_owner(obj/effect/abstract/limb_rig_part/part)
+	owner.vis_contents += part
+	owner_pieces += part
 
 /datum/limb_rig/proc/new_part(part_id)
 	var/obj/effect/abstract/limb_rig_part/part = new
@@ -162,25 +159,14 @@
 	if(old)
 		for(var/part_id in parts)
 			var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
-			part.cut_overlay(old[1])
-		tail_part.cut_overlay(old[2])
+			part.cut_overlay(old)
 		mirrored_layers -= key
 	if(!standing)
 		return
-	// The tail comes out of the body and goes on its own piece, so it can wag.
-	var/list/body = list()
-	var/list/tail = list()
-	var/tail_icon = tail_shape?["icon"]
-	for(var/image/overlay as anything in (islist(standing) ? standing : list(standing)))
-		if(tail_icon && overlay.icon == tail_icon)
-			tail += overlay
-		else
-			body += overlay
 	for(var/part_id in parts)
 		var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
-		part.add_overlay(body)
-	tail_part.add_overlay(tail)
-	mirrored_layers[key] = list(body, tail)
+		part.add_overlay(standing)
+	mirrored_layers[key] = standing
 
 /// Rebuilds each hand's held item piece. Held items aren't masked, so a long gun stays whole.
 /datum/limb_rig/proc/refresh_held_items()
@@ -219,7 +205,7 @@
 		else if(part_id == RIG_CHEST)
 			mask_state = "torso_cut"
 			flags = MASK_INVERSE
-		part.add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask(mask_state, facing, mask_icon), flags = flags))
+		part.add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask(mask_state, facing), flags = flags))
 
 	// Seen side-on, the arm on the far side goes behind the torso. Seen from behind, both do:
 	// anything the arms do in front of the body happens on the other side of the spine.
@@ -229,8 +215,6 @@
 		parts[part_id].layer = -3
 	parts[RIG_CHEST].layer = -5
 	parts[RIG_HEAD].layer = -4
-	// The tail sweeps out behind the body, so it's under everything, unless we're looking at its owner's back.
-	tail_part.layer = facing == NORTH ? -1 : -9
 	for(var/side in list("l", "r"))
 		var/obj/effect/abstract/limb_rig_part/arm = parts[side == "l" ? RIG_L_ARM : RIG_R_ARM]
 		var/obj/effect/abstract/limb_rig_part/item = item_parts[side]
@@ -326,9 +310,11 @@
 /// Adds or removes the rig to match can_have_limb_rig(), and keeps its shape matching the species.
 /mob/living/carbon/proc/update_limb_rig()
 	if(can_have_limb_rig())
-		// Start over, so a new species' masks and tail are in from the first layer.
+		// Start over, so a new species' pieces are right from the first layer.
 		QDEL_NULL(limb_rig)
-		limb_rig = new(src)
+		var/mob/living/carbon/human/human_self = src
+		var/rig_type = human_self.dna?.species?.limb_rig_shape?["sprites"] ? /datum/limb_rig/sprites : /datum/limb_rig
+		limb_rig = new rig_type(src)
 	else if(limb_rig)
 		QDEL_NULL(limb_rig)
 

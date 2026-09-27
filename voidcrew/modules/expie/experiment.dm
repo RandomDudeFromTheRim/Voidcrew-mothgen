@@ -1,10 +1,10 @@
 /**
  * The Experiment.
  *
- * Small, dark, dog-rat people with a crest of swept-back spikes, big orange eyes and an
- * enormous spiky tail. They're always drawn through the limb rig (voidcrew/modules/limb_rig):
- * the sprites are laid out like a human's so every piece of clothing still fits, and the rig
- * shortens the legs and arms to make them small, and wags the tail.
+ * Dark, furry dog-rat people with big orange eyes, long digitigrade legs, thick thighs and an
+ * enormous spiky tail. They're always drawn through the limb rig, built from their own piece
+ * sprites (voidcrew/modules/limb_rig/sprite_rig.dm), a head taller than a human and reaching
+ * past the tile. Worn clothes are stretched onto them piece by piece.
  */
 /datum/species/experiment
 	name = "Experiment"
@@ -19,23 +19,30 @@
 		BODY_ZONE_CHEST = /obj/item/bodypart/chest/experiment,
 		BODY_ZONE_L_ARM = /obj/item/bodypart/arm/left/experiment,
 		BODY_ZONE_R_ARM = /obj/item/bodypart/arm/right/experiment,
-		BODY_ZONE_L_LEG = /obj/item/bodypart/leg/left/digitigrade/experiment,
-		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right/digitigrade/experiment,
+		BODY_ZONE_L_LEG = /obj/item/bodypart/leg/left/experiment,
+		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right/experiment,
 	)
 	limb_rig_shape = list(
 		"always" = TRUE,
-		"leg_stretch" = 0.75,
-		"arm_stretch" = 0.9,
-		"masks" = 'voidcrew/modules/expie/icons/rig_masks.dmi',
-		"tail" = list(
-			"icon" = 'voidcrew/modules/expie/icons/tail.dmi',
-			// Where the tail joins the body, by dir2text() of the facing, in pixels from the bottom left.
-			"root" = list("north" = list(16, 10), "south" = list(16, 11), "east" = list(13, 12), "west" = list(18, 12)),
+		"sprites" = 'voidcrew/modules/expie/icons/rig.dmi',
+		"cloth_masks" = 'voidcrew/modules/expie/icons/cloth_masks.dmi',
+		// Rest joints, in pixels from the bottom left of the tile, limbs hanging straight down:
+		// arms are shoulder, elbow, wrist; legs are hip, knee, hock, sole; crown is the top of the head.
+		"skeleton" = list(
+			"south" = list("l_arm" = list(list(19.96, 37.04), list(19.85, 31.27), list(19.96, 25.11)), "r_arm" = list(list(12.04, 37.04), list(12.15, 31.27), list(12.04, 25.11)), "l_leg" = list(list(18.56, 25.94), list(18.93, 18.34), list(18.93, 12.14), list(18.78, 0)), "r_leg" = list(list(13.44, 25.94), list(13.07, 18.34), list(13.07, 12.14), list(13.22, 0)), "head" = list(16, 38.31), "crown" = list(16, 52), "chest" = list(16, 25.8), "tail" = list(16, 27.26)),
+			"north" = list("l_arm" = list(list(12.04, 37.04), list(12.15, 31.27), list(12.04, 25.11)), "r_arm" = list(list(19.96, 37.04), list(19.85, 31.27), list(19.96, 25.11)), "l_leg" = list(list(13.44, 25.94), list(13.07, 18.34), list(13.07, 12.14), list(13.22, 0)), "r_leg" = list(list(18.56, 25.94), list(18.93, 18.34), list(18.93, 12.14), list(18.78, 0)), "head" = list(16, 38.31), "crown" = list(16, 52), "chest" = list(16, 25.8), "tail" = list(16, 27.26)),
+			"east" = list("l_arm" = list(list(15.89, 37.04), list(15.46, 31.27), list(16.05, 25.11)), "r_arm" = list(list(15.89, 37.04), list(15.46, 31.27), list(16.05, 25.11)), "l_leg" = list(list(16, 25.94), list(16, 18.34), list(16, 12.14), list(16, 0)), "r_leg" = list(list(16, 25.94), list(16, 18.34), list(16, 12.14), list(16, 0)), "head" = list(15.7, 38.31), "crown" = list(16, 52), "chest" = list(15.71, 25.8), "tail" = list(12.71, 27.26)),
+			"west" = list("l_arm" = list(list(16.11, 37.04), list(16.54, 31.27), list(15.95, 25.11)), "r_arm" = list(list(16.11, 37.04), list(16.54, 31.27), list(15.95, 25.11)), "l_leg" = list(list(16, 25.94), list(16, 18.34), list(16, 12.14), list(16, 0)), "r_leg" = list(list(16, 25.94), list(16, 18.34), list(16, 12.14), list(16, 0)), "head" = list(16.3, 38.31), "crown" = list(16, 52), "chest" = list(16.29, 25.8), "tail" = list(19.29, 27.26)),
 		),
-		// Carried high, bent a little forward.
+		// Digitigrade: thigh forward, knee bent well back, foot forward again, in degrees.
+		"leg_rest" = list(27.4, 85.2, 74.3),
+		// The head is nearly twice as wide as a human's.
+		"hat_scale" = 1.8,
+		"paw_height" = 4,
+		"torso_width" = 0.9,
+		// Tail carried a little raised.
 		"posture" = list(
-			RIG_TAIL = list("lift" = 20),
-			RIG_CHEST = list("bend" = 4),
+			RIG_TAIL = list("lift" = 10),
 		),
 	)
 
@@ -43,12 +50,12 @@
 	return 'sound/mobs/non-humanoids/mouse/mousesqueek.ogg'
 
 /datum/species/experiment/get_physical_attributes()
-	return "Experiments are short and slight, with dark fur, digitigrade legs, big orange eyes, a crest of \
-		soft spikes sweeping back off the head and a huge spiky tail."
+	return "Experiments are lanky, with dark fur, long digitigrade legs, thick thighs, big orange eyes, \
+		swept-back ears and a huge spiky tail."
 
 /datum/species/experiment/get_species_description()
-	return "A short-statured, weird dog-rat-person with a crest of spikes down the back of the head \
-		and a tail bigger than the rest of them."
+	return "A weird dog-rat-person with big orange eyes, long bent legs and a tail nearly as big as \
+		the rest of them."
 
 /datum/species/experiment/get_species_lore()
 	return list(
