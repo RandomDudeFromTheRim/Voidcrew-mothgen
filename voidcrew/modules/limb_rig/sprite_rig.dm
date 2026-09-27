@@ -12,6 +12,9 @@
  *
  * Piece sprites are 64x64, drawn 16 pixels left, so they can reach past the tile on every side.
  * Skeleton points are in pixels from the bottom left of the tile.
+ *
+ * Poses work as usual, and can also give whole angles: "thigh", "shin" and "foot" on a leg, and
+ * "upper" and "lower" on an arm, each forward from straight down.
  */
 
 /// Human bone heights the clothes are drawn around (see icons/rig_masks.dmi and the cloth masks).
@@ -239,9 +242,11 @@
 	var/lowest_foot = INFINITY
 	for(var/side in list("l", "r"))
 		var/list/entry = pose?["[side]_leg"]
-		var/thigh = leg_rest[1] + (entry?["swing"] || 0)
-		var/shin = thigh - leg_rest[2] - (entry?["knee"] || 0)
-		var/foot = shin + leg_rest[3] + (entry?["ankle"] || 0)
+		// Either whole angles ("thigh", "shin", "foot", forward from straight down), or the usual
+		// swing and knee on top of the rest bend.
+		var/thigh = isnull(entry?["thigh"]) ? leg_rest[1] + (entry?["swing"] || 0) : entry["thigh"]
+		var/shin = isnull(entry?["shin"]) ? thigh - leg_rest[2] - (entry?["knee"] || 0) : entry["shin"]
+		var/foot = isnull(entry?["foot"]) ? shin + leg_rest[3] + (entry?["ankle"] || 0) : entry["foot"]
 		var/list/chain = rig_chain(bones["[side]_leg"], list(thigh, shin, foot), facing, entry?["raise"] || 0, side == "r")
 		leg_chains[side] = chain
 		lowest_foot = min(lowest_foot, chain[5])
@@ -263,6 +268,10 @@
 	.[pivot] = torso
 	.[cloth_parts[RIG_CHEST]] = get_cloth_map(RIG_CHEST, facing)
 	var/matrix/head = rig_pose_matrix(RIG_HEAD, pose?[RIG_HEAD], facing, 1, bones[RIG_HEAD])
+	if(facing == NORTH || facing == SOUTH)
+		// From the front, bending over squashes everything on the torso. The head undoes that.
+		var/list/neck = bones[RIG_HEAD]
+		head = rig_joint_matrix(neck[1], neck[2], 1 / max(cos(chest_entry?["bend"] || 0), 0.25), 0, neck[1], neck[2]) * head
 	.[parts[RIG_HEAD]] = head
 	.[cloth_parts[RIG_HEAD]] = get_cloth_map(RIG_HEAD, facing) * head
 	.[parts[RIG_TAIL]] = rig_tail_matrix(bones[RIG_TAIL], pose?[RIG_TAIL], facing)
@@ -270,9 +279,10 @@
 	for(var/side in list("l", "r"))
 		var/list/entry = pose?["[side]_arm"]
 		var/list/points = bones["[side]_arm"]
-		var/swing = entry?["swing"] || 0
+		// Whole angles ("upper", "lower"), or swing and elbow.
+		var/swing = isnull(entry?["upper"]) ? (entry?["swing"] || 0) : entry["upper"]
 		var/raise = entry?["raise"] || 0
-		var/lower = swing + (entry?["elbow"] || 0)
+		var/lower = isnull(entry?["lower"]) ? swing + (entry?["elbow"] || 0) : entry["lower"]
 		var/hand_y = entry?["hand_y"]
 		if(!isnull(hand_y))
 			// Poses give hand heights on a human; carry them over, measured from the hips to the neck.

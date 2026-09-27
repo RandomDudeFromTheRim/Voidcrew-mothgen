@@ -24,6 +24,7 @@
 	)
 	limb_rig_shape = list(
 		"always" = TRUE,
+		"rig_type" = /datum/limb_rig/sprites/experiment,
 		"sprites" = 'voidcrew/modules/expie/icons/rig.dmi',
 		"cloth_masks" = 'voidcrew/modules/expie/icons/cloth_masks.dmi',
 		// Rest joints, in pixels from the bottom left of the tile, limbs hanging straight down:
@@ -36,10 +37,10 @@
 		),
 		// Digitigrade: thigh forward, knee bent well back, foot forward again, in degrees.
 		"leg_rest" = list(27.4, 85.2, 74.3),
-		// The head is nearly twice as wide as a human's.
-		"hat_scale" = 1.8,
+		// The head is a good deal bigger than a human's.
+		"hat_scale" = 1.4,
 		"paw_height" = 4,
-		"torso_width" = 0.9,
+		"torso_width" = 1.2,
 		// Tail carried a little raised.
 		"posture" = list(
 			RIG_TAIL = list("lift" = 10),

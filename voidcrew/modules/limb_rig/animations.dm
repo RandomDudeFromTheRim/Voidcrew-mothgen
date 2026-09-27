@@ -345,6 +345,12 @@
 	if(working && owner.stat == CONSCIOUS)
 		play_work()
 		return
+	var/list/own_idle = (owner.stat == CONSCIOUS && owner.body_position != LYING_DOWN) ? get_own_idle() : null
+	if(own_idle)
+		play(own_idle, loop = -1, activity = RIG_ACTIVITY_IDLE)
+		var/list/first = own_idle[1]
+		held_pose = first[1]
+		return
 	var/deep = owner.stat != CONSCIOUS
 	// A tail, if there is one, sways lazily from side to side, or droops when out cold.
 	var/list/inhale = list(RIG_CHEST = list("breath" = deep ? 0.05 : 0.035), RIG_HEAD = list("nod" = deep ? 4 : 0), RIG_TAIL = list("wag" = deep ? 0 : 7, "lift" = deep ? -25 : 0))
@@ -405,6 +411,11 @@
 	step_ends_at = world.time + step_time
 	left_foot_forward = !left_foot_forward
 	var/lead = left_foot_forward ? 1 : -1
+	var/list/own_step = get_own_step(step_time, running, lying)
+	if(own_step)
+		play(own_step, activity = RIG_ACTIVITY_MOVING, settle_after = FALSE)
+		settle_timer = addtimer(CALLBACK(src, PROC_REF(settle)), max(step_time, move_delay) + 1, TIMER_STOPPABLE|TIMER_DELETE_ME)
+		return
 	var/list/stride
 	var/list/passing
 	var/list/keyframes
@@ -527,6 +538,14 @@
 	play(keyframes, activity = RIG_ACTIVITY_MOVING, settle_after = FALSE)
 	// Stand still again if no step follows.
 	settle_timer = addtimer(CALLBACK(src, PROC_REF(settle)), max(step_time, move_delay) + 1, TIMER_STOPPABLE|TIMER_DELETE_ME)
+
+/// A body's own keyframes for one step, or null to use the ones above. left_foot_forward says which step.
+/datum/limb_rig/proc/get_own_step(step_time, running, lying)
+	return null
+
+/// A body's own looping keyframes for standing still, or null to just breathe.
+/datum/limb_rig/proc/get_own_idle()
+	return null
 
 /// The working hand saws away until the progress bar is done.
 /datum/limb_rig/proc/play_work()

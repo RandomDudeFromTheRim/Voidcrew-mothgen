@@ -313,7 +313,8 @@
 		// Start over, so a new species' pieces are right from the first layer.
 		QDEL_NULL(limb_rig)
 		var/mob/living/carbon/human/human_self = src
-		var/rig_type = human_self.dna?.species?.limb_rig_shape?["sprites"] ? /datum/limb_rig/sprites : /datum/limb_rig
+		var/list/shape = human_self.dna?.species?.limb_rig_shape
+		var/rig_type = shape?["rig_type"] || (shape?["sprites"] ? /datum/limb_rig/sprites : /datum/limb_rig)
 		limb_rig = new rig_type(src)
 	else if(limb_rig)
 		QDEL_NULL(limb_rig)
@@ -336,6 +337,9 @@
 	 * - "arm_stretch", "leg_stretch": how much longer than the sprite
 	 * - "head_scale": how much bigger than the sprite the head is drawn, hats and all
 	 * - "always": the species is always rigged, quirk or not, because it only looks right rigged
+	 * - "sprites", "skeleton", "leg_rest", "cloth_masks", "hat_scale", "torso_width", "paw_height":
+	 *   a body built from its own piece sprites (see sprite_rig.dm)
+	 * - "rig_type": a /datum/limb_rig subtype with the species' own animations
 	 * - "posture": a pose added to every pose (see animations.dm)
 	 * - "walk": a RIG_WALK_ define
 	 */
