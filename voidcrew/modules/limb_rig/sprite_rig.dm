@@ -66,8 +66,11 @@
 /datum/limb_rig/sprites/build_pieces()
 	pivot = new_part(RIG_CHEST)
 	hang_on_owner(pivot)
-	for(var/part_id in list(RIG_CHEST, RIG_HEAD, RIG_TAIL, "l_arm", "l_forearm", "r_arm", "r_forearm"))
+	for(var/part_id in list(RIG_CHEST, RIG_HEAD, "l_arm", "l_forearm", "r_arm", "r_forearm"))
 		add_piece(part_id, pivot)
+	// The pivot draws as one flat group over the legs, so the tail hangs off the mob instead:
+	// it has to go under the legs, or over everything seen from behind.
+	add_piece(RIG_TAIL, null)
 	for(var/side in list("l", "r"))
 		item_parts[side] = new_part(side == "l" ? RIG_L_ARM : RIG_R_ARM)
 		pivot.vis_contents += item_parts[side]
@@ -155,12 +158,13 @@
 		shoe_parts[side].add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask("[side]_shoe", facing, cloth_masks)))
 
 	// Side-on, the far limbs go behind the body. From behind, the arms do too, and the tail,
-	// pointing at the viewer, goes over everything.
+	// pointing at the viewer, goes over everything; otherwise it's under everything, legs included.
+	// (Everything on the pivot draws together, at the pivot's layer.)
 	var/far_side = facing == EAST ? "l" : (facing == WEST ? "r" : null)
 	pivot.layer = -2
 	parts[RIG_CHEST].layer = -5
 	parts[RIG_HEAD].layer = -4
-	parts[RIG_TAIL].layer = facing == NORTH ? -0.5 : -9
+	parts[RIG_TAIL].layer = facing == NORTH ? -1 : -9
 	for(var/side in list("l", "r"))
 		for(var/segment in list("thigh", "shin", "foot"))
 			parts["[side]_[segment]"].layer = side == far_side ? -6 : -3
@@ -292,7 +296,7 @@
 		head = rig_joint_matrix(neck[1], neck[2], 1 / max(cos(chest_entry?["bend"] || 0), 0.25), 0, neck[1], neck[2]) * head
 	.[parts[RIG_HEAD]] = head
 	.[cloth_parts[RIG_HEAD]] = get_cloth_map(RIG_HEAD, facing) * head
-	.[parts[RIG_TAIL]] = rig_tail_matrix(bones[RIG_TAIL], pose?[RIG_TAIL], facing)
+	.[parts[RIG_TAIL]] = rig_tail_matrix(bones[RIG_TAIL], pose?[RIG_TAIL], facing) * torso
 
 	for(var/side in list("l", "r"))
 		var/list/entry = pose?["[side]_arm"]

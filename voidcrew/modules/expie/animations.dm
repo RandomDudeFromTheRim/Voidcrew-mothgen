@@ -66,19 +66,19 @@ GLOBAL_LIST_INIT(expie_swing, list(
  * Keyframes playing part of a clip.
  *
  * * duration - how long the part takes, in deciseconds, shared out evenly between its frames
- * * from, to - which part of the loop, as fractions. Frames after from up to and including to play,
- *   so one part picks up where the last left off.
+ * * start, stop - which part of the loop, as fractions. Frames after start up to and including stop
+ *   play, so one part picks up where the last left off.
  * * tail_wag, tail_lift - a tail swinging from side to side with each frame
  */
-/proc/rig_clip_keyframes(list/clip, duration, from = 0, to = 1, tail_wag = 0, tail_lift = 0)
+/proc/rig_clip_keyframes(list/clip, duration, start = 0, stop = 1, tail_wag = 0, tail_lift = 0)
 	. = list()
 	var/list/poses = list()
 	var/list/wrapped
 	for(var/list/frame as anything in clip)
 		var/fraction = frame[1]
-		if(fraction > from && fraction <= to)
+		if(fraction > start && fraction <= stop)
 			poses += list(frame[2])
-		else if(fraction == 0 && to >= 1)
+		else if(fraction == 0 && stop >= 1)
 			wrapped = frame[2] // The loop's first frame is also its last.
 	if(wrapped)
 		poses += list(wrapped)
