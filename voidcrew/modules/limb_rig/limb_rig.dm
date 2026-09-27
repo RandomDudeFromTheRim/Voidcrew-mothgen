@@ -337,7 +337,7 @@
 	 * - "arm_stretch", "leg_stretch": how much longer than the sprite
 	 * - "head_scale": how much bigger than the sprite the head is drawn, hats and all
 	 * - "always": the species is always rigged, quirk or not, because it only looks right rigged
-	 * - "sprites", "skeleton", "leg_rest", "cloth_masks", "hat_scale", "torso_width", "paw_height":
+	 * - "sprites", "skeleton", "leg_rest", "cloth_masks", "hat_scale", "torso_width", "cloth_widths", "paw_height":
 	 *   a body built from its own piece sprites (see sprite_rig.dm)
 	 * - "rig_type": a /datum/limb_rig subtype with the species' own animations
 	 * - "posture": a pose added to every pose (see animations.dm)

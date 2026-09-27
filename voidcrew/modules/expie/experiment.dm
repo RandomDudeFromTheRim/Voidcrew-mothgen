@@ -41,6 +41,8 @@
 		"hat_scale" = 1.4,
 		"paw_height" = 4,
 		"torso_width" = 1.2,
+		// Thick thighs need wide trousers.
+		"cloth_widths" = list("thigh" = 2, "shin" = 1.3, "arm" = 1.5, "forearm" = 1),
 		// Tail carried a little raised.
 		"posture" = list(
 			RIG_TAIL = list("lift" = 10),

@@ -8,7 +8,8 @@
  *
  * Worn clothes are still drawn for a human. They're cut with human-shaped masks (the "cloth_masks"
  * icon) onto cloth pieces, and each cloth piece is stretched from the human bone onto this body's
- * bone: a human thigh's worth of trousers onto this thigh, shoes onto the foot, a hat onto the head.
+ * bone: a human thigh's worth of trousers onto this thigh, a hat onto the head. Shoes get pieces of
+ * their own, taking the whole shoe onto the paw, so no boot top ends up halfway up the leg.
  *
  * Piece sprites are 64x64, drawn 16 pixels left, so they can reach past the tile on every side.
  * Skeleton points are in pixels from the bottom left of the tile.
@@ -41,8 +42,13 @@
 	var/paw_height = 4
 	/// How much wider (or narrower) clothes are drawn on the torso.
 	var/torso_width = 1
+	/// How much wider clothes are drawn on each kind of limb segment ("arm", "forearm", "thigh", "shin"),
+	/// so sleeves and trouser legs fit round this body's limbs rather than a human's.
+	var/list/cloth_widths
 	/// Pieces showing worn clothing, by piece id.
 	var/list/obj/effect/abstract/limb_rig_part/cloth_parts = list()
+	/// Pieces showing each foot's shoe, "l" and "r".
+	var/list/obj/effect/abstract/limb_rig_part/shoe_parts = list()
 
 /datum/limb_rig/sprites/refresh_shape()
 	. = ..()
@@ -55,6 +61,7 @@
 	hat_scale = shape["hat_scale"] || 1
 	paw_height = shape["paw_height"] || 4
 	torso_width = shape["torso_width"] || 1
+	cloth_widths = shape["cloth_widths"]
 
 /datum/limb_rig/sprites/build_pieces()
 	pivot = new_part(RIG_CHEST)
@@ -66,6 +73,8 @@
 		pivot.vis_contents += item_parts[side]
 		for(var/segment in list("thigh", "shin", "foot"))
 			add_piece("[side]_[segment]", null)
+		shoe_parts[side] = new_part("[side]_foot")
+		hang_on_owner(shoe_parts[side])
 
 /// Makes a body piece showing its sprite, and a cloth piece to go with it (the tail wears nothing).
 /datum/limb_rig/sprites/proc/add_piece(part_id, obj/effect/abstract/limb_rig_part/container)
@@ -89,6 +98,7 @@
 
 /datum/limb_rig/sprites/Destroy()
 	QDEL_LIST_ASSOC_VAL(cloth_parts)
+	QDEL_LIST_ASSOC_VAL(shoe_parts)
 	return ..()
 
 /datum/limb_rig/sprites/set_layer(cache_index, standing)
@@ -99,17 +109,19 @@
 		// The body is the pieces' own sprites. The bodyparts only say which limbs are there.
 		refresh_limbs()
 		return
+	// Shoes go on the shoe pieces, everything else on the cloth pieces.
+	var/list/targets = cache_index == SHOES_LAYER ? shoe_parts : cloth_parts
 	var/key = "[cache_index]"
 	var/old = mirrored_layers[key]
 	if(old)
-		for(var/part_id in cloth_parts)
-			var/obj/effect/abstract/limb_rig_part/cloth = cloth_parts[part_id]
+		for(var/part_id in targets)
+			var/obj/effect/abstract/limb_rig_part/cloth = targets[part_id]
 			cloth.cut_overlay(old)
 		mirrored_layers -= key
 	if(!standing)
 		return
-	for(var/part_id in cloth_parts)
-		var/obj/effect/abstract/limb_rig_part/cloth = cloth_parts[part_id]
+	for(var/part_id in targets)
+		var/obj/effect/abstract/limb_rig_part/cloth = targets[part_id]
 		cloth.add_overlay(standing)
 	mirrored_layers[key] = standing
 
@@ -139,6 +151,8 @@
 			mask_state = "torso_cut"
 			flags = MASK_INVERSE
 		cloth.add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask(mask_state, facing, cloth_masks), flags = flags))
+	for(var/side in shoe_parts)
+		shoe_parts[side].add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask("[side]_shoe", facing, cloth_masks)))
 
 	// Side-on, the far limbs go behind the body. From behind, the arms do too, and the tail,
 	// pointing at the viewer, goes over everything.
@@ -156,6 +170,8 @@
 		item_parts[side].layer = behind ? -6.5 : -2
 	for(var/part_id in cloth_parts)
 		cloth_parts[part_id].layer = parts[part_id].layer + 0.1
+	for(var/side in shoe_parts)
+		shoe_parts[side].layer = parts["[side]_foot"].layer + 0.2
 
 /**
  * Poses a limb hanging straight down from points[1] through the rest of points.
@@ -230,7 +246,7 @@
 	var/list/top = points[index]
 	var/list/bottom = points[index + 1]
 	var/stretch = (top[2] - bottom[2]) / (human_heights[index] - human_heights[index + 1])
-	return rig_joint_matrix(human_root[1], human_heights[index], stretch, 0, top[1], top[2])
+	return rig_joint_matrix(human_root[1], human_heights[index], stretch, 0, top[1], top[2], cloth_widths?[segment] || 1)
 
 /datum/limb_rig/sprites/get_pose_matrices(list/pose, facing)
 	. = list()
@@ -261,6 +277,8 @@
 			var/part_id = "[side]_[segments[i]]"
 			.[parts[part_id]] = segment_matrix
 			.[cloth_parts[part_id]] = get_cloth_map(part_id, facing) * segment_matrix
+			if(i == 3)
+				.[shoe_parts[side]] = get_cloth_map(part_id, facing) * segment_matrix
 
 	// The upper body hangs off the hips.
 	var/matrix/torso = rig_pose_matrix(RIG_CHEST, chest_entry, facing, 1, bones[RIG_CHEST])
