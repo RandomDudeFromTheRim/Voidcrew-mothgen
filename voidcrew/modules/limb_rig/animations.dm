@@ -3,8 +3,7 @@
  *
  * A pose is a list of part id -> joint angles:
  * - arms: "raise" (out to the side), "swing" (forward and back) and "elbow" (forearm bends forward),
- *   plus "reach" (fingers stretch by this much more) and "bird" (how far a raised middle finger
- *   is out: 0 is all the way, -1 is still curled). Arms hang off the torso, so they bend with it;
+ *   Arms hang off the torso, so they bend with it;
  *   "aim" instead of "swing" points the whole arm that way in the world, whatever the torso and
  *   posture are doing (90 is straight out in front). "hand_y" works the elbow out for you so the
  *   hand ends up at that height on the sprite (the face is about 26), however long the arm is.
@@ -13,6 +12,7 @@
  * - torso: "bend" (forward) and "lean" (toward the mob's right), plus "breath" (0.03 = 3% taller,
  *   negative squashes), and "air" (pixels the whole body is off the floor)
  * - head and torso: "skew", sheared sideways by this much (0.3 is a lot)
+ * - tail (species with one): "lift" (up, degrees) and "wag" (side to side, degrees)
  * - any part: "dx" and "dy" in pixels
  *
  * Angles are in 3D terms, and the pose maths works out how they look from the way the mob is
@@ -97,8 +97,10 @@
 
 /**
  * Transforms for the head or torso in a pose.
+ *
+ * * size - how much bigger to draw it, from the joint it hangs off (the neck, for a head)
  */
-/proc/rig_pose_matrix(part_id, list/entry, facing)
+/proc/rig_pose_matrix(part_id, list/entry, facing, size = 1)
 	var/front = (facing == NORTH || facing == SOUTH)
 	var/angle = 0
 	var/scale_y = 1
@@ -122,7 +124,7 @@
 				angle = facing == EAST ? bend : -bend
 			scale_y *= 1 + (entry?["breath"] || 0)
 	var/list/joint = get_rig_joint(part_id, facing)
-	var/matrix/pose = rig_joint_matrix(joint[1], joint[2], scale_y, angle, joint[1], joint[2])
+	var/matrix/pose = rig_joint_matrix(joint[1], joint[2], scale_y * size, angle, joint[1], joint[2], size)
 	var/skew = entry?["skew"]
 	if(skew)
 		pose = matrix(1, skew, 0, 0, 1, 0) * pose
@@ -130,16 +132,28 @@
 	return pose
 
 /**
+ * The tail's transform: "lift" raises it, "wag" swings it from side to side.
+ *
+ * Side-on, lifting turns it about its root and wagging foreshortens it. From the front or back,
+ * wagging turns it and lifting stands it up taller.
+ */
+/proc/rig_tail_matrix(list/root, list/entry, facing)
+	var/lift = entry?["lift"] || 0
+	var/wag = entry?["wag"] || 0
+	if(facing == NORTH || facing == SOUTH)
+		return rig_joint_matrix(root[1], root[2], 1 + lift / 200, facing == NORTH ? wag : -wag, root[1], root[2])
+	return rig_joint_matrix(root[1], root[2], 1, facing == EAST ? lift : -lift, root[1], root[2], cos(wag))
+
+/**
  * Transforms for one arm or leg in a pose.
  *
- * Returns list(upper piece, lower piece, end, fingers, end height, middle finger). The end is
- * for whatever rides on the hand without being stretched (held items). Fingers are stretched by
- * finger_stretch and foreshortened with the forearm, so they point the way the hand does. The
- * end height is where the hand or foot finished up, before any lift.
+ * Returns list(upper piece, lower piece, end, end height). The end is for whatever rides on the
+ * hand without being stretched (held items). The end height is where the hand or foot finished
+ * up, before any lift.
  *
  * * bend - how far the torso is bent forward, for arms: they hang off it and tip back with it.
  */
-/proc/rig_limb_matrices(part_id, list/entry, facing, stretch, finger_stretch = 1, bend = 0)
+/proc/rig_limb_matrices(part_id, list/entry, facing, stretch, bend = 0)
 	var/is_leg = (part_id == RIG_L_LEG || part_id == RIG_R_LEG)
 	var/list/root = get_rig_joint(part_id, facing)
 	var/mid_y = is_leg ? RIG_KNEE_Y : RIG_ELBOW_Y
@@ -204,15 +218,11 @@
 	var/end_to_y = mid_to_y - lower_length * lower_scale * cos(lower_angle)
 	// Fingers foreshorten with the forearm, but never all the way: pointed straight at the
 	// viewer they'd collapse into a flat line.
-	var/finger_foreshorten = lower_scale / stretch
-	var/finger_scale = near * finger_stretch * (finger_foreshorten < 0 ? -1 : 1) * max(abs(finger_foreshorten), 0.4)
 	return list(
 		rig_joint_matrix(root[1], root[2], upper_scale, upper_angle, root_x, root_y),
 		rig_joint_matrix(root[1], mid_y, lower_scale, lower_angle, mid_x, mid_to_y, near),
 		rig_joint_matrix(root[1], end_y, near, lower_angle, end_x, end_to_y, near),
-		rig_joint_matrix(root[1], end_y, finger_scale * (1 + (entry?["reach"] || 0)), lower_angle, end_x, end_to_y, near),
 		end_to_y,
-		rig_joint_matrix(root[1], end_y, finger_scale * max(0.05, 1 + (entry?["bird"] || 0)), lower_angle, end_x, end_to_y, near),
 	)
 
 /// Adds a posture to a pose, angle by angle.
@@ -263,21 +273,15 @@
 	var/bend = chest_entry?["bend"] || 0
 	for(var/side in list("l", "r"))
 		var/arm_id = side == "l" ? RIG_L_ARM : RIG_R_ARM
-		// With no fingers dangling off the end, a stretched arm stops short of whatever it's
-		// holding, so it reaches a little further to get there.
-		var/obj/item/bodypart/arm/hand = owner.get_bodypart(side == "l" ? BODY_ZONE_L_ARM : BODY_ZONE_R_ARM)
-		var/stretch = arm_stretch * (hand?.should_draw_fingers() ? 1 : RIG_FINGERLESS_ARM_STRETCH)
-		var/list/arm = rig_limb_matrices(arm_id, pose?[arm_id], facing, stretch, finger_stretch, bend)
+		var/list/arm = rig_limb_matrices(arm_id, pose?[arm_id], facing, arm_stretch, bend)
 		.[parts[arm_id]] = arm[1]
 		.[parts["[side]_forearm"]] = arm[2]
 		.[item_parts[side]] = arm[3]
-		.[finger_parts[side]] = arm[4]
-		.[bird_parts[side]] = arm[6]
 		var/leg_id = side == "l" ? RIG_L_LEG : RIG_R_LEG
 		var/list/leg = rig_limb_matrices(leg_id, pose?[leg_id], facing, leg_stretch)
 		legs[parts[leg_id]] = leg[1]
 		legs[parts["[side]_shin"]] = leg[2]
-		lowest_foot = min(lowest_foot, leg[5])
+		lowest_foot = min(lowest_foot, leg[4])
 	// Stand the body up (or crouch it down) so the lowest foot is on the floor.
 	// "air" on the torso then lifts the whole body off the floor on top of that, for jumps and
 	// the airborne part of a run.
@@ -289,7 +293,9 @@
 	var/matrix/torso = rig_pose_matrix(RIG_CHEST, pose?[RIG_CHEST], facing)
 	torso.Translate(0, lift)
 	.[pivot] = torso
-	.[parts[RIG_HEAD]] = rig_pose_matrix(RIG_HEAD, pose?[RIG_HEAD], facing)
+	.[parts[RIG_HEAD]] = rig_pose_matrix(RIG_HEAD, pose?[RIG_HEAD], facing, head_scale)
+	if(tail_shape)
+		.[tail_part] = rig_tail_matrix(tail_shape["root"][dir2text(facing)], pose?[RIG_TAIL], facing)
 
 /// Puts every piece in a pose immediately.
 /datum/limb_rig/proc/snap_to(list/pose)
@@ -339,100 +345,15 @@
 	if(working && owner.stat == CONSCIOUS)
 		play_work()
 		return
-	if(wants_menace())
-		play_menace()
-		return
-	menacing = FALSE
-	menace_reach = 0
-	stop_menace_fx()
 	var/deep = owner.stat != CONSCIOUS
-	var/list/inhale = list(RIG_CHEST = list("breath" = deep ? 0.05 : 0.035), RIG_HEAD = list("nod" = deep ? 4 : 0))
-	var/list/exhale = list(RIG_HEAD = list("nod" = deep ? 4 : 0))
+	// A tail, if there is one, sways lazily from side to side, or droops when out cold.
+	var/list/inhale = list(RIG_CHEST = list("breath" = deep ? 0.05 : 0.035), RIG_HEAD = list("nod" = deep ? 4 : 0), RIG_TAIL = list("wag" = deep ? 0 : 7, "lift" = deep ? -25 : 0))
+	var/list/exhale = list(RIG_HEAD = list("nod" = deep ? 4 : 0), RIG_TAIL = list("wag" = deep ? 0 : -7, "lift" = deep ? -25 : 0))
 	play(list(
 		list(inhale, deep ? 22 : 15),
 		list(exhale, deep ? 28 : 20),
 	), loop = -1, activity = RIG_ACTIVITY_IDLE)
 	held_pose = exhale
-
-/// Whether this body should be in its empty-handed combat stance: reaching out, fingers creeping.
-/datum/limb_rig/proc/wants_menace()
-	if(!can_menace || !owner.combat_mode || owner.stat != CONSCIOUS || owner.body_position == LYING_DOWN)
-		return FALSE
-	for(var/obj/item/held in owner.held_items)
-		if(!(held.item_flags & (ABSTRACT|HAND_ITEM)))
-			return FALSE
-	return TRUE
-
-/// How far the fingers can stretch in the combat stance, on top of their usual length (2 is triple).
-#define MENACE_MAX_REACH 2
-/// Each beat of the stance closes this much of the gap to MENACE_MAX_REACH: fast at first, then
-/// slower and slower as the fingers strain toward their limit.
-#define MENACE_REACH_RATE 0.12
-
-/// Stretches the fingers one beat further toward their limit. They never shrink back mid-stance.
-/datum/limb_rig/proc/grow_menace_reach(beats = 1)
-	for(var/beat in 1 to beats)
-		menace_reach += (MENACE_MAX_REACH - menace_reach) * MENACE_REACH_RATE
-	return menace_reach
-
-/// Stance arms: dead level out in front however hunched the body is, spread a little so they
-/// read from the front too, twitching sideways, fingers at their current stretch. The aim stays
-/// put, since from the front it'd change how long the arms and fingers look, and read as pulsing.
-/proc/rig_menace_arm(reach, twitch)
-	return list("aim" = 90, "raise" = 20 + rand(-twitch, twitch), "reach" = reach)
-
-/// A walking keyframe with the arms swapped for the reaching, twitching combat stance.
-/proc/rig_menace_step(list/step, reach)
-	var/list/stalking = step.Copy()
-	stalking[RIG_L_ARM] = rig_menace_arm(reach, 6)
-	stalking[RIG_R_ARM] = rig_menace_arm(reach, 6)
-	var/list/old_chest = step[RIG_CHEST] || list()
-	var/list/chest = old_chest.Copy()
-	chest["bend"] = (chest["bend"] || 0) + 8 + rand(-3, 3)
-	chest["dx"] = rand(-1, 1) / 2
-	stalking[RIG_CHEST] = chest
-	var/list/old_head = step[RIG_HEAD] || list()
-	var/list/head = old_head.Copy()
-	head["nod"] = (head["nod"] || 0) - 6 + rand(-6, 6)
-	head["tilt"] = (head["tilt"] || 0) + rand(-8, 8)
-	stalking[RIG_HEAD] = head
-	return stalking
-
-/**
- * Arms out in front, fingers stretching out after them, the whole body trembling.
- *
- * Plays a short stretch of tremble and comes back here when it's done, so the fingers keep
- * stretching from wherever they got to until they hit their limit, and then hold. The tremble
- * itself is a smooth shiver; the jerks are the odd stop-motion snap in among it.
- */
-/datum/limb_rig/proc/play_menace()
-	menacing = TRUE
-	start_menace_fx()
-	var/list/tremble = list()
-	for(var/shudder in 1 to 12)
-		var/reach = grow_menace_reach()
-		if(shudder == 6 || shudder == 12)
-			// Stop-motion: hold the last pose, then snap to a worse one, sheared and wrenched.
-			tremble += list(list(list(
-				RIG_L_ARM = rig_menace_arm(reach, 14),
-				RIG_R_ARM = rig_menace_arm(reach, 14),
-				RIG_CHEST = list("bend" = 8 + rand(-8, 12), "lean" = rand(-10, 10), "skew" = rand(-25, 25) / 100),
-				RIG_HEAD = list("nod" = rand(-30, 25), "tilt" = rand(-35, 35), "skew" = rand(-40, 40) / 100),
-				RIG_L_LEG = list("knee" = rand(0, 20)),
-				RIG_R_LEG = list("knee" = rand(0, 20)),
-			), rand(2, 4), JUMP_EASING))
-			continue
-		// Swaying from side to side and back, a little off each time.
-		var/sway = (shudder % 2) ? 1 : -1
-		tremble += list(list(list(
-			RIG_L_ARM = rig_menace_arm(reach, 3),
-			RIG_R_ARM = rig_menace_arm(reach, 3),
-			RIG_CHEST = list("bend" = 8 + rand(-2, 2), "lean" = sway * rand(1, 3)),
-			RIG_HEAD = list("nod" = -6 + rand(-4, 4), "tilt" = sway * rand(2, 6)),
-			RIG_L_LEG = list("knee" = rand(0, 6)),
-			RIG_R_LEG = list("knee" = rand(0, 6)),
-		), 1.2))
-	play(tremble, activity = RIG_ACTIVITY_MENACE)
 
 /// How long crossing one tile takes right now, in deciseconds: whatever slows or speeds the mob up.
 /datum/limb_rig/proc/get_move_delay()
@@ -584,6 +505,15 @@
 			RIG_L_ARM = list("raise" = 4, "elbow" = 15),
 			RIG_R_ARM = list("raise" = 4, "elbow" = 15),
 		)
+	// A tail swings against the stride, and streams out flatter behind a run.
+	if(keyframes)
+		for(var/i in 1 to length(keyframes))
+			var/list/keyframe = keyframes[i]
+			var/list/pose = keyframe[1]
+			pose[RIG_TAIL] = list("wag" = (i % 2 ? 10 : -10) * lead, "lift" = -12 + (i % 2) * 4)
+	else
+		stride[RIG_TAIL] = list("wag" = -9 * lead, "lift" = -3)
+		passing[RIG_TAIL] = list("wag" = 0, "lift" = 3)
 	if(!lying)
 		var/gait = get_gait_scale(running)
 		if(keyframes)
@@ -592,17 +522,6 @@
 		else
 			stride = rig_scale_gait(stride, gait)
 			passing = rig_scale_gait(passing, gait)
-	if(!lying && wants_menace())
-		// Stalking: the legs keep loping, but the arms stay out in front, fingers stretching and
-		// twitching, and the rest of the body shudders as it goes.
-		menacing = TRUE
-		start_menace_fx()
-		if(keyframes)
-			for(var/list/keyframe as anything in keyframes)
-				keyframe[1] = rig_menace_step(keyframe[1], grow_menace_reach(1))
-		else
-			stride = rig_menace_step(stride, grow_menace_reach(2))
-			passing = rig_menace_step(passing, grow_menace_reach(2))
 	if(!keyframes)
 		keyframes = list(list(stride, step_time * 0.5), list(passing, step_time * 0.5))
 	play(keyframes, activity = RIG_ACTIVITY_MOVING, settle_after = FALSE)
@@ -627,59 +546,8 @@
 	follow_through[arm] = list("swing" = 70, "raise" = 10, "elbow" = 0)
 	play(list(list(wind_up, 1), list(follow_through, 1), list(null, 2.5)))
 
-/// An arm with the forearm held straight up in front of the shoulder, middle finger this far out.
-/proc/rig_bird_arm(bird)
-	return list("swing" = 20, "raise" = 20, "elbow" = 155, "bird" = bird)
-
-/**
- * Flips someone off with the active hand.
- *
- * * slow - instead of just raising it, the hand comes up as a fist and the other hand cranks
- *   an invisible lever while the middle finger slowly unfurls.
- */
-/datum/limb_rig/proc/play_bird(slow)
-	var/right = IS_RIGHT_INDEX(owner.active_hand_index)
-	var/bird_arm = right ? RIG_R_ARM : RIG_L_ARM
-	var/crank_arm = right ? RIG_L_ARM : RIG_R_ARM
-	// Forearm straight up in front of the shoulder.
-	var/list/raised = rig_bird_arm(0)
-	if(!slow)
-		var/list/up = list(RIG_HEAD = list("tilt" = 8), RIG_CHEST = list("lean" = 3))
-		up[bird_arm] = raised
-		play(list(list(up, 2), list(up, 12), list(null, 3)))
-		return
-	var/list/keyframes = list()
-	var/list/start = list(RIG_HEAD = list("nod" = 6))
-	start[bird_arm] = rig_bird_arm(-0.95)
-	start[crank_arm] = list("swing" = 50, "elbow" = 60, "raise" = -10)
-	keyframes += list(list(start, 3))
-	// Three turns of the crank, four keyframes a turn, the finger coming up a little each time.
-	var/list/crank_positions = list(
-		list("swing" = 70, "elbow" = 100, "raise" = -15),
-		list("swing" = 90, "elbow" = 60, "raise" = -10),
-		list("swing" = 70, "elbow" = 20, "raise" = -5),
-		list("swing" = 50, "elbow" = 60, "raise" = -10),
-	)
-	var/turns = 12
-	for(var/turn in 1 to turns)
-		var/list/frame = list(RIG_HEAD = list("nod" = 6, "tilt" = (turn % 2) ? 3 : -3))
-		frame[bird_arm] = rig_bird_arm(-0.95 + 0.95 * turn / turns)
-		frame[crank_arm] = crank_positions[((turn - 1) % 4) + 1]
-		keyframes += list(list(frame, 1.5))
-	var/list/done = list(RIG_HEAD = list("tilt" = 8), RIG_CHEST = list("lean" = 3))
-	done[bird_arm] = raised
-	keyframes += list(list(done, 2), list(done, 12), list(null, 3))
-	play(keyframes)
-
 /// Acts out an emote, if there's an animation for it.
 /datum/limb_rig/proc/play_emote(emote_key)
-	switch(emote_key)
-		if("bird")
-			play_bird(slow = FALSE)
-			return
-		if("crankbird")
-			play_bird(slow = TRUE)
-			return
 	var/list/keyframes = get_rig_emote(emote_key)
 	if(keyframes)
 		play(keyframes)
@@ -810,5 +678,3 @@
 #undef RIG_HAND_Y
 #undef RIG_KNEE_Y
 #undef RIG_SOLE_Y
-#undef MENACE_MAX_REACH
-#undef MENACE_REACH_RATE

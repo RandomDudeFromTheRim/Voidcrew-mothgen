@@ -18,6 +18,4 @@
 	var/mob/living/carbon/carbon_holder = quirk_holder
 	if(!istype(carbon_holder) || QDELETED(carbon_holder))
 		return
-	// A Loomer is only a Loomer through the rig, so it goes too.
-	carbon_holder.limb_rig_loomer = FALSE
 	carbon_holder.update_limb_rig()
