@@ -58,6 +58,8 @@ GLOBAL_LIST_INIT(expie_swing, list(
 	return rig_clip_keyframes(running ? GLOB.expie_run : GLOB.expie_sneak, step_time, start, start + 0.5, running ? 10 : 5, running ? -12 : -5)
 
 /datum/limb_rig/sprites/experiment/play_attack()
+	if(prob(50))
+		playsound(owner, get_expie_exert_sound(), 35, TRUE)
 	var/list/keyframes = rig_clip_keyframes(GLOB.expie_swing, 3.3)
 	keyframes += list(list(null, 2))
 	play(keyframes)

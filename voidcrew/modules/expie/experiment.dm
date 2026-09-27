@@ -16,7 +16,6 @@
 	payday_modifier = 1.0
 	exotic_bloodtype = BLOOD_TYPE_EXPERIMENT
 	mutantbrain = /obj/item/organ/brain/experiment
-	death_sound = 'sound/mobs/non-humanoids/mouse/mousesqueek.ogg'
 	bodypart_overrides = list(
 		BODY_ZONE_HEAD = /obj/item/bodypart/head/experiment,
 		BODY_ZONE_CHEST = /obj/item/bodypart/chest/experiment,
@@ -54,10 +53,64 @@
 		),
 	)
 
-// The voice. Every sound an Experiment makes is picked here, so swapping in better ones is one list.
+// The voice. Every sound an Experiment makes is picked here (credits in sound/attribution.txt).
+
+/// Yelps and whines when hurt, and screams.
+/proc/get_expie_pain_sound()
+	return pick(
+		'voidcrew/modules/expie/sound/pain1.ogg', 'voidcrew/modules/expie/sound/pain2.ogg',
+		'voidcrew/modules/expie/sound/pain3.ogg', 'voidcrew/modules/expie/sound/pain4.ogg',
+		'voidcrew/modules/expie/sound/pain5.ogg', 'voidcrew/modules/expie/sound/pain6.ogg',
+		'voidcrew/modules/expie/sound/pain7.ogg', 'voidcrew/modules/expie/sound/pain8.ogg',
+		'voidcrew/modules/expie/sound/pain9.ogg', 'voidcrew/modules/expie/sound/pain10.ogg',
+		'voidcrew/modules/expie/sound/pain11.ogg', 'voidcrew/modules/expie/sound/pain12.ogg',
+		'voidcrew/modules/expie/sound/pain13.ogg', 'voidcrew/modules/expie/sound/pain14.ogg',
+	)
+
+/// The last noise it makes.
+/proc/get_expie_death_sound()
+	return pick(
+		'voidcrew/modules/expie/sound/death1.ogg', 'voidcrew/modules/expie/sound/death2.ogg',
+		'voidcrew/modules/expie/sound/death3.ogg', 'voidcrew/modules/expie/sound/death4.ogg',
+	)
+
+/// A grunt of effort, swinging at something.
+/proc/get_expie_exert_sound()
+	return pick(
+		'voidcrew/modules/expie/sound/exert1.ogg', 'voidcrew/modules/expie/sound/exert2.ogg',
+		'voidcrew/modules/expie/sound/exert3.ogg', 'voidcrew/modules/expie/sound/exert4.ogg',
+	)
+
+/// Hits this hard or harder get a yelp.
+#define EXPIE_YELP_DAMAGE 5
+/// And no more often than this.
+#define EXPIE_YELP_COOLDOWN (1.5 SECONDS)
+
+/datum/species/experiment/on_species_gain(mob/living/carbon/human/human_who_gained_species, datum/species/old_species, pref_load, regenerate_icons)
+	. = ..()
+	RegisterSignal(human_who_gained_species, COMSIG_MOB_AFTER_APPLY_DAMAGE, PROC_REF(on_hurt))
+	human_who_gained_species.death_sound = get_expie_death_sound()
+
+/datum/species/experiment/on_species_loss(mob/living/carbon/human/human, datum/species/new_species, pref_load)
+	. = ..()
+	UnregisterSignal(human, COMSIG_MOB_AFTER_APPLY_DAMAGE)
+
+/datum/species/experiment/proc/on_hurt(mob/living/carbon/human/source, damage, damagetype)
+	SIGNAL_HANDLER
+	if(damage < EXPIE_YELP_DAMAGE || source.stat == DEAD || damagetype == STAMINA || damagetype == OXY)
+		return
+	// A different last noise each time, since the mob only holds one.
+	source.death_sound = get_expie_death_sound()
+	if(TIMER_COOLDOWN_RUNNING(source, "expie_yelp"))
+		return
+	TIMER_COOLDOWN_START(source, "expie_yelp", EXPIE_YELP_COOLDOWN)
+	playsound(source, get_expie_pain_sound(), 50, TRUE)
+
+#undef EXPIE_YELP_DAMAGE
+#undef EXPIE_YELP_COOLDOWN
 
 /datum/species/experiment/get_scream_sound(mob/living/carbon/human/human)
-	return 'sound/mobs/non-humanoids/mouse/mousesqueek.ogg'
+	return get_expie_pain_sound()
 
 /datum/species/experiment/get_hiss_sound(mob/living/carbon/human/human)
 	return pick(
@@ -84,7 +137,7 @@
 			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
 			SPECIES_PERK_ICON = "band-aid",
 			SPECIES_PERK_NAME = "Frail",
-			SPECIES_PERK_DESC = "Experiments tear easily. Every limb takes wounds more readily than a human's.",
+			SPECIES_PERK_DESC = "Experiments tear easily. Every limb takes wounds more readily than a human's, and they yelp when hurt.",
 		),
 		list(
 			SPECIES_PERK_TYPE = SPECIES_NEUTRAL_PERK,
