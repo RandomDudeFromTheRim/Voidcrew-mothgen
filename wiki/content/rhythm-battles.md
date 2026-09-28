@@ -45,7 +45,7 @@ The bar hangs between the singers with each singer's head on it, facing the othe
 
 ## Game over
 
-Getting run off the bar also gives you, and only you, a game over. The world goes black around you. If you're an Experiment, you're left standing alone, drawn in outline, and get shot in the head: the head turns red and you drop. Then RETRY? pulses over you while the game over music plays. Against the game, clicking RETRY? starts the same song again. Against a person, it just says GAME OVER. Either way it clears by itself after about 20 seconds.
+Getting run off the bar also gives you, and only you, a game over. The world goes black around you. If you're an Experiment, you're left standing alone, drawn in outline and cowering, and get shot in the head: the head turns red and whips back, and you go over backwards in a spray of blood and lie there twitching. Then RETRY? pulses over you while the game over music plays. Against the game, clicking RETRY? starts the same song again. Against a person, it just says GAME OVER. Either way it clears by itself after about 20 seconds.
 
 If the song finishes first, whoever has more of the bar wins. On an exact tie, the higher score wins.
 

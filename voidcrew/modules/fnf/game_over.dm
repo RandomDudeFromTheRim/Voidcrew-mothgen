@@ -1,8 +1,10 @@
 /**
  * Getting run off the health bar, Funkin' style, seen only by whoever lost.
  *
- * Everything goes black. An Experiment is left standing alone, drawn like a health doll, and
- * gets shot in the head: its head outline goes red, it snaps back and drops. Then RETRY?
+ * Everything goes black. An Experiment is left standing alone, drawn like a health doll,
+ * cowering, and gets shot in the head: its head outline goes red, its head whips back, its arms
+ * fling up, its knees buckle and it goes over backwards, bouncing and spraying blood, then lies
+ * twitching in the spreading pool (all baked into fnf_dead.dmi, after Boyfriend's death). RETRY?
  * pulses over the body while the game over music plays. Against the game, clicking it sings the
  * song again; against a person it just says GAME OVER. It goes away on its own after a while.
  */
@@ -16,9 +18,8 @@
 	var/facing = WEST
 	var/list/atom/movable/screen/fnf/screens = list()
 	var/atom/movable/screen/fnf/blackout
-	/// The body, with the head riding on it.
+	/// The Experiment, standing, dying and then twitching.
 	var/atom/movable/screen/fnf/figure
-	var/atom/movable/screen/fnf/head
 	var/atom/movable/screen/fnf/retry/retry_button
 	var/music_channel
 	var/retrying = FALSE
@@ -41,12 +42,10 @@
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/loss.ogg", volume = 60))
 
 	if(is_species(singer, /datum/species/experiment))
-		figure = add_screen("expie_body", 'voidcrew/modules/fnf/icons/fnf_dead.dmi', "CENTER:-16,CENTER", 2)
-		head = new
-		head.icon = 'voidcrew/modules/fnf/icons/fnf_dead.dmi'
-		head.icon_state = "expie_head"
-		head.vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_DIR
-		figure.vis_contents += head
+		// 160 by 96, standing on the middle of its bottom edge, drawn twice size with its feet
+		// kept on the singer's tile.
+		figure = add_screen("expie_doomed", 'voidcrew/modules/fnf/icons/fnf_dead.dmi', "CENTER:-64,CENTER", 2)
+		figure.transform = matrix(2, 0, 0, 0, 2, 48)
 		figure.dir = facing
 		figure.alpha = 0
 		animate(figure, alpha = 255, time = 6)
@@ -62,8 +61,6 @@
 		UnregisterSignal(singer, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT))
 		singer.client?.screen -= screens
 		SEND_SOUND(singer, sound(null, channel = music_channel))
-	figure?.vis_contents.Cut()
-	QDEL_NULL(head)
 	QDEL_LIST(screens)
 	blackout = null
 	figure = null
@@ -90,26 +87,22 @@
 /datum/fnf_game_over/proc/cock_gun()
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/gun_cock.ogg", volume = 60))
 
-/// Bang. The head snaps back, then the whole body goes over backwards.
+/// Bang. The death plays through once, then it lies there twitching.
 /datum/fnf_game_over/proc/shoot()
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/shot[rand(1, 4)].ogg", volume = 70))
-	// Back is away from where it was facing.
-	var/back = facing == EAST ? -1 : 1
 	animate(blackout, color = "#ffffff", time = 0)
 	animate(color = "#000000", time = 2)
-	// Turned about the middle of the head, which sits 9 pixels above the sprite's middle.
-	var/matrix/snapped = matrix()
-	snapped.Translate(0, -9)
-	snapped.Turn(back * 35)
-	snapped.Translate(back * 3, 11)
-	// The head goes red where it's hit.
-	head.icon_state = "expie_head_shot"
-	animate(head, transform = snapped, time = 1, easing = CUBIC_EASING|EASE_OUT)
-	var/matrix/fallen = matrix()
-	fallen.Turn(back * 90)
-	fallen.Translate(back * 8, -22)
-	animate(figure, transform = fallen, time = 5, delay = 2, easing = BOUNCE_EASING|EASE_OUT)
+	// A kick of recoil on the whole figure, on top of what the frames do.
+	var/back = facing == EAST ? -1 : 1
+	animate(figure, transform = matrix(2, 0, back * 6, 0, 2, 48), time = 0.5, easing = CUBIC_EASING|EASE_OUT)
+	animate(transform = matrix(2, 0, 0, 0, 2, 48), time = 2)
+	figure.icon_state = "expie_death"
+	// 31 frames at half a decisecond each.
+	addtimer(CALLBACK(src, PROC_REF(twitch)), 15.5, TIMER_DELETE_ME)
 	addtimer(CALLBACK(src, PROC_REF(yelp)), 1, TIMER_DELETE_ME)
+
+/datum/fnf_game_over/proc/twitch()
+	figure.icon_state = "expie_twitch"
 
 /datum/fnf_game_over/proc/yelp()
 	SEND_SOUND(singer, sound(get_expie_death_sound(), volume = 50))
@@ -121,7 +114,7 @@
 	SEND_SOUND(singer, music)
 	retry_button = new
 	retry_button.game_over = src
-	retry_button.screen_loc = "CENTER,CENTER+2"
+	retry_button.screen_loc = "CENTER,CENTER+4"
 	SET_PLANE_EXPLICIT(retry_button, FULLSCREEN_PLANE, singer)
 	retry_button.set_text(can_retry ? "RETRY?" : "GAME OVER")
 	screens += retry_button
@@ -182,14 +175,14 @@
 
 /atom/movable/screen/fnf/retry/Initialize(mapload, datum/hud/hud_owner)
 	. = ..()
-	transform = matrix(3, 0, 0, 0, 1, 0)
+	transform = matrix(8, 0, 0, 0, 2.5, 0)
 	label = new
 	label.appearance_flags = RESET_TRANSFORM|RESET_COLOR|PIXEL_SCALE
 	label.vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_ID
-	label.maptext_width = 128
-	label.maptext_height = 32
-	label.maptext_x = -48
-	label.maptext_y = 8
+	label.maptext_width = 320
+	label.maptext_height = 64
+	label.maptext_x = -144
+	label.maptext_y = -8
 	vis_contents += label
 
 /atom/movable/screen/fnf/retry/Destroy()
@@ -199,14 +192,17 @@
 	return ..()
 
 /atom/movable/screen/fnf/retry/proc/set_text(text)
-	label.maptext = MAPTEXT("<span style='text-align:center;font-size:12pt;color:#ffffff;-dm-text-outline:1px #000000'><b>[text]</b></span>")
-	animate(label, alpha = 90, time = 6, loop = -1, easing = SINE_EASING)
-	animate(alpha = 255, time = 6, easing = SINE_EASING)
+	label.maptext = MAPTEXT("<span style='text-align:center;font-size:28pt;color:#ffffff;-dm-text-outline:2px #000000'><b>[text]</b></span>")
+	// Pops in, then throbs.
+	label.transform = matrix() * 2
+	animate(label, transform = matrix(), time = 3, easing = BACK_EASING|EASE_OUT)
+	animate(alpha = 110, transform = matrix() * 0.92, time = 6, loop = -1, easing = SINE_EASING)
+	animate(alpha = 255, transform = matrix() * 1.08, time = 6, easing = SINE_EASING)
 
 /atom/movable/screen/fnf/retry/proc/confirm()
-	label.maptext = MAPTEXT("<span style='text-align:center;font-size:12pt;color:#ffe066;-dm-text-outline:1px #000000'><b>RETRY!</b></span>")
-	animate(label, alpha = 255, transform = matrix() * 1.3, time = 1)
-	animate(transform = matrix(), time = 2)
+	label.maptext = MAPTEXT("<span style='text-align:center;font-size:28pt;color:#ffe066;-dm-text-outline:2px #000000'><b>RETRY!</b></span>")
+	animate(label, alpha = 255, transform = matrix() * 1.5, time = 1)
+	animate(transform = matrix() * 1.2, time = 3)
 
 /atom/movable/screen/fnf/retry/Click(location, control, params)
 	if(usr == game_over?.singer)
