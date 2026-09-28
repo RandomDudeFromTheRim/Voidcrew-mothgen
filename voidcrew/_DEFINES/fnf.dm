@@ -36,3 +36,6 @@
 #define FNF_BATTLE_TRAIT "fnf_battle"
 /// How far a singer's screen zooms in on the stage.
 #define FNF_ZOOM 2
+/// Priority of a summoned opponent's skin colour over their limbs: the lowest, so anything else
+/// that recolours limbs (a hulk's green) still wins.
+#define FNF_SKIN_PRIORITY 1
