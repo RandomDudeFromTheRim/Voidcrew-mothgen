@@ -57,7 +57,7 @@
 	var/list/datum/weakref/locked_items = list()
 	/// The HUD style to put back afterwards, if it was hidden.
 	var/old_hud_version
-	/// Whether the singer's view was zoomed in on the stage.
+	/// Whether the singer's screen was zoomed in on the stage.
 	var/zoomed = FALSE
 	/// Until when (world.time) the singer is busy with a pose, and shouldn't bop to the beat.
 	var/busy_until = 0
@@ -145,7 +145,7 @@
 
 /**
  * While singing, a player is all in: hands busy (nothing picked up, dropped or used), facing their
- * rival whatever they click on, the HUD hidden and the view zoomed in on the stage.
+ * rival whatever they click on, the HUD hidden and the screen zoomed in on the stage.
  */
 /datum/fnf_side/proc/lock_in()
 	if(is_cpu)
@@ -161,9 +161,7 @@
 	if(singer.hud_used)
 		old_hud_version = singer.hud_used.hud_version
 		singer.hud_used.show_hud(HUD_STYLE_NOHUD)
-	// About eleven tiles by nine: the two singers, their arrows and the bar, and not much else.
-	var/list/size = getviewsize(viewer.view_size.default)
-	viewer.view_size.setBoth(min(0, 11 - size[1]), min(0, 9 - size[2]))
+	zoom_screen(FNF_ZOOM)
 	zoomed = TRUE
 
 /// Gives back everything lock_in() took. Safe to call more than once.
@@ -178,11 +176,24 @@
 	locked_items.Cut()
 	UnregisterSignal(singer, COMSIG_ATOM_POST_DIR_CHANGE)
 	if(zoomed)
-		singer.client?.view_size.resetToDefault()
+		zoom_screen(1)
 		zoomed = FALSE
 	if(old_hud_version)
 		singer.hud_used?.show_hud(old_hud_version)
 		old_hud_version = null
+
+/**
+ * Zooms the singer's screen in by scaling what's already drawn, like a camera, rather than
+ * changing how much they can see: the view size is left alone, so lighting, fullscreen effects and
+ * the rest of the screen's layout don't change underneath. The camera is already centred on the
+ * stage, so this zooms straight into the battle.
+ */
+/datum/fnf_side/proc/zoom_screen(scale)
+	var/atom/movable/plane_master_controller/screen = singer?.hud_used?.plane_master_controllers[PLANE_MASTERS_NON_MASTER]
+	if(!screen)
+		return
+	for(var/atom/movable/screen/plane_master/plate as anything in screen.get_planes())
+		animate(plate, transform = matrix() * scale, time = 10, easing = SINE_EASING)
 
 /datum/fnf_side/proc/on_turned(mob/source, old_dir, new_dir)
 	SIGNAL_HANDLER
