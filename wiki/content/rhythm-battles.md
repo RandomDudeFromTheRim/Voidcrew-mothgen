@@ -14,7 +14,7 @@ Use the microphone in your hand. You choose a song, a difficulty if the song has
 - **Summon someone** starts at once. An Experiment called Experiment Dearest appears three tiles to your left to sing the other part, and leaves when the song is over.
 - **I'll pick someone** cues the song up. Hit someone with the microphone to challenge them. A player gets asked whether they want to sing and has 20 seconds to answer. Anyone nobody is playing, conscious and willing or not, gets their part sung for them by the game.
 
-The singer who used the microphone always takes the right side. The opponent is moved three tiles to your left if there's room (two or four if not), and you turn to face each other.
+The singer who used the microphone always takes the right side. The opponent is moved three tiles to your left if there's room (two or four if not), and you turn to face each other. Both singers' cameras swing over to frame the stage, leaning toward whoever the song says is singing.
 
 ## Playing
 
@@ -38,10 +38,14 @@ Above each singer's arrows are their name, score, misses and accuracy. When a so
 
 ## The health bar
 
-The bar hangs between the singers with a small copy of each singer on it, bobbing to the beat. Your hits push the split toward the other singer's side, and your misses let it slide back toward yours.
+The bar hangs between the singers with each singer's head on it, facing the other and bobbing to the beat. A singer who's losing badly goes pale. Your hits push the split toward the other singer's side, and your misses let it slide back toward yours.
 
 - **Against a person**, running the other singer's colour off the bar wins on the spot. The loser gets blue-balled and falls over.
 - **Against the game**, its notes never move the bar, so you can't lose to it by sitting still. But if your own misses empty the bar, you're blue-balled all the same.
+
+## Game over
+
+Getting run off the bar also gives you, and only you, a game over. The world goes black around you. If you're an Experiment, you're left standing alone, drawn in outline, and get shot in the head: the head turns red and you drop. Then RETRY? pulses over you while the game over music plays. Against the game, clicking RETRY? starts the same song again. Against a person, it just says GAME OVER. Either way it clears by itself after about 20 seconds.
 
 If the song finishes first, whoever has more of the bar wins. On an exact tie, the higher score wins.
 

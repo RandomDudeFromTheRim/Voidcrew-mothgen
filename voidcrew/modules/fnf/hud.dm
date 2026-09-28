@@ -26,9 +26,9 @@
 	var/obj/effect/abstract/fnf_hud/frame
 	var/obj/effect/abstract/fnf_hud/left_bar
 	var/obj/effect/abstract/fnf_hud/right_bar
-	/// The singers themselves, shrunk down, on either side of where the colours meet.
-	var/obj/effect/abstract/fnf_portrait/left_portrait
-	var/obj/effect/abstract/fnf_portrait/right_portrait
+	/// The singers' heads, facing each other on either side of where the colours meet.
+	var/obj/effect/abstract/fnf_hud/portrait/left_portrait
+	var/obj/effect/abstract/fnf_hud/portrait/right_portrait
 	/// Big text in the middle, for the countdown.
 	var/obj/effect/abstract/fnf_hud/text/announcer
 
@@ -45,9 +45,11 @@
 	announcer.pixel_z = center_y + 8
 	vis_contents += announcer
 	if(left_mob)
-		left_portrait = new(loc, left_mob)
+		left_portrait = new(null, left_mob, EAST)
+		vis_contents += left_portrait
 	if(right_mob)
-		right_portrait = new(loc, right_mob)
+		right_portrait = new(null, right_mob, WEST)
+		vis_contents += right_portrait
 	update(FNF_HEALTH_MAX / 2, instant = TRUE)
 
 /obj/effect/abstract/fnf_hud/healthbar/Destroy()
@@ -78,22 +80,22 @@
 	animate(right_bar, transform = matrix(width / 32, 0, (FNF_BAR_WIDTH - width) / 2, 0, FNF_BAR_HEIGHT / 32, 0), time = time)
 	// Where the colours meet, from the bar's middle.
 	var/split = FNF_BAR_WIDTH / 2 - width
-	for(var/obj/effect/abstract/fnf_portrait/portrait as anything in list(left_portrait, right_portrait))
+	for(var/obj/effect/abstract/fnf_hud/portrait/portrait as anything in list(left_portrait, right_portrait))
 		if(!portrait)
 			continue
-		var/side_offset = portrait == left_portrait ? -11 : 11
-		animate(portrait, pixel_w = center_x - 16 + split + side_offset, pixel_z = center_y - 14, time = time)
+		var/side_offset = portrait == left_portrait ? -13 : 13
+		animate(portrait, pixel_w = center_x - 16 + split + side_offset, pixel_z = center_y - 16, time = time)
 	// Whoever's losing badly goes pale.
 	left_portrait?.color = health > 80 ? "#8888ff" : null
 	right_portrait?.color = health < 20 ? "#8888ff" : null
 
 /// Both portraits bob to the beat.
 /obj/effect/abstract/fnf_hud/healthbar/proc/bop()
-	for(var/obj/effect/abstract/fnf_portrait/portrait as anything in list(left_portrait, right_portrait))
+	for(var/obj/effect/abstract/fnf_hud/portrait/portrait as anything in list(left_portrait, right_portrait))
 		if(!portrait)
 			continue
-		animate(portrait, transform = matrix() * 0.62, time = 0)
-		animate(transform = matrix() * 0.5, time = 2, easing = CUBIC_EASING|EASE_OUT)
+		animate(portrait, transform = portrait.get_matrix(1.2), time = 0)
+		animate(transform = portrait.get_matrix(1), time = 2, easing = CUBIC_EASING|EASE_OUT)
 
 /// Takes a singer's portrait down, when the singer is going away.
 /obj/effect/abstract/fnf_hud/healthbar/proc/drop_portrait(mob/living/singer)
@@ -109,24 +111,83 @@
 	animate(alpha = 0, time = 3, delay = 1)
 
 /**
- * A singer shown shrunk beside the health bar: the singer itself, not a picture of it, so it
- * dances along. It shares the singer's plane so the whole body shrinks together, which also
- * means it's lit like the room.
+ * A singer's head beside the health bar, facing their rival, like Funkin's health icons. For a
+ * rigged singer it's the rig's own head pieces, so it nods and sings along; for anyone else, a
+ * picture of them taken at the start.
  */
-/obj/effect/abstract/fnf_portrait
-	name = ""
-	layer = ABOVE_ALL_MOB_LAYER
-	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-	appearance_flags = KEEP_TOGETHER|PIXEL_SCALE
+/obj/effect/abstract/fnf_hud/portrait
+	layer = ABOVE_ALL_MOB_LAYER + 0.04
+	appearance_flags = RESET_COLOR|RESET_ALPHA|PIXEL_SCALE|KEEP_TOGETHER|KEEP_APART
 	var/mob/living/singer
+	/// Where the middle of the head is on the singer's tile, in pixels, and how much to blow it up.
+	var/head_x = 16
+	var/head_y = 16
+	var/head_scale = 1
+	var/list/obj/effect/abstract/limb_rig_part/pieces = list()
 
-/obj/effect/abstract/fnf_portrait/Initialize(mapload, mob/living/singer)
+/obj/effect/abstract/fnf_hud/portrait/Initialize(mapload, mob/living/singer, facing)
 	. = ..()
 	src.singer = singer
-	transform = matrix() * 0.5
-	vis_contents += singer
+	dir = facing
+	var/mob/living/carbon/carbon_singer = singer
+	var/datum/limb_rig/rig = istype(carbon_singer) ? carbon_singer.limb_rig : null
+	if(rig)
+		var/list/head = rig.get_portrait_head(facing)
+		head_x = head[1]
+		head_y = head[2]
+		head_scale = head[3]
+		for(var/obj/effect/abstract/limb_rig_part/piece as anything in rig.get_head_pieces())
+			if(!piece)
+				continue
+			pieces += piece
+			vis_contents += piece
+			RegisterSignal(piece, COMSIG_QDELETING, PROC_REF(on_piece_deleted))
+	else
+		var/mutable_appearance/look = new(singer)
+		look.dir = facing
+		look.plane = FLOAT_PLANE
+		look.layer = FLOAT_LAYER
+		add_overlay(look)
+		head_y = 20
+		head_scale = 0.8
+	transform = get_matrix(1)
 
-/obj/effect/abstract/fnf_portrait/Destroy()
+/obj/effect/abstract/fnf_hud/portrait/Destroy()
+	for(var/obj/effect/abstract/limb_rig_part/piece as anything in pieces)
+		UnregisterSignal(piece, COMSIG_QDELETING)
+	pieces.Cut()
 	vis_contents.Cut()
+	cut_overlays()
 	singer = null
 	return ..()
+
+/obj/effect/abstract/fnf_hud/portrait/proc/on_piece_deleted(datum/source)
+	SIGNAL_HANDLER
+	pieces -= source
+	vis_contents -= source
+
+/// Centres the head and scales it, times bop for bobbing to the beat.
+/obj/effect/abstract/fnf_hud/portrait/proc/get_matrix(bop = 1)
+	var/matrix/centred = matrix()
+	centred.Translate(16 - head_x, 16 - head_y)
+	centred.Scale(head_scale * bop)
+	return centred
+
+/// The pieces that draw the head, for showing it somewhere else.
+/datum/limb_rig/proc/get_head_pieces()
+	return list(parts[RIG_HEAD])
+
+/// list(x, y, scale): where the middle of the head is on the tile, and how much to scale it by
+/// for a health bar portrait.
+/datum/limb_rig/proc/get_portrait_head(facing)
+	var/list/neck = get_rig_joint(RIG_HEAD, facing)
+	return list(neck[1], neck[2] + 4, 1.6)
+
+/datum/limb_rig/sprites/get_head_pieces()
+	return list(parts[RIG_HEAD], cloth_parts[RIG_HEAD])
+
+/datum/limb_rig/sprites/get_portrait_head(facing)
+	var/list/bones = skeleton[dir2text(facing)]
+	var/list/neck = bones[RIG_HEAD]
+	var/list/crown = bones["crown"] || list(neck[1], neck[2] + 14)
+	return list(neck[1], neck[2] * 0.7 + crown[2] * 0.3, 1)

@@ -43,6 +43,13 @@
 	var/last_beat = -1
 	/// An Experiment summoned to sing against a lone challenger. Goes away afterwards.
 	var/mob/living/carbon/human/npc
+	/// Where the singers' cameras look, in world pixels: between them, a little above.
+	var/camera_x = 0
+	var/camera_y = 0
+	/// Which singer the camera leans toward, as the chart says: -1 left, 1 right, 0 neither.
+	var/camera_focus = 0
+	/// Weakrefs to the singers whose cameras were moved, to put them back.
+	var/list/datum/weakref/panned = list()
 
 /datum/fnf_battle/New(datum/fnf_song/song, difficulty, obj/item/fnf_microphone/microphone)
 	src.song = song
@@ -61,6 +68,7 @@
 
 /datum/fnf_battle/Destroy()
 	deltimer(tick_timer)
+	reset_cameras()
 	for(var/mob/listener as anything in listeners)
 		for(var/list/track as anything in get_tracks())
 			SEND_SOUND(listener, sound(null, channel = track[2]))
@@ -166,6 +174,9 @@
 	var/center_x = 16 + (left_turf.x - right_turf.x) * world.icon_size / 2
 	var/center_y = 16 + (left_turf.y - right_turf.y) * world.icon_size / 2 + FNF_STRUM_Y + 44
 	healthbar = new(right_turf, center_x, center_y, opponent, challenger)
+	camera_x = (left_turf.x + right_turf.x) * world.icon_size / 2 + 16
+	camera_y = (left_turf.y + right_turf.y) * world.icon_size / 2 + 16 + 36
+	pan_cameras()
 
 	preload(challenger)
 	preload(opponent)
@@ -181,6 +192,26 @@
 	addtimer(CALLBACK(src, PROC_REF(begin_song)), start_time - world.time, TIMER_DELETE_ME)
 	tick_timer = addtimer(CALLBACK(src, PROC_REF(tick)), world.tick_lag, TIMER_LOOP|TIMER_STOPPABLE|TIMER_DELETE_ME)
 	challenger.visible_message(span_boldnotice("[challenger] and [opponent] square up for a rhythm battle: [song.name]!"))
+
+/// Swings both singers' cameras onto the stage, leaning toward whoever the chart is focused on.
+/datum/fnf_battle/proc/pan_cameras(time = 10)
+	for(var/datum/fnf_side/side as anything in sides)
+		var/mob/living/singer = side.singer
+		var/client/viewer = singer?.client
+		if(!viewer)
+			continue
+		var/turf/singer_turf = get_turf(singer)
+		var/look_x = camera_x + camera_focus * 24 - (singer_turf.x * world.icon_size + 16)
+		var/look_y = camera_y - (singer_turf.y * world.icon_size + 16)
+		animate(viewer, pixel_w = look_x, pixel_z = look_y, time = time, easing = SINE_EASING)
+		panned |= WEAKREF(singer)
+
+/datum/fnf_battle/proc/reset_cameras()
+	for(var/datum/weakref/singer_ref as anything in panned)
+		var/mob/living/singer = singer_ref.resolve()
+		if(singer?.client)
+			animate(singer.client, pixel_w = 0, pixel_z = 0, time = 10, easing = SINE_EASING)
+	panned.Cut()
 
 /// Three tiles to the challenger's left is the opponent's spot, or as close as there's room.
 /datum/fnf_battle/proc/find_opponent_spot(turf/right_turf, mob/living/opponent)
@@ -244,8 +275,17 @@
 	if(state == FNF_STATE_PLAYING && now >= end_ms)
 		finish()
 
-/// The one chart event that means something here: a singer shouting "hey!".
+/// Chart events: the camera turning to whoever's singing, and singers shouting "hey!".
 /datum/fnf_battle/proc/run_event(list/event)
+	if(event["e"] == "FocusCamera")
+		// 0 is the player, 1 the opponent, 2 the girlfriend in the middle.
+		var/focus = event["v"]
+		if(islist(focus))
+			var/list/focus_data = focus
+			focus = focus_data["char"]
+		camera_focus = focus == 0 ? 1 : (focus == 1 ? -1 : 0)
+		pan_cameras(6)
+		return
 	if(event["e"] != "PlayAnimation")
 		return
 	var/list/value = event["v"]
@@ -303,8 +343,11 @@
 	healthbar?.announce(winner ? "[winner.singer_name] wins!" : "Draw!", "#ffe066")
 
 	winner?.hey()
+	reset_cameras()
 	if(loser?.singer && !QDELETED(loser.singer))
 		loser.singer.fnf_lose(loser == knocked_out)
+		if(loser == knocked_out && loser.singer.client)
+			new /datum/fnf_game_over(loser.singer, song, difficulty, loser == right && left.singer == npc, loser.facing)
 
 	// Fade the song out rather than cutting it dead.
 	for(var/step in 1 to 4)

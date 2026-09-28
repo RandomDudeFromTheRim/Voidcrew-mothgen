@@ -1,0 +1,6 @@
+Friday Night Funkin' sounds, by The Funkin' Crew (https://github.com/FunkinCrew/funkin.assets):
+count3, count2, count1, countgo - the countdown (introTHREE, introTWO, introONE, introGO)
+miss1-3 - missnote1-3
+loss - fnf_loss_sfx
+gameover_loop, gameover_retry - gameOver, gameOverEnd
+shot1-4, gun_cock - Pico's gun, from Weekend 1 (shot1-4, Gun_Prep)
