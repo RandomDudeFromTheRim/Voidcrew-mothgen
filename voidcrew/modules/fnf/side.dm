@@ -150,10 +150,11 @@
 /datum/fnf_side/proc/lock_in()
 	if(is_cpu)
 		return
-	ADD_TRAIT(singer, TRAIT_HANDS_BLOCKED, FNF_BATTLE_TRAIT)
+	// Glue their hands shut first: blocking hands drops whatever they're holding.
 	for(var/obj/item/held in singer.held_items)
 		ADD_TRAIT(held, TRAIT_NODROP, FNF_BATTLE_TRAIT)
 		locked_items += WEAKREF(held)
+	ADD_TRAIT(singer, TRAIT_HANDS_BLOCKED, FNF_BATTLE_TRAIT)
 	RegisterSignal(singer, COMSIG_ATOM_POST_DIR_CHANGE, PROC_REF(on_turned))
 	var/client/viewer = singer.client
 	if(!viewer)

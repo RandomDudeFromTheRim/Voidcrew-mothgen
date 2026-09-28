@@ -11,8 +11,9 @@
  * stays in their hand.
  *
  * An Experiment that retries makes its last stand, as in Casualties Unknown: "Let's not give up
- * just yet." flickers over everything to a drone while the world slowly fades back in, and then
- * the song starts again.
+ * just yet." flickers over everything to a drone while the world slowly fades back in, and the
+ * song counts in again as the drone ends. The new battle is set up while it's still dark, so the
+ * singer is already back in their stance when the world comes back.
  *
  * The screens go through the mob's fullscreen overlays, so a HUD rebuild puts them back rather
  * than wiping them, and they land on the right plane whatever z-level the singer is on.
@@ -157,11 +158,15 @@
 		return
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/gameover_retry.ogg", volume = 60))
 	animate(blackout, alpha = 255, time = 15)
-	addtimer(CALLBACK(src, PROC_REF(sing_again)), 25, TIMER_DELETE_ME)
+	addtimer(CALLBACK(src, PROC_REF(sing_again), 0, 20), 25, TIMER_DELETE_ME)
+	// Back into the light as the count in starts.
+	animate(blackout, alpha = 255, time = 25)
+	animate(alpha = 0, time = 20, easing = SINE_EASING)
 
 /**
  * "Let's not give up just yet." Eight seconds of drone, the screen flickering through its three
- * grainy takes, fading back slowly to the world as it ends. The singer gets up partway through.
+ * grainy takes, fading back slowly to the world as it ends. Once it's fully dark the new battle is
+ * set up, counting in two seconds late, as the drone runs out.
  */
 /datum/fnf_game_over/proc/last_stand()
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/laststand_drone.ogg", volume = 70))
@@ -175,14 +180,23 @@
 	animate(retry_button, alpha = 0, time = 10, delay = 5)
 	animate(blackout, alpha = 255, time = 30)
 	animate(alpha = 0, time = 50, easing = SINE_EASING)
-	addtimer(CALLBACK(src, PROC_REF(release_singer)), 40, TIMER_DELETE_ME)
-	addtimer(CALLBACK(src, PROC_REF(sing_again)), 80, TIMER_DELETE_ME)
+	addtimer(CALLBACK(src, PROC_REF(sing_again), 2 SECONDS, 50), 30, TIMER_DELETE_ME)
 
-/datum/fnf_game_over/proc/sing_again()
+/**
+ * Starts the song again, straight from the floor into the new battle so they never stand around
+ * in between.
+ *
+ * * lead_in - extra deciseconds before the count in
+ * * linger - deciseconds to leave the game over screens up, to finish fading
+ */
+/datum/fnf_game_over/proc/sing_again(lead_in = 0, linger = 0)
 	var/mob/living/again = singer
 	var/datum/fnf_song/song_again = song
 	var/difficulty_again = difficulty
-	qdel(src)
+	if(linger)
+		QDEL_IN(src, linger)
+	else
+		qdel(src)
 	if(QDELETED(again) || again.stat != CONSCIOUS)
 		return
 	var/obj/item/fnf_microphone/microphone = locate() in again.held_items
@@ -191,10 +205,14 @@
 			return
 		microphone.battle = null
 	var/datum/fnf_battle/battle = new(song_again, difficulty_again, microphone)
+	battle.lead_in = lead_in
 	if(microphone)
 		microphone.battle = battle
 	battle.preload(again)
 	battle.start(again, null)
+	// Only now let go, so they go from lying down straight into their stance.
+	if(!QDELETED(src))
+		release_singer()
 
 /// Clicked GIVE UP: everything fades out and the singer gets up.
 /datum/fnf_game_over/proc/give_up()

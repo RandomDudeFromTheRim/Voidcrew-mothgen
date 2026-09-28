@@ -4,6 +4,7 @@ miss1-3 - missnote1-3
 loss - fnf_loss_sfx
 gameover_loop, gameover_retry - gameOver, gameOverEnd
 shot1-4, gun_cock - Pico's gun, from Weekend 1 (shot1-4, Gun_Prep)
+The RETRY and GIVE UP buttons in icons/fnf_buttons.dmi are lettered in the game's font.
 
 Casualties Unknown, by Orsoniks:
 laststand_drone - the last stand drone (laststanddrone), cut to its first 8 seconds

@@ -50,6 +50,8 @@
 	var/camera_focus = 0
 	/// Weakrefs to the singers whose cameras were moved, to put them back.
 	var/list/datum/weakref/panned = list()
+	/// Extra time before the count in, in deciseconds, for a stage that's still fading in.
+	var/lead_in = 0
 
 /datum/fnf_battle/New(datum/fnf_song/song, difficulty, obj/item/fnf_microphone/microphone)
 	src.song = song
@@ -214,7 +216,7 @@
 /datum/fnf_battle/proc/begin_countdown()
 	var/countdown_ds = max(4 * crochet, 2000) / 100
 	// Line the start up with a tick, so the song starts on exactly the tick it's meant to.
-	start_time = world.time + CEILING(10 + countdown_ds, world.tick_lag)
+	start_time = world.time + CEILING(10 + lead_in + countdown_ds, world.tick_lag)
 	var/static/list/counts = list("3", "2", "1", "GO!")
 	for(var/i in 1 to 4)
 		addtimer(CALLBACK(src, PROC_REF(count_in), i, counts[i]), start_time - world.time - (5 - i) * crochet / 100, TIMER_DELETE_ME)

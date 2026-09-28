@@ -22,6 +22,8 @@
  */
 
 #define RIG_MASKS 'voidcrew/modules/limb_rig/icons/rig_masks.dmi'
+/// How far across the torso the side-on arm hole is patched from, in pixels.
+#define RIG_PATCH_SHIFT 4
 
 /// One cut-out piece of a rigged mob.
 /obj/effect/abstract/limb_rig_part
@@ -68,6 +70,10 @@
 	var/list/obj/effect/abstract/limb_rig_part/owner_pieces = list()
 	/// A tail, if the body has one: taken out of the body sprite so it can swing on its own.
 	var/obj/effect/abstract/limb_rig_part/tail_part
+	/// Side-on, covers the hole cutting the near arm out of the torso leaves, with a bit of the torso
+	/// beside it. Holds chest_patch_fill, a copy of the body nudged across so the torso lines up.
+	var/obj/effect/abstract/limb_rig_part/chest_patch
+	var/obj/effect/abstract/limb_rig_part/chest_patch_fill
 
 /datum/limb_rig/New(mob/living/carbon/owner)
 	src.owner = owner
@@ -115,6 +121,8 @@
 	QDEL_LIST_ASSOC_VAL(item_parts)
 	QDEL_NULL(pivot)
 	QDEL_NULL(tail_part)
+	QDEL_NULL(chest_patch_fill)
+	QDEL_NULL(chest_patch)
 	mirrored_layers = null
 	owner = null
 	return ..()
@@ -145,6 +153,10 @@
 	// On the mob rather than the pivot, so it can go behind the legs. It follows the torso anyway.
 	tail_part = new_part(RIG_TAIL)
 	hang_on_owner(tail_part)
+	chest_patch = new_part(RIG_CHEST)
+	chest_patch_fill = new_part(RIG_CHEST)
+	chest_patch.vis_contents += chest_patch_fill
+	pivot.vis_contents += chest_patch
 
 /datum/limb_rig/proc/hang_on_owner(obj/effect/abstract/limb_rig_part/part)
 	owner.vis_contents += part
@@ -168,6 +180,7 @@
 			var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
 			part.cut_overlay(old)
 		tail_part?.cut_overlay(old)
+		chest_patch_fill?.cut_overlay(old)
 		mirrored_layers -= key
 	if(!standing)
 		return
@@ -181,6 +194,7 @@
 	for(var/part_id in parts)
 		var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
 		part.add_overlay(body)
+	chest_patch_fill?.add_overlay(body)
 	tail_part?.add_overlay(tail)
 	mirrored_layers[key] = body + tail
 
@@ -215,6 +229,7 @@
 /// Matches the masks and the draw order to the way the mob is facing.
 /datum/limb_rig/proc/refresh_facing()
 	var/facing = owner.dir
+	var/static/list/torso_and_arms = list("torso_cut", "l_arm", "l_forearm", "r_arm", "r_forearm")
 	for(var/part_id in parts)
 		var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
 		var/mask_state = part_id
@@ -225,7 +240,20 @@
 		else if(part_id == RIG_CHEST)
 			mask_state = "torso_cut"
 			flags = MASK_INVERSE
-		part.add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask(mask_state, facing), flags = flags))
+		var/icon/mask = get_rig_mask(mask_state, facing)
+		// Side-on the arms lie over the torso, so the torso's copy of them would stay put when they
+		// move (a third arm glued to the side). Cut them out of it too.
+		if(part_id == RIG_CHEST && (facing & (EAST|WEST)))
+			mask = get_rig_mask_union(torso_and_arms, facing)
+		part.add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = mask, flags = flags))
+	// The near arm's hole gets filled with the torso just in front of it (the torso alone, nudged
+	// across, and cut to the hole).
+	if(chest_patch)
+		chest_patch_fill.add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask_union(torso_and_arms, facing), flags = MASK_INVERSE))
+		var/near_side = facing == EAST ? "r" : "l"
+		chest_patch.alpha = (facing & (EAST|WEST)) ? 255 : 0
+		chest_patch.add_filter("limb_rig_mask", 1, alpha_mask_filter(icon = get_rig_mask_union(list("[near_side]_arm", "[near_side]_forearm"), facing)))
+		chest_patch_fill.pixel_w = facing == EAST ? -RIG_PATCH_SHIFT : RIG_PATCH_SHIFT
 
 	// Seen side-on, the arm on the far side goes behind the torso. Seen from behind, both do:
 	// anything the arms do in front of the body happens on the other side of the spine.
@@ -234,6 +262,7 @@
 	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
 		parts[part_id].layer = -3
 	parts[RIG_CHEST].layer = -5
+	chest_patch?.layer = -4.9
 	parts[RIG_HEAD].layer = -4
 	if(tail_part)
 		// Behind everything, unless it's seen from behind.
@@ -268,6 +297,18 @@
 	var/icon/mask = masks[key]
 	if(!mask)
 		mask = icon(mask_icon, mask_state, facing)
+		masks[key] = mask
+	return mask
+
+/// Several rig masks laid over each other, as one mask.
+/proc/get_rig_mask_union(list/mask_states, facing, mask_icon = RIG_MASKS)
+	var/static/list/masks = list()
+	var/key = "[mask_icon]-[mask_states.Join("+")]-[facing]"
+	var/icon/mask = masks[key]
+	if(!mask)
+		mask = icon(get_rig_mask(mask_states[1], facing, mask_icon))
+		for(var/i in 2 to length(mask_states))
+			mask.Blend(get_rig_mask(mask_states[i], facing, mask_icon), ICON_OVERLAY)
 		masks[key] = mask
 	return mask
 
@@ -411,3 +452,4 @@
 		reflection.add_overlay(rigged.limb_rig.get_body_overlays())
 
 #undef RIG_MASKS
+#undef RIG_PATCH_SHIFT
