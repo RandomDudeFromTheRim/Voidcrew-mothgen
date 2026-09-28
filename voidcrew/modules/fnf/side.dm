@@ -51,6 +51,14 @@
 	var/mic_arm
 	/// Which way the singer faces: toward the rival.
 	var/facing
+	/// A summoned character's own way of moving (see fnf_apply_style), or null.
+	var/style
+	/// Held items the singer can't let go of while singing, as weakrefs.
+	var/list/datum/weakref/locked_items = list()
+	/// The HUD style to put back afterwards, if it was hidden.
+	var/old_hud_version
+	/// Whether the singer's view was zoomed in on the stage.
+	var/zoomed = FALSE
 	/// Until when (world.time) the singer is busy with a pose, and shouldn't bop to the beat.
 	var/busy_until = 0
 
@@ -106,6 +114,7 @@
 	RegisterSignal(singer, COMSIG_MOB_LOGOUT, PROC_REF(on_logout))
 	RegisterSignal(singer, COMSIG_MOB_LOGIN, PROC_REF(on_login))
 	RegisterSignal(singer, COMSIG_QDELETING, PROC_REF(on_singer_deleted))
+	lock_in()
 
 /datum/fnf_side/Destroy()
 	release_singer()
@@ -121,6 +130,7 @@
 /datum/fnf_side/proc/release_singer()
 	if(!singer)
 		return
+	unlock()
 	singer.fnf_rest()
 	UnregisterSignal(singer, list(
 		COMSIG_MOB_KEYDOWN,
@@ -132,6 +142,52 @@
 		COMSIG_QDELETING,
 	))
 	singer = null
+
+/**
+ * While singing, a player is all in: hands busy (nothing picked up, dropped or used), facing their
+ * rival whatever they click on, the HUD hidden and the view zoomed in on the stage.
+ */
+/datum/fnf_side/proc/lock_in()
+	if(is_cpu)
+		return
+	ADD_TRAIT(singer, TRAIT_HANDS_BLOCKED, FNF_BATTLE_TRAIT)
+	for(var/obj/item/held in singer.held_items)
+		ADD_TRAIT(held, TRAIT_NODROP, FNF_BATTLE_TRAIT)
+		locked_items += WEAKREF(held)
+	RegisterSignal(singer, COMSIG_ATOM_POST_DIR_CHANGE, PROC_REF(on_turned))
+	var/client/viewer = singer.client
+	if(!viewer)
+		return
+	if(singer.hud_used)
+		old_hud_version = singer.hud_used.hud_version
+		singer.hud_used.show_hud(HUD_STYLE_NOHUD)
+	// About eleven tiles by nine: the two singers, their arrows and the bar, and not much else.
+	var/list/size = getviewsize(viewer.view_size.default)
+	viewer.view_size.setBoth(min(0, 11 - size[1]), min(0, 9 - size[2]))
+	zoomed = TRUE
+
+/// Gives back everything lock_in() took. Safe to call more than once.
+/datum/fnf_side/proc/unlock()
+	if(!singer)
+		return
+	REMOVE_TRAIT(singer, TRAIT_HANDS_BLOCKED, FNF_BATTLE_TRAIT)
+	for(var/datum/weakref/item_ref as anything in locked_items)
+		var/obj/item/held = item_ref.resolve()
+		if(held)
+			REMOVE_TRAIT(held, TRAIT_NODROP, FNF_BATTLE_TRAIT)
+	locked_items.Cut()
+	UnregisterSignal(singer, COMSIG_ATOM_POST_DIR_CHANGE)
+	if(zoomed)
+		singer.client?.view_size.resetToDefault()
+		zoomed = FALSE
+	if(old_hud_version)
+		singer.hud_used?.show_hud(old_hud_version)
+		old_hud_version = null
+
+/datum/fnf_side/proc/on_turned(mob/source, old_dir, new_dir)
+	SIGNAL_HANDLER
+	if(new_dir != facing && battle.state != FNF_STATE_OVER)
+		source.setDir(facing)
 
 /// Where a lane sits across the strumline, in pixels from the middle of the singer's tile.
 /proc/fnf_lane_x(lane)
@@ -316,7 +372,7 @@
 		splash(note.lane)
 	var/hold_time = max(hold_left / 100, 2)
 	busy_until = world.time + hold_time + 1.5
-	singer?.fnf_sing(note.lane, hold_time, mic_arm, facing)
+	singer?.fnf_sing(note.lane, hold_time, mic_arm, facing, style)
 	if(!hold_left)
 		live -= note
 		qdel(note)
@@ -364,7 +420,7 @@
 	if(singer)
 		SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/miss[rand(1, 3)].ogg", volume = 45))
 		busy_until = world.time + 3
-		singer.fnf_miss(mic_arm, facing)
+		singer.fnf_miss(mic_arm, facing, style)
 	update_score_text()
 
 /// Lets a note that's no longer in play keep drifting up, greyed out, and then go.
@@ -403,11 +459,11 @@
 /datum/fnf_side/proc/bop(beat_time)
 	if(world.time < busy_until)
 		return
-	singer?.fnf_bop(beat_time, mic_arm, facing)
+	singer?.fnf_bop(beat_time, mic_arm, facing, style)
 
 /datum/fnf_side/proc/hey()
 	busy_until = world.time + 8
-	singer?.fnf_hey(mic_arm, facing)
+	singer?.fnf_hey(mic_arm, facing, style)
 
 /datum/fnf_side/proc/get_accuracy()
 	return judged_count ? accuracy_total / judged_count * 100 : 100

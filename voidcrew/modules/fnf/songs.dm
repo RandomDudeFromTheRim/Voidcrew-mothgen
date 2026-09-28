@@ -52,6 +52,13 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 	catch
 		return null
 
+/// A character's name without its variant: "mom" for "mom-car", "senpai" for "senpai-angry".
+/proc/fnf_base_character(character)
+	if(!istext(character))
+		return null
+	var/hyphen = findtext(character, "-")
+	return hyphen ? copytext(character, 1, hyphen) : character
+
 /proc/cmp_fnf_note(list/a, list/b)
 	return a[1] - b[1]
 
@@ -67,6 +74,9 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 	var/inst_file
 	var/player_voice_file
 	var/opponent_voice_file
+	/// Who sings against you, as Funkin' names them without variants ("mom" for "mom-car"). Decides
+	/// who turns up when nobody's been challenged; see opponents.dm.
+	var/opponent_character
 	/// Whether there's enough here to play.
 	var/valid = FALSE
 	/// For charts in the older format, each difficulty's chart file.
@@ -94,6 +104,7 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 		var/list/characters = meta["playData"]?["characters"]
 		player_voice_file = find_voice(characters?["playerVocals"], characters?["player"])
 		opponent_voice_file = find_voice(characters?["opponentVocals"], characters?["opponent"])
+		opponent_character = fnf_base_character(characters?["opponent"])
 	if(!player_voice_file && fexists("[path]Voices.ogg"))
 		player_voice_file = "[path]Voices.ogg"
 	var/list/notes = chart["notes"]
@@ -133,6 +144,7 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 		player_voice_file = "[path]Voices-Player.ogg"
 	else
 		player_voice_file = find_voice(null, first_song["player1"])
+	opponent_character = fnf_base_character(first_song["player2"])
 	if(fexists("[path]Voices-Opponent.ogg"))
 		opponent_voice_file = "[path]Voices-Opponent.ogg"
 	else

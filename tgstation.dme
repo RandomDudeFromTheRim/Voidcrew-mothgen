@@ -7028,6 +7028,7 @@
 #include "voidcrew\modules\fnf\game_over.dm"
 #include "voidcrew\modules\fnf\hud.dm"
 #include "voidcrew\modules\fnf\microphone.dm"
+#include "voidcrew\modules\fnf\opponents.dm"
 #include "voidcrew\modules\fnf\poses.dm"
 #include "voidcrew\modules\fnf\side.dm"
 #include "voidcrew\modules\fnf\songs.dm"

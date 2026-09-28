@@ -166,6 +166,7 @@
 	right = new(src, challenger, TRUE, chart["player"], right_voice_channel)
 	left = new(src, opponent, FALSE, chart["opponent"], left_voice_channel)
 	if(opponent == npc)
+		left.style = song.opponent_character
 		left.is_cpu = TRUE
 		left.update_score_text()
 	sides = list(left, right)
@@ -226,11 +227,8 @@
 	return null
 
 /datum/fnf_battle/proc/summon_opponent(turf/spot)
-	npc = new /mob/living/carbon/human/species/experiment(spot)
-	npc.fully_replace_character_name(npc.real_name, "Experiment Dearest")
+	npc = fnf_summon_opponent(song.opponent_character, spot)
 	npc.setDir(EAST)
-	// Mic in the hand nearer the crowd, so it shows.
-	npc.put_in_r_hand(new /obj/item/fnf_microphone(npc))
 	do_sparks(3, FALSE, npc)
 	npc.visible_message(span_notice("[npc] steps out of nowhere, ready to sing."))
 	return npc
@@ -344,6 +342,8 @@
 
 	winner?.hey()
 	reset_cameras()
+	for(var/datum/fnf_side/side as anything in sides)
+		side.unlock()
 	if(loser?.singer && !QDELETED(loser.singer))
 		loser.singer.fnf_lose(loser == knocked_out)
 		if(loser == knocked_out && loser.singer.client)

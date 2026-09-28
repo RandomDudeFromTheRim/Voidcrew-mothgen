@@ -32,3 +32,5 @@
 
 /// Trait source for being kept on the floor through a game over.
 #define FNF_GAME_OVER_TRAIT "fnf_game_over"
+/// Trait source for being locked into singing.
+#define FNF_BATTLE_TRAIT "fnf_battle"

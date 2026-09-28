@@ -11,12 +11,14 @@ The battle microphone starts a rhythm battle: two singers stand side by side fac
 
 Use the microphone in your hand. You choose a song, a difficulty if the song has more than one, and who you're singing against:
 
-- **Summon someone** starts at once. An Experiment called Experiment Dearest appears three tiles to your left to sing the other part, and leaves when the song is over.
+- **Summon someone** starts at once. The song's own opponent appears three tiles to your left to sing the other part, and leaves when the song is over: Daddy Dearest, Mommy Mearest, Pico, Senpai, Tankman and the rest, each with their own moves (Pico and Tankman sing with a gun in the other hand). Songs without a known opponent get an Experiment called Experiment Dearest.
 - **I'll pick someone** cues the song up. Hit someone with the microphone to challenge them. A player gets asked whether they want to sing and has 20 seconds to answer. Anyone nobody is playing, conscious and willing or not, gets their part sung for them by the game.
 
 The singer who used the microphone always takes the right side. The opponent is moved three tiles to your left if there's room (two or four if not), and you turn to face each other. Both singers' cameras swing over to frame the stage, leaning toward whoever the song says is singing.
 
 ## Playing
+
+While you sing, you're all in: your hands are busy, you can't drop what you're holding or turn away from your rival, your HUD is hidden, and your view zooms in on the stage. It all comes back when the song ends.
 
 Each singer has four outlines above their head: left, down, up and right. Arrows rise from below and cross the outlines on the beat. Press the matching movement key (WASD or the arrow keys, whatever you move with) as an arrow crosses its outline. You can't walk while singing, and pressing when there's no arrow costs you nothing.
 
