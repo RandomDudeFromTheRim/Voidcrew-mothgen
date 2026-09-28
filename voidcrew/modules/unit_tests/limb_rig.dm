@@ -32,6 +32,10 @@
 		person.set_species(species_type)
 		person.update_limb_rig()
 		TEST_ASSERT_NOTNULL(person.limb_rig, "[species_type] is not rigged without the Overanimated quirk.")
+		TEST_ASSERT(istype(person.limb_rig, /datum/limb_rig/sprites/humanoid), "[species_type] is not on the generated body.")
+		var/datum/limb_rig/sprites/humanoid/rig = person.limb_rig
+		TEST_ASSERT(length(rig.head_images), "[species_type]'s own head is not on its generated body.")
+		TEST_ASSERT(length(rig.skin_images) == 12, "[species_type]'s generated body is missing pieces of skin.")
 	var/mob/living/carbon/human/consistent/lizard = allocate(/mob/living/carbon/human/consistent)
 	lizard.set_species(/datum/species/lizard)
 	lizard.update_limb_rig()

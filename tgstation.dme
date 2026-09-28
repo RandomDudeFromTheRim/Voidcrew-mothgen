@@ -7049,6 +7049,7 @@
 #include "voidcrew\modules\lich\lich_thrall.dm"
 #include "voidcrew\modules\lich\lich_wards.dm"
 #include "voidcrew\modules\limb_rig\animations.dm"
+#include "voidcrew\modules\limb_rig\humanoid_rig.dm"
 #include "voidcrew\modules\limb_rig\limb_rig.dm"
 #include "voidcrew\modules\limb_rig\quirk.dm"
 #include "voidcrew\modules\limb_rig\species_shapes.dm"

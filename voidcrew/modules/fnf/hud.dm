@@ -201,3 +201,11 @@
 	var/list/neck = bones[RIG_HEAD]
 	var/list/crown = bones["crown"] || list(neck[1], neck[2] + 14)
 	return list(neck[1], neck[2] * 0.7 + crown[2] * 0.3, 1)
+
+/// A species' own head on the generated body is a human head drawn a quarter bigger: smaller
+/// than an Experiment's, so it's framed closer.
+/datum/limb_rig/sprites/humanoid/get_portrait_head(facing)
+	var/list/bones = skeleton[dir2text(facing)]
+	var/list/neck = bones[RIG_HEAD]
+	var/list/crown = bones["crown"]
+	return list(neck[1], (neck[2] + crown[2]) / 2, 1.4)
