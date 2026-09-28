@@ -1,0 +1,25 @@
+{
+ "songName": "Yip Yap",
+ "artist": "the Experiments",
+ "timeChanges": [
+  {
+   "t": 0,
+   "bpm": 150
+  }
+ ],
+ "playData": {
+  "difficulties": [
+   "normal"
+  ],
+  "characters": {
+   "player": "expie",
+   "opponent": "expie",
+   "playerVocals": [
+    "player"
+   ],
+   "opponentVocals": [
+    "opponent"
+   ]
+  }
+ }
+}

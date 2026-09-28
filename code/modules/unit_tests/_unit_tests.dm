@@ -163,6 +163,7 @@
 #include "explosion_action.dm"
 #include "firedoor_regions.dm"
 #include "fish_unit_tests.dm"
+#include "../../../voidcrew/modules/unit_tests/fnf.dm" // VOIDCREW EDIT ADDITION
 #include "focus_only_tests.dm"
 #include "font_awesome_icons.dm"
 #include "food_edibility_check.dm"

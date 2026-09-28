@@ -163,3 +163,6 @@
 		"They learn fast, eat anything, fit through gaps nobody else would try, and flinch at loud noises. \
 		Their tails give away every mood they have.",
 	)
+
+/mob/living/carbon/human/species/experiment
+	race = /datum/species/experiment
