@@ -15,11 +15,13 @@
  * - "outfit": list(list(item type, greyscale colours or null), ...)
  * - "mutant_colour", "ethereal_colour": for lizards and ethereals
  * - "gun": TRUE to hold a gun as well as the mic
+ * - "size": how big they're drawn, for the ones who tower over (or come up short of) Boyfriend
  */
 GLOBAL_LIST_INIT(fnf_opponents, list(
 	"dad" = list(
 		"name" = "Daddy Dearest",
 		"species" = /datum/species/human,
+		"size" = 1.35,
 		"skin" = "#c9a2dc",
 		"hair" = "Swept Back Hair",
 		"hair_colour" = "#5b6187",
@@ -32,6 +34,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	"mom" = list(
 		"name" = "Mommy Mearest",
 		"species" = /datum/species/human,
+		"size" = 1.3,
 		"female" = TRUE,
 		"skin" = "#e2c4ee",
 		"hair" = "Very Long Hair",
@@ -45,7 +48,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	"pico" = list(
 		"name" = "Pico",
 		"species" = /datum/species/human,
-		"tone" = "african1",
+		"tone" = "caucasian1",
 		"hair" = "Spiky",
 		"hair_colour" = "#ff7a2a",
 		"eyes" = "#3fbf4f",
@@ -112,6 +115,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	"tankman" = list(
 		"name" = "Tankman",
 		"species" = /datum/species/human,
+		"size" = 1.1,
 		"tone" = "caucasian2",
 		"hair" = "Crewcut",
 		"hair_colour" = "#1a1410",
@@ -143,6 +147,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		// A black body with a lemon for a head.
 		"name" = "Monster",
 		"species" = /datum/species/lizard,
+		"size" = 1.4,
 		"mutant_colour" = "#f0dc3a",
 		"eyes" = "#1a1a1a",
 		"outfit" = list(
@@ -154,6 +159,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		// Skid in his skeleton costume, Pump's pumpkin on his head.
 		"name" = "Skid & Pump",
 		"species" = /datum/species/skeleton,
+		"size" = 0.85,
 		"outfit" = list(
 			list(/obj/item/clothing/under/costume/skeleton, null),
 			list(/obj/item/clothing/head/utility/hardhat/pumpkinhead, null),
@@ -209,6 +215,8 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		if(!npc.equip_to_appropriate_slot(worn))
 			qdel(worn)
 
+	if(look["size"])
+		npc.update_transform(look["size"])
 	if(!npc.dna.species.limb_rig_shape?["always"])
 		npc.add_quirk(/datum/quirk/overanimated)
 	// Everyone faces east, so the right hand is the one the crowd sees. Gunners keep the gun there

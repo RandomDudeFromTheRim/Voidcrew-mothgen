@@ -184,6 +184,34 @@
 	preload_onlookers(right_turf)
 
 	state = FNF_STATE_COUNTDOWN
+	challenger.visible_message(span_boldnotice("[challenger] and [opponent] square up for a rhythm battle: [song.name]!"))
+	INVOKE_ASYNC(src, PROC_REF(await_downloads))
+
+/**
+ * Makes sure both singers' games have the song before counting in. The files go over with
+ * browse_rsc, then a ping goes after them: when it comes back, everything sent before it has
+ * arrived. Without this a big song can still be downloading when it's meant to start, and starts
+ * late against the notes. Gives up waiting on someone after about fifteen seconds.
+ */
+/datum/fnf_battle/proc/await_downloads()
+	var/list/tracks = get_tracks()
+	var/waiting = FALSE
+	for(var/datum/fnf_side/side as anything in sides)
+		var/client/viewer = side.singer?.client
+		if(!viewer)
+			continue
+		if(!waiting)
+			healthbar?.announce("Loading...")
+			waiting = TRUE
+		for(var/i in 1 to length(tracks))
+			var/list/track = tracks[i]
+			viewer << browse_rsc(file(track[1]), "fnf_[song.id]_[i].ogg")
+		viewer.browse_queue_flush(300)
+		if(QDELETED(src) || state != FNF_STATE_COUNTDOWN)
+			return
+	begin_countdown()
+
+/datum/fnf_battle/proc/begin_countdown()
 	var/countdown_ds = max(4 * crochet, 2000) / 100
 	// Line the start up with a tick, so the song starts on exactly the tick it's meant to.
 	start_time = world.time + CEILING(10 + countdown_ds, world.tick_lag)
@@ -192,7 +220,6 @@
 		addtimer(CALLBACK(src, PROC_REF(count_in), i, counts[i]), start_time - world.time - (5 - i) * crochet / 100, TIMER_DELETE_ME)
 	addtimer(CALLBACK(src, PROC_REF(begin_song)), start_time - world.time, TIMER_DELETE_ME)
 	tick_timer = addtimer(CALLBACK(src, PROC_REF(tick)), world.tick_lag, TIMER_LOOP|TIMER_STOPPABLE|TIMER_DELETE_ME)
-	challenger.visible_message(span_boldnotice("[challenger] and [opponent] square up for a rhythm battle: [song.name]!"))
 
 /// Swings both singers' cameras onto the stage, leaning toward whoever the chart is focused on.
 /datum/fnf_battle/proc/pan_cameras(time = 10)
@@ -342,12 +369,13 @@
 
 	winner?.hey()
 	reset_cameras()
-	for(var/datum/fnf_side/side as anything in sides)
-		side.unlock()
+	// The game over goes up before anyone lets go of anything, so the loser's mic stays in their hand.
 	if(loser?.singer && !QDELETED(loser.singer))
-		loser.singer.fnf_lose(loser == knocked_out)
 		if(loser == knocked_out && loser.singer.client)
 			new /datum/fnf_game_over(loser.singer, song, difficulty, loser == right && left.singer == npc, loser.facing)
+		loser.singer.fnf_lose(loser == knocked_out)
+	for(var/datum/fnf_side/side as anything in sides)
+		side.unlock()
 
 	// Fade the song out rather than cutting it dead.
 	for(var/step in 1 to 4)

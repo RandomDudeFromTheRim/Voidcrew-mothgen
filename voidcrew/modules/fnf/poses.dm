@@ -212,7 +212,9 @@
 	if(!knocked_out)
 		return
 	visible_message(span_danger("[src] got blue-balled!"))
-	Knockdown(3 SECONDS)
+	// A player's game over has them on the floor already; anyone else just drops.
+	if(!client)
+		Knockdown(3 SECONDS)
 
 /// Back to standing about normally once the battle's over.
 /mob/living/proc/fnf_rest()

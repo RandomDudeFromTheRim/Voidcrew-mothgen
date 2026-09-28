@@ -22,7 +22,7 @@
 	. = ..()
 	if(battle?.state == FNF_STATE_READY)
 		. += span_notice("It's cued up to [battle.song.name] ([battle.difficulty]).")
-	. += span_notice("Alt-click it to set how late your speakers are.")
+	. += span_notice("Alt-click it to set how late your speakers are, or to turn the zoom off.")
 
 /obj/item/fnf_microphone/attack_self(mob/user, modifiers)
 	. = ..()
@@ -92,6 +92,18 @@
 	var/client/player = user.client
 	if(!player)
 		return CLICK_ACTION_BLOCKING
+	var/zoom_label = GLOB.fnf_no_zoom[player.ckey] ? "Zoom: off" : "Zoom: on"
+	var/choice = tgui_alert(user, "Battle settings", "Battle microphone", list("Audio offset", zoom_label))
+	if(!choice || QDELETED(player))
+		return CLICK_ACTION_BLOCKING
+	if(choice == zoom_label)
+		if(GLOB.fnf_no_zoom[player.ckey])
+			GLOB.fnf_no_zoom -= player.ckey
+			to_chat(user, span_notice("Your screen will zoom in on the stage while you sing."))
+		else
+			GLOB.fnf_no_zoom[player.ckey] = TRUE
+			to_chat(user, span_notice("Your screen won't zoom in while you sing."))
+		return CLICK_ACTION_SUCCESS
 	var/offset = tgui_input_number(user, "How late your sound comes out, in milliseconds. Raise it if you're always hitting late, lower it if you're early.", "Audio offset", GLOB.fnf_offsets[player.ckey] || 0, 500, -300)
 	if(isnull(offset) || QDELETED(player))
 		return CLICK_ACTION_BLOCKING

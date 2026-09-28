@@ -18,7 +18,7 @@ The singer who used the microphone always takes the right side. The opponent is 
 
 ## Playing
 
-While you sing, you're all in: your hands are busy, you can't drop what you're holding or turn away from your rival, your HUD is hidden, and your view zooms in on the stage. It all comes back when the song ends.
+While you sing, you're all in: your hands are busy, you can't drop what you're holding or turn away from your rival, your HUD is hidden, and your view zooms in on the stage (alt-click the microphone to turn the zoom off). It all comes back when the song ends. Before the countdown the bar may say Loading... while the song finishes downloading to both singers, so it starts in time with the notes.
 
 Each singer has four outlines above their head: left, down, up and right. Arrows rise from below and cross the outlines on the beat. Press the matching movement key (WASD or the arrow keys, whatever you move with) as an arrow crosses its outline. You can't walk while singing, and pressing when there's no arrow costs you nothing.
 
@@ -47,7 +47,10 @@ The bar hangs between the singers with each singer's head on it, facing the othe
 
 ## Game over
 
-Getting run off the bar also gives you, and only you, a game over. The world goes black around you. If you're an Experiment, you're left standing alone, drawn in outline and cowering, and get shot in the head: the head turns red and whips back, and you go over backwards in a spray of blood and lie there twitching. Then RETRY? pulses over you while the game over music plays. Against the game, clicking RETRY? starts the same song again. Against a person, it just says GAME OVER. Either way it clears by itself after about 20 seconds.
+Getting run off the bar also gives you, and only you, a game over. The world goes black around you. If you're an Experiment, you're left standing alone, drawn in outline and cowering, and get shot in the head: the head turns red and whips back, and you go over backwards in a spray of blood and lie there twitching. Then the game over music plays until you choose. While you're down you can't move or touch anything, and your microphone stays in your hand.
+
+- **RETRY** (against the game only) starts the same song again. An Experiment makes its last stand first: "Let's not give up just yet." flickers over everything while the world slowly fades back in, then the song starts.
+- **GIVE UP** fades everything back and lets you get up.
 
 If the song finishes first, whoever has more of the bar wins. On an exact tie, the higher score wins.
 
@@ -63,4 +66,4 @@ Everyone listening gets the results at the end: each singer's score, accuracy, g
 
 The song starts for both singers at the same moment after a four-beat countdown. Its sound files are sent to you as soon as the song is picked or you're challenged, so they're ready by the time it starts. Anyone within earshot when the battle starts hears it too, a little quieter.
 
-Your ping is taken off every press automatically. If you still hit consistently early or late, your speakers or headphones are adding a delay. Alt-click the microphone and set your audio offset: raise it if you're always late, lower it if you're always early. The song's volume follows your jukebox volume setting.
+Your ping is taken off every press automatically. If you still hit consistently early or late, your speakers or headphones are adding a delay. Alt-click the microphone and pick Audio offset: raise it if you're always late, lower it if you're always early. The song's volume follows your jukebox volume setting.

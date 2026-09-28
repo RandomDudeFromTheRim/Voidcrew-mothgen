@@ -4,3 +4,7 @@ miss1-3 - missnote1-3
 loss - fnf_loss_sfx
 gameover_loop, gameover_retry - gameOver, gameOverEnd
 shot1-4, gun_cock - Pico's gun, from Weekend 1 (shot1-4, Gun_Prep)
+
+Casualties Unknown, by Orsoniks:
+laststand_drone - the last stand drone (laststanddrone), cut to its first 8 seconds
+The last stand screens in icons/laststand.dmi are the game's laststand1-3.

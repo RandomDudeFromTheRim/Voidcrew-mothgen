@@ -24,6 +24,9 @@ GLOBAL_LIST(fnf_songs)
 /// Each player's own audio offset in milliseconds, by ckey: how late their sound comes out.
 GLOBAL_LIST_EMPTY(fnf_offsets)
 
+/// Players who'd rather their screen didn't zoom in while they sing, by ckey.
+GLOBAL_LIST_EMPTY(fnf_no_zoom)
+
 /proc/get_fnf_songs(refresh = FALSE)
 	if(GLOB.fnf_songs && !refresh)
 		return GLOB.fnf_songs

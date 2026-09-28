@@ -161,8 +161,9 @@
 	if(singer.hud_used)
 		old_hud_version = singer.hud_used.hud_version
 		singer.hud_used.show_hud(HUD_STYLE_NOHUD)
-	zoom_screen(FNF_ZOOM)
-	zoomed = TRUE
+	if(!GLOB.fnf_no_zoom[viewer.ckey])
+		zoom_screen(FNF_ZOOM)
+		zoomed = TRUE
 
 /// Gives back everything lock_in() took. Safe to call more than once.
 /datum/fnf_side/proc/unlock()
