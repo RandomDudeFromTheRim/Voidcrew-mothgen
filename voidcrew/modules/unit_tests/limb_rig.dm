@@ -1,12 +1,14 @@
-/// Living humans get cut into moving pieces, and get their sprite back when they die.
+/// Living human-shaped mobs outside the roundstart species get cut into moving pieces with the
+/// Overanimated quirk, and get their sprite back when they die.
 /datum/unit_test/limb_rig
 
 /datum/unit_test/limb_rig/Run()
 	var/mob/living/carbon/human/consistent/dummy = allocate(/mob/living/carbon/human/consistent)
+	dummy.set_species(/datum/species/skeleton)
 	dummy.update_limb_rig()
-	TEST_ASSERT_NULL(dummy.limb_rig, "A human without the Overanimated quirk got a limb rig.")
+	TEST_ASSERT_NULL(dummy.limb_rig, "A skeleton without the Overanimated quirk got a limb rig.")
 	dummy.add_quirk(/datum/quirk/overanimated)
-	TEST_ASSERT_NOTNULL(dummy.limb_rig, "A living human did not get a limb rig.")
+	TEST_ASSERT_NOTNULL(dummy.limb_rig, "A living skeleton with the quirk did not get a limb rig.")
 	var/body = dummy.overlays_standing[BODYPARTS_LAYER]
 	TEST_ASSERT_NOTNULL(body, "The human has no body overlays to rig.")
 	TEST_ASSERT(!(body in dummy.overlays), "The rigged human still draws its body on the mob.")
@@ -20,6 +22,21 @@
 	dummy.death()
 	TEST_ASSERT_NULL(dummy.limb_rig, "A dead human kept its limb rig.")
 	TEST_ASSERT(length(dummy.overlays), "A human that lost its rig didn't get its sprite back.")
+
+/// Every roundstart species is rigged without the quirk, and a tail comes out onto its own piece.
+/datum/unit_test/limb_rig_species
+
+/datum/unit_test/limb_rig_species/Run()
+	for(var/species_type in list(/datum/species/human, /datum/species/human/felinid, /datum/species/lizard, /datum/species/moth, /datum/species/plasmaman, /datum/species/ethereal))
+		var/mob/living/carbon/human/consistent/person = allocate(/mob/living/carbon/human/consistent)
+		person.set_species(species_type)
+		person.update_limb_rig()
+		TEST_ASSERT_NOTNULL(person.limb_rig, "[species_type] is not rigged without the Overanimated quirk.")
+	var/mob/living/carbon/human/consistent/lizard = allocate(/mob/living/carbon/human/consistent)
+	lizard.set_species(/datum/species/lizard)
+	lizard.update_limb_rig()
+	if(lizard.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL))
+		TEST_ASSERT(length(lizard.limb_rig.tail_part.overlays), "A lizard's tail did not come out onto its tail piece.")
 
 /// Experiments are always rigged, quirk or not, built from their own piece sprites, with worn
 /// clothes going on the cloth pieces rather than the body ones.

@@ -295,6 +295,23 @@
 	torso.Translate(0, lift)
 	.[pivot] = torso
 	.[parts[RIG_HEAD]] = rig_pose_matrix(RIG_HEAD, pose?[RIG_HEAD], facing, head_scale)
+	if(tail_part)
+		.[tail_part] = rig_tail_matrix(get_tail_root(facing), pose?[RIG_TAIL], facing) * torso
+
+/// Where a tail joins the body, in BYOND pixel coordinates: the small of the back, which is
+/// off to one side seen side-on. A species can set its own with "tail_root", by direction.
+/datum/limb_rig/proc/get_tail_root(facing)
+	var/mob/living/carbon/human/human_owner = owner
+	var/list/roots = istype(human_owner) ? human_owner.dna?.species?.limb_rig_shape?["tail_root"] : null
+	var/list/root = roots?[dir2text(facing)]
+	if(root)
+		return root
+	switch(facing)
+		if(EAST)
+			return list(13, 12)
+		if(WEST)
+			return list(19, 12)
+	return list(16, 12)
 
 
 /// Puts every piece in a pose immediately.

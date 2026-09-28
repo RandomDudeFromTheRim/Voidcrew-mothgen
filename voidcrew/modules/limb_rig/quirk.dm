@@ -1,4 +1,5 @@
-/// Everything you do, your body acts out: see limb_rig.dm. Nobody gets a rig without this.
+/// Everything you do, your body acts out: see limb_rig.dm. Roundstart species are rigged anyway
+/// (species_shapes.dm); this is for anyone else human-shaped.
 /datum/quirk/overanimated
 	name = "Overanimated"
 	desc = "Your whole body acts out everything you do: walking, running, working with tools, every emote. \

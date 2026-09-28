@@ -66,6 +66,8 @@
 	var/walk_style = RIG_WALK_NORMAL
 	/// Pieces hung directly on the mob (the rest hang off the pivot), to take back off.
 	var/list/obj/effect/abstract/limb_rig_part/owner_pieces = list()
+	/// A tail, if the body has one: taken out of the body sprite so it can swing on its own.
+	var/obj/effect/abstract/limb_rig_part/tail_part
 
 /datum/limb_rig/New(mob/living/carbon/owner)
 	src.owner = owner
@@ -112,6 +114,7 @@
 	QDEL_LIST_ASSOC_VAL(parts)
 	QDEL_LIST_ASSOC_VAL(item_parts)
 	QDEL_NULL(pivot)
+	QDEL_NULL(tail_part)
 	mirrored_layers = null
 	owner = null
 	return ..()
@@ -139,6 +142,9 @@
 	for(var/part_id in list(RIG_L_LEG, RIG_R_LEG, "l_shin", "r_shin"))
 		parts[part_id] = new_part(part_id)
 		hang_on_owner(parts[part_id])
+	// On the mob rather than the pivot, so it can go behind the legs. It follows the torso anyway.
+	tail_part = new_part(RIG_TAIL)
+	hang_on_owner(tail_part)
 
 /datum/limb_rig/proc/hang_on_owner(obj/effect/abstract/limb_rig_part/part)
 	owner.vis_contents += part
@@ -150,6 +156,7 @@
 	return part
 
 /// Copies one overlays_standing layer onto the pieces, replacing what was there for that layer.
+/// A tail (and its spines) comes out of the body sprite onto the tail piece, unmasked.
 /datum/limb_rig/proc/set_layer(cache_index, standing)
 	if(cache_index == HANDS_LAYER)
 		refresh_held_items()
@@ -160,13 +167,22 @@
 		for(var/part_id in parts)
 			var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
 			part.cut_overlay(old)
+		tail_part?.cut_overlay(old)
 		mirrored_layers -= key
 	if(!standing)
 		return
+	var/list/body = list()
+	var/list/tail = list()
+	for(var/image/overlay as anything in (islist(standing) ? standing : list(standing)))
+		if(tail_part && cache_index == BODYPARTS_LAYER && istext(overlay.icon_state) && findtext(overlay.icon_state, "tail"))
+			tail += overlay
+		else
+			body += overlay
 	for(var/part_id in parts)
 		var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
-		part.add_overlay(standing)
-	mirrored_layers[key] = standing
+		part.add_overlay(body)
+	tail_part?.add_overlay(tail)
+	mirrored_layers[key] = body + tail
 
 /// Rebuilds each hand's held item piece. Held items aren't masked, so a long gun stays whole.
 /datum/limb_rig/proc/refresh_held_items()
@@ -219,6 +235,9 @@
 		parts[part_id].layer = -3
 	parts[RIG_CHEST].layer = -5
 	parts[RIG_HEAD].layer = -4
+	if(tail_part)
+		// Behind everything, unless it's seen from behind.
+		tail_part.layer = facing == NORTH ? -1 : -9
 	for(var/side in list("l", "r"))
 		var/obj/effect/abstract/limb_rig_part/arm = parts[side == "l" ? RIG_L_ARM : RIG_R_ARM]
 		var/obj/effect/abstract/limb_rig_part/item = item_parts[side]
