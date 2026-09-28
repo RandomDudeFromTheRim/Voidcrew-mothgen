@@ -11,6 +11,15 @@ singers' Voices files. That's around 150 MB for the lot.
 
     python3 tools/fnf/fetch_funkin.py                  every song
     python3 tools/fnf/fetch_funkin.py bopeebo fresh    just these
+
+If GitHub won't load for you, get the repository some other way (a zip of it from anywhere, or a
+clone made on another machine), unpack it, and point this at the folder instead of downloading:
+
+    python3 tools/fnf/fetch_funkin.py --from path/to/funkin.assets
+
+Modded songs don't need this script. Put each one in its own folder under data/fnf/songs/, named
+after the song, with its chart JSON files, Inst.ogg and its Voices files together. A Psych Engine
+mod keeps charts in mods/data/<song>/ and audio in mods/songs/<song>/: copy both into one folder.
 """
 
 import json
@@ -39,12 +48,23 @@ def voice_names(metadata):
 
 
 def main():
-    wanted = set(sys.argv[1:])
+    args = sys.argv[1:]
+    local = None
+    if "--from" in args:
+        at = args.index("--from")
+        local = pathlib.Path(args[at + 1]).expanduser().resolve()
+        del args[at:at + 2]
+    wanted = set(args)
     with tempfile.TemporaryDirectory() as tmp:
-        clone = pathlib.Path(tmp) / "assets"
-        print("Fetching the song list...")
-        git("clone", "--depth", "1", "--filter=blob:none", "--sparse", REPO, str(clone), cwd=tmp)
-        git("sparse-checkout", "set", "--no-cone", "/preload/data/songs/", cwd=clone)
+        if local:
+            clone = local
+            if not (clone / "preload" / "data" / "songs").is_dir():
+                sys.exit(f"{clone} doesn't look like funkin.assets: no preload/data/songs in it.")
+        else:
+            clone = pathlib.Path(tmp) / "assets"
+            print("Fetching the song list...")
+            git("clone", "--depth", "1", "--filter=blob:none", "--sparse", REPO, str(clone), cwd=tmp)
+            git("sparse-checkout", "set", "--no-cone", "/preload/data/songs/", cwd=clone)
 
         songs = {}
         for song_dir in sorted((clone / "preload" / "data" / "songs").iterdir()):
@@ -58,12 +78,13 @@ def main():
             print("No songs matched.")
             return
 
-        patterns = ["/preload/data/songs/"]
-        for song_id, (_, _, voices) in songs.items():
-            patterns.append(f"/songs/{song_id}/Inst.ogg")
-            patterns.extend(f"/songs/{song_id}/Voices-{voice}.ogg" for voice in voices)
-        print(f"Fetching audio for {len(songs)} songs...")
-        git("sparse-checkout", "set", "--no-cone", *patterns, cwd=clone)
+        if not local:
+            patterns = ["/preload/data/songs/"]
+            for song_id, (_, _, voices) in songs.items():
+                patterns.append(f"/songs/{song_id}/Inst.ogg")
+                patterns.extend(f"/songs/{song_id}/Voices-{voice}.ogg" for voice in voices)
+            print(f"Fetching audio for {len(songs)} songs...")
+            git("sparse-checkout", "set", "--no-cone", *patterns, cwd=clone)
 
         for song_id, (chart, meta, voices) in songs.items():
             audio = clone / "songs" / song_id

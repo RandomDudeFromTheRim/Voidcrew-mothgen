@@ -1,5 +1,5 @@
 /**
- * A rhythm battle: two singers side by side facing the crowd, the challenger on the right, the
+ * A rhythm battle: two singers facing each other, the challenger on the right, the
  * opponent (a person, a mob nobody's playing, or an Experiment summoned for it) on the left.
  *
  * Keeping the song and the notes together:
@@ -197,7 +197,9 @@
 /datum/fnf_battle/proc/summon_opponent(turf/spot)
 	npc = new /mob/living/carbon/human/species/experiment(spot)
 	npc.fully_replace_character_name(npc.real_name, "Experiment Dearest")
-	npc.setDir(SOUTH)
+	npc.setDir(EAST)
+	// Mic in the hand nearer the crowd, so it shows.
+	npc.put_in_r_hand(new /obj/item/fnf_microphone(npc))
 	do_sparks(3, FALSE, npc)
 	npc.visible_message(span_notice("[npc] steps out of nowhere, ready to sing."))
 	return npc
@@ -210,7 +212,7 @@
 	for(var/mob/listener as anything in listeners)
 		SEND_SOUND(listener, sound(sound_file, volume = 50 * (listeners[listener] || 1)))
 	for(var/datum/fnf_side/side as anything in sides)
-		side.singer?.fnf_bounce()
+		side.bop(crochet / 100)
 
 /datum/fnf_battle/proc/begin_song()
 	if(state != FNF_STATE_COUNTDOWN)
@@ -230,6 +232,8 @@
 	if(beat > last_beat && beat >= 0)
 		last_beat = beat
 		healthbar?.bop()
+		for(var/datum/fnf_side/side as anything in sides)
+			side.bop(crochet / 100)
 	var/list/events = chart["events"]
 	while(next_event <= length(events))
 		var/list/event = events[next_event]
@@ -248,7 +252,7 @@
 	if(!islist(value) || value["anim"] != "hey")
 		return
 	var/datum/fnf_side/side = value["target"] == "bf" ? right : (value["target"] == "dad" ? left : null)
-	side?.singer?.fnf_hey()
+	side?.hey()
 
 /// Pushes the health toward whoever did well (or away from whoever did badly).
 /datum/fnf_battle/proc/adjust_health(amount, datum/fnf_side/side)
@@ -298,7 +302,7 @@
 		to_chat(listener, message)
 	healthbar?.announce(winner ? "[winner.singer_name] wins!" : "Draw!", "#ffe066")
 
-	winner?.singer?.fnf_hey()
+	winner?.hey()
 	if(loser?.singer && !QDELETED(loser.singer))
 		loser.singer.fnf_lose(loser == knocked_out)
 

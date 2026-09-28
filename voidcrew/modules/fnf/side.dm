@@ -47,6 +47,12 @@
 	var/voice_channel
 	/// The vocals go quiet after a miss, until the next hit.
 	var/voice_muted = FALSE
+	/// Which arm the singer holds the mic in, RIG_L_ARM or RIG_R_ARM.
+	var/mic_arm
+	/// Which way the singer faces: toward the rival.
+	var/facing
+	/// Until when (world.time) the singer is busy with a pose, and shouldn't bop to the beat.
+	var/busy_until = 0
 
 	var/obj/effect/abstract/fnf_hud/strumline
 	var/list/obj/effect/abstract/fnf_hud/strums = list()
@@ -90,7 +96,9 @@
 	strumline.vis_contents += rating_text
 	update_score_text()
 
-	singer.setDir(SOUTH)
+	facing = is_right ? WEST : EAST
+	singer.setDir(facing)
+	mic_arm = singer.fnf_mic_arm(facing)
 	RegisterSignal(singer, COMSIG_MOB_KEYDOWN, PROC_REF(on_key))
 	RegisterSignal(singer, COMSIG_MOB_CLIENT_PRE_MOVE, PROC_REF(on_try_move))
 	RegisterSignal(singer, COMSIG_MOVABLE_MOVED, PROC_REF(on_moved))
@@ -113,6 +121,7 @@
 /datum/fnf_side/proc/release_singer()
 	if(!singer)
 		return
+	singer.fnf_rest()
 	UnregisterSignal(singer, list(
 		COMSIG_MOB_KEYDOWN,
 		COMSIG_MOB_CLIENT_PRE_MOVE,
@@ -305,7 +314,9 @@
 	light_strum(note.lane, "confirm", hold_left ? hold_left / 100 + 1 : 1.5)
 	if(rating == "sick")
 		splash(note.lane)
-	singer?.fnf_sing(note.lane, max(hold_left / 100, 2))
+	var/hold_time = max(hold_left / 100, 2)
+	busy_until = world.time + hold_time + 1.5
+	singer?.fnf_sing(note.lane, hold_time, mic_arm, facing)
 	if(!hold_left)
 		live -= note
 		qdel(note)
@@ -352,7 +363,8 @@
 	fade_out(note)
 	if(singer)
 		SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/miss[rand(1, 3)].ogg", volume = 45))
-		singer.fnf_miss()
+		busy_until = world.time + 3
+		singer.fnf_miss(mic_arm, facing)
 	update_score_text()
 
 /// Lets a note that's no longer in play keep drifting up, greyed out, and then go.
@@ -386,6 +398,16 @@
 	animate(rating_text, alpha = 255, pixel_z = FNF_STRUM_Y - 30, time = 0)
 	animate(pixel_z = FNF_STRUM_Y - 24, time = 2, easing = CUBIC_EASING|EASE_OUT)
 	animate(alpha = 0, time = 3, delay = 2)
+
+/// On every beat: bop along, unless busy singing.
+/datum/fnf_side/proc/bop(beat_time)
+	if(world.time < busy_until)
+		return
+	singer?.fnf_bop(beat_time, mic_arm, facing)
+
+/datum/fnf_side/proc/hey()
+	busy_until = world.time + 8
+	singer?.fnf_hey(mic_arm, facing)
 
 /datum/fnf_side/proc/get_accuracy()
 	return judged_count ? accuracy_total / judged_count * 100 : 100

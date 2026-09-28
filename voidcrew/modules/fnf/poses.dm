@@ -1,124 +1,222 @@
 /**
- * How singers move in a rhythm battle. Rigged mobs (Experiments, and anyone Overanimated) strike
- * a pose per arrow, held for as long as the note; anyone else gets a little bump that way.
+ * How singers move in a rhythm battle, after how Boyfriend moves in Friday Night Funkin':
+ * - Between notes, they bop on every beat, dipping down and springing back up, mic bobbing.
+ * - A note snaps them into its pose, overshooting and settling, and a long note makes them
+ *   vibrate in it for as long as it's held.
+ * - The mic stays in one hand, up at the mouth. Singing at the rival thrusts it at them.
  *
- * Singers face the crowd (south), so pointing to the screen's left is the singer's right arm.
+ * The two singers face each other, like in Funkin': the challenger on the right looks left, the
+ * opponent looks right. So the arrow pointing at the rival means leaning in, and the one pointing
+ * away means rearing back. Rigged mobs (Experiments, and anyone Overanimated) do all that with the
+ * limb rig; anyone else gets a little bump.
  */
 
-/// Left, down, up and right, in limb rig pose terms (see limb_rig/animations.dm).
-GLOBAL_LIST_INIT(fnf_sing_poses, list(
-	// Left: the right arm flung out that way, leaning into it.
-	list(
-		RIG_R_ARM = list("raise" = 88, "elbow" = 5),
-		RIG_L_ARM = list("raise" = 15, "swing" = 20, "elbow" = 55),
-		RIG_CHEST = list("lean" = 9),
-		RIG_HEAD = list("tilt" = 12),
-		RIG_R_LEG = list("raise" = 12),
-		RIG_TAIL = list("wag" = -25),
-	),
-	// Down: squatting low, head down, arms driven down.
-	list(
-		RIG_R_ARM = list("raise" = 30, "swing" = 15, "elbow" = 25),
-		RIG_L_ARM = list("raise" = 30, "swing" = 15, "elbow" = 25),
-		RIG_CHEST = list("bend" = 18, "breath" = -0.05),
-		RIG_HEAD = list("nod" = 16),
-		RIG_R_LEG = list("raise" = 10, "swing" = 25, "knee" = 40),
-		RIG_L_LEG = list("raise" = 10, "swing" = 25, "knee" = 40),
-		RIG_TAIL = list("lift" = -20),
-	),
-	// Up: reaching for the ceiling, chin up, up on the toes.
-	list(
-		RIG_R_ARM = list("raise" = 165, "elbow" = 5),
-		RIG_L_ARM = list("raise" = 20, "swing" = 25, "elbow" = 45),
-		RIG_CHEST = list("breath" = 0.05, "air" = 3, "lean" = -4),
-		RIG_HEAD = list("nod" = -18),
-		RIG_TAIL = list("lift" = 30),
-	),
-	// Right: the mirror of left.
-	list(
-		RIG_L_ARM = list("raise" = 88, "elbow" = 5),
-		RIG_R_ARM = list("raise" = 15, "swing" = 20, "elbow" = 55),
-		RIG_CHEST = list("lean" = -9),
-		RIG_HEAD = list("tilt" = -12),
-		RIG_L_LEG = list("raise" = 12),
-		RIG_TAIL = list("wag" = 25),
-	),
-))
+/// Mic up at the mouth.
+#define FNF_MIC_UP list("swing" = 50, "raise" = 10, "hand_y" = 27)
+/// The free hand balled into a fist at the side.
+#define FNF_FIST list("swing" = 15, "raise" = 10, "elbow" = 75)
 
-/// Flinching at a missed note, hands up by the face.
-GLOBAL_LIST_INIT(fnf_miss_pose, list(
-	RIG_R_ARM = list("raise" = 15, "swing" = 35, "elbow" = 95),
-	RIG_L_ARM = list("raise" = 15, "swing" = 35, "elbow" = 95),
-	RIG_CHEST = list("bend" = 14),
-	RIG_HEAD = list("nod" = 22),
-	RIG_TAIL = list("lift" = -30),
-))
+/// A deep copy of a pose, safe to change.
+/proc/fnf_copy_pose(list/pose)
+	. = list()
+	for(var/part_id in pose)
+		var/list/entry = pose[part_id]
+		.[part_id] = entry.Copy()
 
-/// Hey! Both arms thrown up.
-GLOBAL_LIST_INIT(fnf_hey_pose, list(
-	RIG_R_ARM = list("raise" = 150, "elbow" = 20),
-	RIG_L_ARM = list("raise" = 150, "elbow" = 20),
-	RIG_CHEST = list("air" = 4, "breath" = 0.04),
-	RIG_HEAD = list("nod" = -15),
-	RIG_TAIL = list("lift" = 35, "wag" = 20),
-))
+/// A pose with every angle scaled, for overshooting into it. Hand heights stay put.
+/proc/fnf_scale_pose(list/pose, factor)
+	. = fnf_copy_pose(pose)
+	for(var/part_id in .)
+		var/list/entry = .[part_id]
+		for(var/key in entry)
+			if(key != "hand_y")
+				entry[key] *= factor
 
-/datum/limb_rig/proc/play_pose_for(list/pose, hold)
-	play(list(
-		list(pose, 0.6, CUBIC_EASING|EASE_OUT),
-		list(pose, hold),
-		list(null, 2.5),
-	))
+/// A pose with one value nudged, for a held note's vibrato.
+/proc/fnf_nudge_pose(list/pose, part_id, key, amount)
+	. = fnf_copy_pose(pose)
+	var/list/entry = .[part_id]
+	if(!entry)
+		entry = list()
+		.[part_id] = entry
+	entry[key] = (entry[key] || 0) + amount
 
-/// Strikes the pose for an arrow and holds it, in deciseconds.
-/mob/living/proc/fnf_sing(lane, hold = 2)
-	setDir(SOUTH)
+/**
+ * A battle pose.
+ *
+ * * kind - "rest", "bop", "hey", "miss", or a lane: 0 to 3 for left, down, up, right
+ * * mic_arm - the arm with the mic in it, RIG_L_ARM or RIG_R_ARM
+ * * facing - which way the singer faces, WEST or EAST, to tell which arrow points at the rival
+ */
+/proc/fnf_pose(kind, mic_arm, facing)
+	var/free_arm = mic_arm == RIG_L_ARM ? RIG_R_ARM : RIG_L_ARM
+	if(isnum(kind) && (kind == 0 || kind == 3))
+		kind = (kind == 0) == (facing == WEST) ? "toward" : "away"
+	. = list()
+	.[mic_arm] = FNF_MIC_UP
+	.[free_arm] = FNF_FIST
+	switch(kind)
+		if("bop")
+			// Dipped: knees bent, squashed down, head and mic bobbing with it.
+			.[RIG_CHEST] = list("breath" = -0.035, "bend" = 8)
+			.[RIG_HEAD] = list("nod" = 10)
+			.[RIG_L_LEG] = list("swing" = 12, "knee" = 22)
+			.[RIG_R_LEG] = list("swing" = 12, "knee" = 22)
+			.[mic_arm] = list("swing" = 45, "raise" = 10, "hand_y" = 24)
+			.[RIG_TAIL] = list("lift" = -8)
+		if("toward")
+			// Leaning in at the rival, mic thrust right in their face, a foot stepping in.
+			.[RIG_CHEST] = list("bend" = 15)
+			.[RIG_HEAD] = list("nod" = -6)
+			.[mic_arm] = list("swing" = 90, "raise" = 5, "elbow" = 0)
+			.[free_arm] = list("swing" = -25, "raise" = 10, "elbow" = 60)
+			.[RIG_L_LEG] = list("swing" = 30, "knee" = 15)
+			.[RIG_R_LEG] = list("swing" = -15)
+			.[RIG_TAIL] = list("lift" = 25)
+		if("away")
+			// Rearing back, the free fist flung behind, mic still at the mouth.
+			.[RIG_CHEST] = list("bend" = -14)
+			.[RIG_HEAD] = list("nod" = -12)
+			.[mic_arm] = list("swing" = 60, "raise" = 10, "hand_y" = 28)
+			.[free_arm] = list("swing" = -70, "raise" = 15, "elbow" = 25)
+			.[RIG_L_LEG] = list("swing" = -20, "knee" = 10)
+			.[RIG_R_LEG] = list("swing" = 15)
+			.[RIG_TAIL] = list("lift" = -15)
+		if(1)
+			// Down: a deep crouch, head down, mic thrust down at the floor.
+			.[RIG_CHEST] = list("bend" = 28, "breath" = -0.05)
+			.[RIG_HEAD] = list("nod" = 20)
+			.[RIG_L_LEG] = list("swing" = 35, "knee" = 55)
+			.[RIG_R_LEG] = list("swing" = 35, "knee" = 55)
+			.[mic_arm] = list("swing" = 35, "raise" = 5, "elbow" = 0)
+			.[free_arm] = list("swing" = -20, "raise" = 15, "elbow" = 50)
+			.[RIG_TAIL] = list("lift" = -25)
+		if(2)
+			// Up: chin up, mic up high, up on the toes, fist in the air.
+			.[RIG_CHEST] = list("bend" = -10, "breath" = 0.05, "air" = 3)
+			.[RIG_HEAD] = list("nod" = -25)
+			.[mic_arm] = list("swing" = 100, "raise" = 5, "hand_y" = 32)
+			.[free_arm] = list("swing" = 150, "raise" = 10, "elbow" = 30)
+			.[RIG_TAIL] = list("lift" = 35)
+		if("miss")
+			// Recoiling: leaning back, arms up in a flinch.
+			.[RIG_CHEST] = list("bend" = -15, "breath" = -0.03)
+			.[RIG_HEAD] = list("nod" = -15)
+			.[mic_arm] = list("swing" = 60, "raise" = 15, "elbow" = 90)
+			.[free_arm] = list("swing" = 70, "raise" = 15, "elbow" = 90)
+			.[RIG_TAIL] = list("lift" = -30)
+		if("hey")
+			// Hey! Free arm thrown up, mic still at the mouth, up on the toes.
+			.[free_arm] = list("swing" = 170, "raise" = 10, "elbow" = 10)
+			.[RIG_CHEST] = list("air" = 4, "breath" = 0.04, "bend" = -6)
+			.[RIG_HEAD] = list("nod" = -15)
+			.[RIG_TAIL] = list("lift" = 35, "wag" = 20)
+
+/// Which arm a singer has the mic in: the hand holding a battle microphone, or else the arm
+/// nearer the crowd when facing that way.
+/mob/living/proc/fnf_mic_arm(facing)
+	for(var/obj/item/fnf_microphone/microphone in held_items)
+		return IS_RIGHT_INDEX(get_held_index_of_item(microphone)) ? RIG_R_ARM : RIG_L_ARM
+	return facing == WEST ? RIG_L_ARM : RIG_R_ARM
+
+/// Snaps into an arrow's pose, holds it for hold deciseconds (vibrating if it's long), then goes back to the mic.
+/mob/living/proc/fnf_sing(lane, hold, mic_arm, facing)
+	setDir(facing)
 	var/static/list/nudges = list(list(-3, 0), list(0, -3), list(0, 3), list(3, 0))
 	var/list/nudge = nudges[lane + 1]
 	fnf_nudge(nudge[1], nudge[2])
 
-/mob/living/carbon/fnf_sing(lane, hold = 2)
+/mob/living/carbon/fnf_sing(lane, hold, mic_arm, facing)
 	if(!limb_rig)
 		return ..()
-	setDir(SOUTH)
-	limb_rig.play_pose_for(GLOB.fnf_sing_poses[lane + 1], hold)
+	setDir(facing)
+	var/list/pose = fnf_pose(lane, mic_arm, facing)
+	var/list/keyframes = list(
+		list(fnf_scale_pose(pose, 1.2), 0.5, CUBIC_EASING|EASE_OUT),
+		list(pose, 1, SINE_EASING),
+	)
+	// Held notes: a vibrato, mic and head working with the voice.
+	var/held = hold - 1.5
+	var/beat = 0
+	while(held > 0.6)
+		beat++
+		var/amount = beat % 2 ? 4 : -4
+		var/list/wobble = fnf_nudge_pose(pose, mic_arm, "swing", amount)
+		wobble = fnf_nudge_pose(wobble, RIG_HEAD, "nod", amount * 0.6)
+		keyframes += list(list(wobble, 0.6, SINE_EASING))
+		held -= 0.6
+	keyframes += list(list(fnf_pose("rest", mic_arm, facing), 2, SINE_EASING))
+	limb_rig.play(keyframes, settle_after = FALSE)
+
+/// The between-notes bop, one beat long.
+/mob/living/proc/fnf_bop(beat_time, mic_arm, facing)
+	fnf_nudge(0, -1)
+
+/mob/living/carbon/fnf_bop(beat_time, mic_arm, facing)
+	if(!limb_rig)
+		return ..()
+	limb_rig.play(list(
+		list(fnf_pose("bop", mic_arm, facing), beat_time * 0.25, CUBIC_EASING|EASE_OUT),
+		list(fnf_pose("rest", mic_arm, facing), beat_time * 0.75, SINE_EASING),
+	), settle_after = FALSE)
 
 /mob/living/proc/fnf_nudge(x_offset, z_offset)
 	animate(src, pixel_w = x_offset, pixel_z = z_offset, time = 0.5, flags = ANIMATION_RELATIVE|ANIMATION_PARALLEL)
 	animate(pixel_w = -x_offset, pixel_z = -z_offset, time = 2, easing = SINE_EASING)
 
-/mob/living/proc/fnf_miss()
-	add_atom_colour("#8a8aff", TEMPORARY_COLOUR_PRIORITY)
-	addtimer(CALLBACK(src, TYPE_PROC_REF(/atom, remove_atom_colour), TEMPORARY_COLOUR_PRIORITY, "#8a8aff"), 3, TIMER_UNIQUE|TIMER_OVERRIDE)
+/mob/living/proc/fnf_flash(colour, duration)
+	add_atom_colour(colour, TEMPORARY_COLOUR_PRIORITY)
+	addtimer(CALLBACK(src, TYPE_PROC_REF(/atom, remove_atom_colour), TEMPORARY_COLOUR_PRIORITY, colour), duration, TIMER_UNIQUE|TIMER_OVERRIDE)
+
+/mob/living/proc/fnf_miss(mic_arm, facing)
+	fnf_flash("#8a8aff", 3)
 	fnf_nudge(0, -2)
 
-/mob/living/carbon/fnf_miss()
+/mob/living/carbon/fnf_miss(mic_arm, facing)
 	if(!limb_rig)
 		return ..()
-	add_atom_colour("#8a8aff", TEMPORARY_COLOUR_PRIORITY)
-	addtimer(CALLBACK(src, TYPE_PROC_REF(/atom, remove_atom_colour), TEMPORARY_COLOUR_PRIORITY, "#8a8aff"), 3, TIMER_UNIQUE|TIMER_OVERRIDE)
-	limb_rig.play_pose_for(GLOB.fnf_miss_pose, 2)
+	fnf_flash("#8a8aff", 3)
+	// Recoil, shake it off, back to the mic.
+	var/list/flinch = fnf_pose("miss", mic_arm, facing)
+	limb_rig.play(list(
+		list(fnf_scale_pose(flinch, 1.15), 0.5, CUBIC_EASING|EASE_OUT),
+		list(fnf_nudge_pose(flinch, RIG_HEAD, "nod", 12), 0.7, SINE_EASING),
+		list(flinch, 0.7, SINE_EASING),
+		list(fnf_pose("rest", mic_arm, facing), 1.5, SINE_EASING),
+	), settle_after = FALSE)
 
-/mob/living/proc/fnf_hey()
+/mob/living/proc/fnf_hey(mic_arm, facing)
 	fnf_nudge(0, 4)
 	if(is_species(src, /datum/species/experiment))
 		playsound(src, get_expie_exert_sound(), 40, TRUE)
 
-/mob/living/carbon/fnf_hey()
+/mob/living/carbon/fnf_hey(mic_arm, facing)
 	. = ..()
-	limb_rig?.play_pose_for(GLOB.fnf_hey_pose, 6)
-
-/// A little hop on each beat of the countdown.
-/mob/living/proc/fnf_bounce()
-	fnf_nudge(0, 2)
+	if(!limb_rig)
+		return
+	var/list/hey = fnf_pose("hey", mic_arm, facing)
+	limb_rig.play(list(
+		list(fnf_scale_pose(hey, 1.15), 0.6, BACK_EASING|EASE_OUT),
+		list(hey, 5),
+		list(fnf_pose("rest", mic_arm, facing), 2, SINE_EASING),
+	), settle_after = FALSE)
 
 /// Lost. Run off the health bar means going down in a heap.
 /mob/living/proc/fnf_lose(knocked_out)
-	add_atom_colour("#6f6fff", TEMPORARY_COLOUR_PRIORITY)
-	addtimer(CALLBACK(src, TYPE_PROC_REF(/atom, remove_atom_colour), TEMPORARY_COLOUR_PRIORITY, "#6f6fff"), 3 SECONDS, TIMER_UNIQUE|TIMER_OVERRIDE)
+	fnf_flash("#6f6fff", 3 SECONDS)
 	if(is_species(src, /datum/species/experiment))
 		playsound(src, get_expie_pain_sound(), 50, TRUE)
 	if(!knocked_out)
 		return
 	visible_message(span_danger("[src] got blue-balled!"))
 	Knockdown(3 SECONDS)
+
+/// Back to standing about normally once the battle's over.
+/mob/living/proc/fnf_rest()
+	return
+
+/mob/living/carbon/fnf_rest()
+	limb_rig?.settle()
+
+#undef FNF_MIC_UP
+#undef FNF_FIST

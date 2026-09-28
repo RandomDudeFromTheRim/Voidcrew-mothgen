@@ -14,7 +14,7 @@ Use the microphone in your hand. You choose a song, a difficulty if the song has
 - **Summon someone** starts at once. An Experiment called Experiment Dearest appears three tiles to your left to sing the other part, and leaves when the song is over.
 - **I'll pick someone** cues the song up. Hit someone with the microphone to challenge them. A player gets asked whether they want to sing and has 20 seconds to answer. Anyone nobody is playing, conscious and willing or not, gets their part sung for them by the game.
 
-The singer who used the microphone always takes the right side. The opponent is moved three tiles to your left if there's room (two or four if not), and both of you turn to face the crowd.
+The singer who used the microphone always takes the right side. The opponent is moved three tiles to your left if there's room (two or four if not), and you turn to face each other.
 
 ## Playing
 

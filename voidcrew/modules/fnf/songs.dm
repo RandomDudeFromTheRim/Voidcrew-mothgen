@@ -6,8 +6,13 @@
  * {"t": time in ms, "d": lane, "l": hold length in ms}; lanes 0-3 (left, down, up, right) are
  * the player's, 4-7 the opponent's.
  *
+ * Charts in the older format most mods use (Psych Engine and the like) work too: <id>.json for
+ * normal and <id>-<difficulty>.json for the rest, each {"song": {"notes": [sections]}}, with
+ * Inst.ogg and either Voices.ogg or separate Voices-Player.ogg and Voices-Opponent.ogg.
+ *
  * One song ships with the game. Real Funkin' songs can't, but tools/fnf/fetch_funkin.py
- * downloads them into data/fnf/songs/, and anything in there shows up in the song list.
+ * downloads them into data/fnf/songs/, and any song folder in there (a mod's included) shows up
+ * in the song list.
  */
 
 /// Folders to look for songs in.
@@ -64,6 +69,8 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 	var/opponent_voice_file
 	/// Whether there's enough here to play.
 	var/valid = FALSE
+	/// For charts in the older format, each difficulty's chart file.
+	var/list/legacy_files
 
 /datum/fnf_song/New(path, id)
 	src.path = path
@@ -71,10 +78,11 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 	name = id
 	if(!fexists("[path]Inst.ogg"))
 		return
+	inst_file = "[path]Inst.ogg"
 	var/list/chart = fnf_read_json("[path][id]-chart.json")
 	if(!islist(chart?["notes"]))
+		read_legacy()
 		return
-	inst_file = "[path]Inst.ogg"
 	var/list/meta = fnf_read_json("[path][id]-metadata.json")
 	if(meta)
 		name = meta["songName"] || id
@@ -92,6 +100,46 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 	for(var/difficulty in notes)
 		difficulties += difficulty
 	valid = length(difficulties) > 0
+
+/// Reads a song charted in the older format, one file per difficulty.
+/datum/fnf_song/proc/read_legacy()
+	legacy_files = list()
+	var/list/first_song
+	for(var/file_name in flist(path))
+		if(copytext(file_name, -5) != ".json")
+			continue
+		var/stem = copytext(file_name, 1, -5)
+		var/difficulty
+		if(stem == id)
+			difficulty = "normal"
+		else if(findtext(stem, "[id]-") == 1)
+			difficulty = copytext(stem, length(id) + 2)
+		if(!difficulty || difficulty == "metadata" || difficulty == "chart" || difficulty == "events")
+			continue
+		var/list/file_data = fnf_read_json("[path][file_name]")
+		var/list/song = file_data?["song"]
+		if(!islist(song?["notes"]))
+			continue
+		legacy_files[difficulty] = file_name
+		difficulties += difficulty
+		if(!first_song)
+			first_song = song
+	if(!first_song)
+		return
+	name = first_song["song"] || id
+	if(isnum(first_song["bpm"]))
+		bpm = first_song["bpm"]
+	if(fexists("[path]Voices-Player.ogg"))
+		player_voice_file = "[path]Voices-Player.ogg"
+	else
+		player_voice_file = find_voice(null, first_song["player1"])
+	if(fexists("[path]Voices-Opponent.ogg"))
+		opponent_voice_file = "[path]Voices-Opponent.ogg"
+	else
+		opponent_voice_file = find_voice(null, first_song["player2"])
+	if(!player_voice_file && fexists("[path]Voices.ogg"))
+		player_voice_file = "[path]Voices.ogg"
+	valid = TRUE
 
 /// The first Voices-<name>.ogg that exists for these singers. Funkin' names variants like
 /// "bf-car", while the file is just Voices-bf, so the part before any hyphen is tried too.
@@ -115,6 +163,8 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
  * hold length in ms), in time order.
  */
 /datum/fnf_song/proc/load_chart(difficulty)
+	if(legacy_files)
+		return load_legacy_chart(difficulty)
 	var/list/chart = fnf_read_json("[path][id]-chart.json")
 	var/list/raw = chart?["notes"]?[difficulty]
 	var/list/player = list()
@@ -147,6 +197,39 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 		if(isnum(event["t"]))
 			events += list(event)
 	return list("player" = remove_stacked(player), "opponent" = remove_stacked(opponent), "events" = events, "speed" = speed)
+
+/// The older format: the notes come in sections, and each section says whose turn it is. Lanes
+/// 0-3 are whoever's turn it is, 4-7 the other singer, except in Psych Engine 1.0 charts,
+/// where 0-3 are always the player.
+/datum/fnf_song/proc/load_legacy_chart(difficulty)
+	var/list/file_data = fnf_read_json("[path][legacy_files[difficulty]]")
+	var/list/song = file_data?["song"]
+	var/fixed_lanes = findtext("[song?["format"]]", "psych_v1")
+	var/list/player = list()
+	var/list/opponent = list()
+	for(var/list/section in song?["notes"])
+		var/players_turn = section["mustHitSection"]
+		for(var/list/raw in section["sectionNotes"])
+			if(length(raw) < 2)
+				continue
+			var/time = raw[1]
+			var/lane = raw[2]
+			if(!isnum(time) || !isnum(lane) || lane < 0 || lane > 7)
+				continue
+			var/kind = length(raw) >= 4 ? raw[4] : null
+			if(istext(kind) && (findtext(kind, "hurt") || findtext(kind, "mine")))
+				continue
+			var/hold = length(raw) >= 3 ? raw[3] : 0
+			var/list/entry = list(time, lane % 4, isnum(hold) ? max(hold, 0) : 0)
+			var/players_note = fixed_lanes ? lane < 4 : (players_turn ? lane < 4 : lane >= 4)
+			if(players_note)
+				player += list(entry)
+			else
+				opponent += list(entry)
+	sortTim(player, GLOBAL_PROC_REF(cmp_fnf_note))
+	sortTim(opponent, GLOBAL_PROC_REF(cmp_fnf_note))
+	var/speed = song?["speed"]
+	return list("player" = remove_stacked(player), "opponent" = remove_stacked(opponent), "events" = list(), "speed" = isnum(speed) ? speed : 1.3)
 
 /// Drops notes charted twice on the same lane at the same time.
 /datum/fnf_song/proc/remove_stacked(list/notes)
