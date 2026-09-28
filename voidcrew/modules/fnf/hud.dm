@@ -94,6 +94,7 @@
 	for(var/obj/effect/abstract/fnf_hud/portrait/portrait as anything in list(left_portrait, right_portrait))
 		if(!portrait)
 			continue
+		portrait.refresh()
 		animate(portrait, transform = portrait.get_matrix(1.2), time = 0)
 		animate(transform = portrait.get_matrix(1), time = 2, easing = CUBIC_EASING|EASE_OUT)
 
@@ -129,10 +130,18 @@
 	. = ..()
 	src.singer = singer
 	dir = facing
+	refresh()
+
+/// Puts the singer's head up. A singer summoned for the battle only gets its rig a moment after
+/// it appears, and a rig can be rebuilt mid-song, so this is checked again on every beat.
+/obj/effect/abstract/fnf_hud/portrait/proc/refresh()
+	if(length(pieces))
+		return
 	var/mob/living/carbon/carbon_singer = singer
 	var/datum/limb_rig/rig = istype(carbon_singer) ? carbon_singer.limb_rig : null
+	cut_overlays()
 	if(rig)
-		var/list/head = rig.get_portrait_head(facing)
+		var/list/head = rig.get_portrait_head(dir)
 		head_x = head[1]
 		head_y = head[2]
 		head_scale = head[3]
@@ -142,12 +151,13 @@
 			pieces += piece
 			vis_contents += piece
 			RegisterSignal(piece, COMSIG_QDELETING, PROC_REF(on_piece_deleted))
-	else
+	else if(singer)
 		var/mutable_appearance/look = new(singer)
-		look.dir = facing
+		look.dir = dir
 		look.plane = FLOAT_PLANE
 		look.layer = FLOAT_LAYER
 		add_overlay(look)
+		head_x = 16
 		head_y = 20
 		head_scale = 0.8
 	transform = get_matrix(1)

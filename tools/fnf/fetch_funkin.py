@@ -39,11 +39,16 @@ def git(*args, cwd):
 
 
 def voice_names(metadata):
+    """Every Voices-<name> a song's singers might use. Metadata names variants ("bf-car", "mom-car")
+    while the files are just Voices-bf and Voices-mom, so the part before a hyphen counts too."""
     characters = metadata.get("playData", {}).get("characters", {})
     names = []
     for key, fallback in (("playerVocals", "player"), ("opponentVocals", "opponent")):
         vocals = characters.get(key) or ([characters[fallback]] if characters.get(fallback) else [])
-        names.extend(vocals[:1])
+        for vocal in vocals[:1]:
+            names.append(vocal)
+            if "-" in vocal:
+                names.append(vocal.split("-")[0])
     return names
 
 

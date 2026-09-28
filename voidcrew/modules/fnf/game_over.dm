@@ -6,7 +6,11 @@
  * fling up, its knees buckle and it goes over backwards, bouncing and spraying blood, then lies
  * twitching in the spreading pool (all baked into fnf_dead.dmi, after Boyfriend's death). RETRY?
  * pulses over the body while the game over music plays. Against the game, clicking it sings the
- * song again; against a person it just says GAME OVER. It goes away on its own after a while.
+ * song again; against a person it just says GAME OVER. It goes away on its own after a while,
+ * and the singer stays down on the floor until it does.
+ *
+ * The screens go through the mob's fullscreen overlays, so a HUD rebuild puts them back rather
+ * than wiping them, and they land on the right plane whatever z-level the singer is on.
  */
 /datum/fnf_game_over
 	var/mob/living/singer
@@ -16,11 +20,12 @@
 	var/can_retry = FALSE
 	/// Which way the fallen singer faces.
 	var/facing = WEST
-	var/list/atom/movable/screen/fnf/screens = list()
-	var/atom/movable/screen/fnf/blackout
+	/// The fullscreen categories this put up, to take down again.
+	var/list/categories = list()
+	var/atom/movable/screen/fullscreen/fnf/blackout
 	/// The Experiment, standing, dying and then twitching.
-	var/atom/movable/screen/fnf/figure
-	var/atom/movable/screen/fnf/retry/retry_button
+	var/atom/movable/screen/fullscreen/fnf/figure
+	var/atom/movable/screen/fullscreen/fnf/retry/retry_button
 	var/music_channel
 	var/retrying = FALSE
 
@@ -34,9 +39,9 @@
 	RegisterSignals(singer, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT), PROC_REF(on_singer_gone))
 	music_channel = SSsounds.reserve_sound_channel(src)
 	animate(viewer, pixel_w = 0, pixel_z = 0, time = 3)
+	singer.add_traits(list(TRAIT_FLOORED, TRAIT_IMMOBILIZED), FNF_GAME_OVER_TRAIT)
 
-	blackout = add_screen("bar", 'voidcrew/modules/fnf/icons/fnf.dmi', "WEST,SOUTH to EAST,NORTH", 1)
-	blackout.color = "#000000"
+	blackout = add_screen("fnf_blackout", /atom/movable/screen/fullscreen/fnf)
 	blackout.alpha = 0
 	animate(blackout, alpha = 255, time = 6)
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/loss.ogg", volume = 60))
@@ -44,8 +49,7 @@
 	if(is_species(singer, /datum/species/experiment))
 		// 160 by 96, standing on the middle of its bottom edge, drawn twice size with its feet
 		// kept on the singer's tile.
-		figure = add_screen("expie_doomed", 'voidcrew/modules/fnf/icons/fnf_dead.dmi', "CENTER:-64,CENTER", 2)
-		figure.transform = matrix(2, 0, 0, 0, 2, 48)
+		figure = add_screen("fnf_figure", /atom/movable/screen/fullscreen/fnf/figure)
 		figure.dir = facing
 		figure.alpha = 0
 		animate(figure, alpha = 255, time = 6)
@@ -59,9 +63,11 @@
 /datum/fnf_game_over/Destroy()
 	if(singer)
 		UnregisterSignal(singer, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT))
-		singer.client?.screen -= screens
+		singer.remove_traits(list(TRAIT_FLOORED, TRAIT_IMMOBILIZED), FNF_GAME_OVER_TRAIT)
+		for(var/category in categories)
+			singer.clear_fullscreen(category, FALSE)
 		SEND_SOUND(singer, sound(null, channel = music_channel))
-	QDEL_LIST(screens)
+	categories.Cut()
 	blackout = null
 	figure = null
 	retry_button = null
@@ -69,16 +75,9 @@
 	singer = null
 	return ..()
 
-/datum/fnf_game_over/proc/add_screen(state, icon_file, screen_loc, layer_offset)
-	var/atom/movable/screen/fnf/screen = new
-	screen.icon = icon_file
-	screen.icon_state = state
-	screen.screen_loc = screen_loc
-	screen.layer += layer_offset
-	SET_PLANE_EXPLICIT(screen, FULLSCREEN_PLANE, singer)
-	screens += screen
-	singer.client?.screen += screen
-	return screen
+/datum/fnf_game_over/proc/add_screen(category, type)
+	categories += category
+	return singer.overlay_fullscreen(category, type)
 
 /datum/fnf_game_over/proc/on_singer_gone(datum/source)
 	SIGNAL_HANDLER
@@ -112,13 +111,9 @@
 		return
 	var/sound/music = sound("voidcrew/modules/fnf/sound/gameover_loop.ogg", repeat = TRUE, channel = music_channel, volume = 45)
 	SEND_SOUND(singer, music)
-	retry_button = new
+	retry_button = add_screen("fnf_retry", /atom/movable/screen/fullscreen/fnf/retry)
 	retry_button.game_over = src
-	retry_button.screen_loc = "CENTER,CENTER+4"
-	SET_PLANE_EXPLICIT(retry_button, FULLSCREEN_PLANE, singer)
 	retry_button.set_text(can_retry ? "RETRY?" : "GAME OVER")
-	screens += retry_button
-	singer.client?.screen += retry_button
 
 /// Clicked RETRY?: the jingle, then the song again.
 /datum/fnf_game_over/proc/retry()
@@ -152,31 +147,47 @@
 /datum/fnf_game_over/proc/end()
 	if(retrying)
 		return
-	animate(blackout, alpha = 0, time = 10)
-	for(var/atom/movable/screen/fnf/screen as anything in screens - blackout)
-		animate(screen, alpha = 0, time = 10)
+	for(var/atom/movable/screen/fullscreen/fnf/screen as anything in list(blackout, figure, retry_button))
+		if(screen)
+			animate(screen, alpha = 0, time = 10)
 	QDEL_IN(src, 10)
 
-/atom/movable/screen/fnf
+/// The black that covers everything.
+/atom/movable/screen/fullscreen/fnf
 	icon = 'voidcrew/modules/fnf/icons/fnf.dmi'
-	plane = FULLSCREEN_PLANE
-	layer = 50
-	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-	appearance_flags = PIXEL_SCALE|KEEP_TOGETHER
-
-/// RETRY?, pulsing. A black box behind the text makes it easy to click.
-/atom/movable/screen/fnf/retry
 	icon_state = "bar"
 	color = "#000000"
+	screen_loc = "WEST,SOUTH to EAST,NORTH"
+	layer = 50
+	appearance_flags = PIXEL_SCALE|KEEP_TOGETHER
+	show_when_dead = TRUE
+
+/// The fallen Experiment. 160 by 96, standing on the middle of its bottom edge, drawn twice size
+/// with its feet kept on the singer's tile.
+/atom/movable/screen/fullscreen/fnf/figure
+	icon = 'voidcrew/modules/fnf/icons/fnf_dead.dmi'
+	icon_state = "expie_doomed"
+	color = null
+	screen_loc = "CENTER:-64,CENTER"
+	layer = 51
+
+/atom/movable/screen/fullscreen/fnf/figure/Initialize(mapload, datum/hud/hud_owner)
+	. = ..()
+	transform = matrix(2, 0, 0, 0, 2, 48)
+
+/// RETRY?, pulsing. A black box behind the text makes it easy to click.
+/atom/movable/screen/fullscreen/fnf/retry
+	screen_loc = "CENTER,CENTER+4"
 	layer = 53
 	mouse_opacity = MOUSE_OPACITY_OPAQUE
 	var/datum/fnf_game_over/game_over
-	var/atom/movable/screen/fnf/label
+	var/atom/movable/screen/label
 
-/atom/movable/screen/fnf/retry/Initialize(mapload, datum/hud/hud_owner)
+/atom/movable/screen/fullscreen/fnf/retry/Initialize(mapload, datum/hud/hud_owner)
 	. = ..()
 	transform = matrix(8, 0, 0, 0, 2.5, 0)
 	label = new
+	label.mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	label.appearance_flags = RESET_TRANSFORM|RESET_COLOR|PIXEL_SCALE
 	label.vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_ID
 	label.maptext_width = 320
@@ -185,13 +196,13 @@
 	label.maptext_y = -8
 	vis_contents += label
 
-/atom/movable/screen/fnf/retry/Destroy()
+/atom/movable/screen/fullscreen/fnf/retry/Destroy()
 	vis_contents.Cut()
 	QDEL_NULL(label)
 	game_over = null
 	return ..()
 
-/atom/movable/screen/fnf/retry/proc/set_text(text)
+/atom/movable/screen/fullscreen/fnf/retry/proc/set_text(text)
 	label.maptext = MAPTEXT("<span style='text-align:center;font-size:28pt;color:#ffffff;-dm-text-outline:2px #000000'><b>[text]</b></span>")
 	// Pops in, then throbs.
 	label.transform = matrix() * 2
@@ -199,11 +210,11 @@
 	animate(alpha = 110, transform = matrix() * 0.92, time = 6, loop = -1, easing = SINE_EASING)
 	animate(alpha = 255, transform = matrix() * 1.08, time = 6, easing = SINE_EASING)
 
-/atom/movable/screen/fnf/retry/proc/confirm()
+/atom/movable/screen/fullscreen/fnf/retry/proc/confirm()
 	label.maptext = MAPTEXT("<span style='text-align:center;font-size:28pt;color:#ffe066;-dm-text-outline:2px #000000'><b>RETRY!</b></span>")
 	animate(label, alpha = 255, transform = matrix() * 1.5, time = 1)
 	animate(transform = matrix() * 1.2, time = 3)
 
-/atom/movable/screen/fnf/retry/Click(location, control, params)
+/atom/movable/screen/fullscreen/fnf/retry/Click(location, control, params)
 	if(usr == game_over?.singer)
 		game_over.retry()

@@ -29,3 +29,6 @@
 #define FNF_LANE_GAP 22
 #define FNF_BAR_WIDTH 128
 #define FNF_BAR_HEIGHT 6
+
+/// Trait source for being kept on the floor through a game over.
+#define FNF_GAME_OVER_TRAIT "fnf_game_over"
