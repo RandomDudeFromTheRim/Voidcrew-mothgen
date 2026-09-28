@@ -175,44 +175,35 @@
 	. = ..()
 	transform = matrix(2, 0, 0, 0, 2, 48)
 
-/// RETRY?, pulsing. A black box behind the text makes it easy to click.
+/// RETRY?, pulsing. The text sits right on the button, over a clear square that takes the click.
 /atom/movable/screen/fullscreen/fnf/retry
+	icon_state = "blank"
+	color = null
 	screen_loc = "CENTER,CENTER+4"
 	layer = 53
 	mouse_opacity = MOUSE_OPACITY_OPAQUE
+	appearance_flags = PIXEL_SCALE
+	maptext_width = 320
+	maptext_height = 64
+	maptext_x = -144
+	maptext_y = -8
 	var/datum/fnf_game_over/game_over
-	var/atom/movable/screen/label
-
-/atom/movable/screen/fullscreen/fnf/retry/Initialize(mapload, datum/hud/hud_owner)
-	. = ..()
-	transform = matrix(8, 0, 0, 0, 2.5, 0)
-	label = new
-	label.mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-	label.appearance_flags = RESET_TRANSFORM|RESET_COLOR|PIXEL_SCALE
-	label.vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_ID
-	label.maptext_width = 320
-	label.maptext_height = 64
-	label.maptext_x = -144
-	label.maptext_y = -8
-	vis_contents += label
 
 /atom/movable/screen/fullscreen/fnf/retry/Destroy()
-	vis_contents.Cut()
-	QDEL_NULL(label)
 	game_over = null
 	return ..()
 
 /atom/movable/screen/fullscreen/fnf/retry/proc/set_text(text)
-	label.maptext = MAPTEXT("<span style='text-align:center;font-size:28pt;color:#ffffff;-dm-text-outline:2px #000000'><b>[text]</b></span>")
+	maptext = MAPTEXT("<span style='text-align:center;font-size:28pt;color:#ffffff;-dm-text-outline:2px #000000'><b>[text]</b></span>")
 	// Pops in, then throbs.
-	label.transform = matrix() * 2
-	animate(label, transform = matrix(), time = 3, easing = BACK_EASING|EASE_OUT)
+	transform = matrix() * 2
+	animate(src, transform = matrix(), time = 3, easing = BACK_EASING|EASE_OUT)
 	animate(alpha = 110, transform = matrix() * 0.92, time = 6, loop = -1, easing = SINE_EASING)
 	animate(alpha = 255, transform = matrix() * 1.08, time = 6, easing = SINE_EASING)
 
 /atom/movable/screen/fullscreen/fnf/retry/proc/confirm()
-	label.maptext = MAPTEXT("<span style='text-align:center;font-size:28pt;color:#ffe066;-dm-text-outline:2px #000000'><b>RETRY!</b></span>")
-	animate(label, alpha = 255, transform = matrix() * 1.5, time = 1)
+	maptext = MAPTEXT("<span style='text-align:center;font-size:28pt;color:#ffe066;-dm-text-outline:2px #000000'><b>RETRY!</b></span>")
+	animate(src, alpha = 255, transform = matrix() * 1.5, time = 1)
 	animate(transform = matrix() * 1.2, time = 3)
 
 /atom/movable/screen/fullscreen/fnf/retry/Click(location, control, params)

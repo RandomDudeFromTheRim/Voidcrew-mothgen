@@ -193,6 +193,11 @@
 	if(!screen)
 		return
 	for(var/atom/movable/screen/plane_master/plate as anything in screen.get_planes())
+		// Whole-number zoom, pixels scaled as blocks: anything else smears them.
+		if(scale == 1)
+			plate.appearance_flags = (plate.appearance_flags & ~PIXEL_SCALE) | (initial(plate.appearance_flags) & PIXEL_SCALE)
+		else
+			plate.appearance_flags |= PIXEL_SCALE
 		animate(plate, transform = matrix() * scale, time = 10, easing = SINE_EASING)
 
 /datum/fnf_side/proc/on_turned(mob/source, old_dir, new_dir)
