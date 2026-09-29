@@ -9,7 +9,7 @@ The battle microphone starts a rhythm battle: two singers stand side by side fac
 
 ## Picking a song
 
-Use the microphone in your hand. You choose a song, a difficulty if the song has more than one, and who you're singing against:
+Use the microphone in your hand. You choose a week, then a song from it, a difficulty if the song has more than one, and who you're singing against. Weeks are grouped as Friday Night Funkin' has them (Week 1 is Bopeebo, Fresh and Dadbattle, Weekend 1 is Darnell, Lit Up, 2hot and Blazin'). Each song is followed by its mixes where it has them: the Erect remix, and the Pico Mix, where you sing as Pico, gun in your free hand, with his moves and his voice. Songs that aren't in a week are under "Other songs".
 
 - **Summon someone** starts at once. The song's own opponent appears three tiles to your left to sing the other part, and leaves when the song is over: Daddy Dearest, Mommy Mearest, Pico, Senpai, Tankman and the rest, each with their own moves (Pico and Tankman sing with a gun in the other hand). Songs without a known opponent get an Experiment called Experiment Dearest.
 - **I'll pick someone** cues the song up. Hit someone with the microphone to challenge them. A player gets asked whether they want to sing and has 20 seconds to answer. Anyone nobody is playing, conscious and willing or not, gets their part sung for them by the game.
@@ -36,7 +36,16 @@ Every press is rated on how close it was:
 
 Missing flashes you blue, plays a miss sound only you hear, and cuts your vocals out of the song until you hit the next note. Holding a long note earns points and a trickle of health the whole time.
 
-Above each singer's arrows are their name, score, misses and accuracy. When a song has a "hey!" moment in it, the singer throws their arms up.
+Above each singer's arrows are their name, score, misses and accuracy.
+
+## On stage
+
+Songs with a girlfriend in them (Girlfriend, or Nene in the Pico mixes) bring her along: she stands a step behind the two of you, bopping to the beat, and throws her arms up with a "Hey!" whenever someone else does. Songs with lyrics show them under the stage as they're sung.
+
+Some moments get acted out: Boyfriend's "hey!" in Bopeebo, Tankman's "ugh" in Ugh, a burp or a laugh in the Pico mixes. Weekend 1 goes further:
+
+- **2hot**: Darnell lights cans and kicks them up; Pico racks his gun and shoots them out of the air. Miss the shot and the can lands on Pico.
+- **Blazin'** is a fistfight rather than a sing-off, fought close up with no gun. Every note is a punch, block, dodge or uppercut. Hit it and it goes Pico's way; miss a punch and it whiffs, miss a block and Darnell's punch lands.
 
 ## The health bar
 

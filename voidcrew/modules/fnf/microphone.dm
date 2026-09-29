@@ -35,12 +35,26 @@
 	return TRUE
 
 /obj/item/fnf_microphone/proc/pick_song(mob/living/user)
-	var/list/songs = get_fnf_songs()
-	if(!length(songs))
+	var/list/weeks = get_fnf_weeks()
+	if(!length(weeks))
 		balloon_alert(user, "no songs!")
 		return
-	var/choice = tgui_input_list(user, "Pick a song", "Rhythm battle", songs)
-	var/datum/fnf_song/song = songs[choice]
+	var/list/songs
+	if(length(weeks) == 1)
+		songs = weeks[1]["songs"]
+	else
+		var/list/week_names = list()
+		for(var/list/week as anything in weeks)
+			week_names[week["name"]] = week["songs"]
+		var/week_choice = tgui_input_list(user, "Pick a week", "Rhythm battle", week_names)
+		songs = week_names[week_choice]
+		if(!songs || !user.is_holding(src))
+			return
+	var/list/song_names = list()
+	for(var/datum/fnf_song/listed as anything in songs)
+		song_names[listed.list_name] = listed
+	var/choice = tgui_input_list(user, "Pick a song", "Rhythm battle", song_names)
+	var/datum/fnf_song/song = song_names[choice]
 	if(!song || !user.is_holding(src))
 		return
 	var/difficulty = song.difficulties[1]

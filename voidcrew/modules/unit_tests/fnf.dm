@@ -42,3 +42,16 @@
 
 	qdel(battle)
 	TEST_ASSERT(QDELETED(npc), "The summoned opponent stayed after the battle.")
+
+/// Songs are picked by week, in Funkin's order, and lyrics are read from SubRip timings.
+/datum/unit_test/fnf_weeks
+
+/datum/unit_test/fnf_weeks/Run()
+	TEST_ASSERT_EQUAL(fnf_week_label("week1"), "Week 1", "week1 is not labelled Week 1.")
+	TEST_ASSERT_EQUAL(fnf_week_label("weekend1"), "Weekend 1", "weekend1 is not labelled Weekend 1.")
+	TEST_ASSERT_EQUAL(fnf_week_label("tutorial"), "Tutorial", "tutorial is not labelled Tutorial.")
+	var/list/weeks = list("weekend1", "week7", "sserafim", "week1", "tutorial")
+	sortTim(weeks, GLOBAL_PROC_REF(cmp_fnf_week))
+	TEST_ASSERT_EQUAL(jointext(weeks, ","), "tutorial,week1,week7,weekend1,sserafim", "Weeks are not in Funkin's order.")
+	TEST_ASSERT_EQUAL(fnf_srt_time("00:01:02,500"), 62500, "A SubRip time was read wrong.")
+	TEST_ASSERT_NULL(fnf_srt_time("not a time"), "A broken SubRip time was read as a time.")

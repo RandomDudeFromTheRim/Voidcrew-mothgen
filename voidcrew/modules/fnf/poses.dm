@@ -44,7 +44,10 @@
 /**
  * A battle pose.
  *
- * * kind - "rest", "bop", "hey", "miss", or a lane: 0 to 3 for left, down, up, right
+ * * kind - "rest", "bop", "hey", "miss", or a lane: 0 to 3 for left, down, up, right. Also the
+ *   one-off moves events and special notes call for (see fnf_act()): "ugh", "kick", "cock",
+ *   "shoot", and Blazin's fight: "punch_high", "punch_low", "block", "dodge_high", "dodge_low",
+ *   "hit_high", "hit_low", "prep", "uppercut", "uppercut_hit", "taunt".
  * * mic_arm - the arm with the mic in it, RIG_L_ARM or RIG_R_ARM
  * * facing - which way the singer faces, WEST or EAST, to tell which arrow points at the rival
  * * style - a character's own way of moving on top (see fnf_apply_style), or null
@@ -112,6 +115,85 @@
 			.[RIG_CHEST] = list("air" = 4, "breath" = 0.04, "bend" = -6)
 			.[RIG_HEAD] = list("nod" = -15)
 			.[RIG_TAIL] = list("lift" = 35, "wag" = 20)
+		if("ugh")
+			// Ugh! Hunched over the mic, head dropped, free fist shaken low.
+			.[RIG_CHEST] = list("bend" = 22, "breath" = -0.04)
+			.[RIG_HEAD] = list("nod" = 28, "tilt" = 10)
+			.[free_arm] = list("swing" = 30, "raise" = 20, "elbow" = 100)
+			.[RIG_L_LEG] = list("swing" = 15, "knee" = 25)
+			.[RIG_R_LEG] = list("swing" = 15, "knee" = 25)
+		if("kick")
+			// Punting something up off the foot.
+			.[RIG_CHEST] = list("bend" = -12)
+			.[RIG_HEAD] = list("nod" = 10)
+			.[RIG_L_LEG] = list("swing" = 80, "knee" = 10)
+			.[RIG_R_LEG] = list("swing" = -10, "knee" = 15)
+			.[free_arm] = list("swing" = -40, "raise" = 30, "elbow" = 20)
+		if("cock")
+			// Racking the gun, held up by the face.
+			.[free_arm] = list("swing" = 120, "raise" = 5, "elbow" = 100)
+			.[RIG_HEAD] = list("nod" = -8)
+			.[RIG_CHEST] = list("bend" = -4)
+		if("shoot")
+			// Gun levelled up at the sky's corner, kicking back.
+			.[free_arm] = list("swing" = 125, "raise" = 5, "elbow" = 0)
+			.[RIG_CHEST] = list("bend" = -10)
+			.[RIG_HEAD] = list("nod" = -18)
+		if("punch_high", "punch_low")
+			// A straight jab from the free fist, the body turning into it.
+			var/low = kind == "punch_low"
+			.[free_arm] = list("swing" = low ? 70 : 95, "raise" = 5, "elbow" = 0)
+			.[mic_arm] = list("swing" = 60, "raise" = 10, "elbow" = 110)
+			.[RIG_CHEST] = list("bend" = low ? 26 : 14, "lean" = 4)
+			.[RIG_HEAD] = list("nod" = low ? 8 : -4)
+			.[RIG_L_LEG] = list("swing" = 30, "knee" = low ? 35 : 15)
+			.[RIG_R_LEG] = list("swing" = -20, "knee" = low ? 20 : 0)
+		if("block")
+			// Guard up: both forearms across the face.
+			.[free_arm] = list("swing" = 70, "raise" = 10, "elbow" = 120)
+			.[mic_arm] = list("swing" = 75, "raise" = 10, "elbow" = 115)
+			.[RIG_CHEST] = list("bend" = 12)
+			.[RIG_HEAD] = list("nod" = 18)
+			.[RIG_L_LEG] = list("swing" = 10, "knee" = 25)
+			.[RIG_R_LEG] = list("swing" = 10, "knee" = 25)
+		if("dodge_high", "dodge_low")
+			// Ducking under a punch, or swaying back out of one.
+			var/low = kind == "dodge_low"
+			.[RIG_CHEST] = list("bend" = low ? 40 : -28, "breath" = -0.04)
+			.[RIG_HEAD] = list("nod" = low ? 10 : -20)
+			.[RIG_L_LEG] = list("swing" = low ? 45 : -10, "knee" = low ? 70 : 10)
+			.[RIG_R_LEG] = list("swing" = low ? 45 : 20, "knee" = low ? 70 : 10)
+			.[free_arm] = list("swing" = 40, "raise" = 20, "elbow" = 90)
+		if("hit_high", "hit_low", "uppercut_hit")
+			// Rocked by a punch: head snapped back (or folded over one to the gut), arms flung.
+			var/low = kind == "hit_low"
+			var/big = kind == "uppercut_hit"
+			.[RIG_CHEST] = list("bend" = low ? 30 : (big ? -35 : -22), "breath" = -0.05, "air" = big ? 6 : 0)
+			.[RIG_HEAD] = list("nod" = low ? 25 : (big ? -40 : -30), "tilt" = 12)
+			.[free_arm] = list("swing" = low ? 30 : 110, "raise" = 40, "elbow" = 30)
+			.[mic_arm] = list("swing" = low ? 40 : 100, "raise" = 35, "elbow" = 40)
+			.[RIG_L_LEG] = list("swing" = -15, "knee" = 20)
+			.[RIG_R_LEG] = list("swing" = 20, "knee" = 10)
+			.[RIG_TAIL] = list("lift" = -30)
+		if("prep")
+			// Winding up an uppercut: crouched low, fist drawn right back.
+			.[RIG_CHEST] = list("bend" = 30)
+			.[RIG_HEAD] = list("nod" = -10)
+			.[free_arm] = list("swing" = -40, "raise" = 10, "elbow" = 100)
+			.[RIG_L_LEG] = list("swing" = 40, "knee" = 70)
+			.[RIG_R_LEG] = list("swing" = 30, "knee" = 60)
+		if("uppercut")
+			// And up: the fist driven skyward, off the ground with it.
+			.[free_arm] = list("swing" = 165, "raise" = 5, "elbow" = 20)
+			.[RIG_CHEST] = list("bend" = -12, "air" = 5)
+			.[RIG_HEAD] = list("nod" = -20)
+			.[RIG_L_LEG] = list("swing" = 10, "knee" = 30)
+			.[RIG_R_LEG] = list("swing" = -25)
+		if("taunt")
+			// Come on then: beckoning, chin up, weight back.
+			.[free_arm] = list("swing" = 80, "raise" = 10, "elbow" = 80)
+			.[RIG_CHEST] = list("bend" = -10)
+			.[RIG_HEAD] = list("nod" = -18, "tilt" = -10)
 	if(style)
 		fnf_apply_style(., kind, style, mic_arm, free_arm)
 
@@ -204,6 +286,24 @@
 		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
 	), settle_after = FALSE)
 
+/// A one-off move (see fnf_pose()): snaps into it, holds it for hold deciseconds, and goes back.
+/mob/living/proc/fnf_act(kind, mic_arm, facing, style, hold = 3)
+	var/static/list/nudges = list("hit_high" = -4, "hit_low" = -3, "uppercut_hit" = -6, "punch_high" = 4, "punch_low" = 4, "uppercut" = 3, "dodge_high" = -3, "shoot" = -2)
+	var/push = nudges[kind] || 0
+	fnf_nudge(facing == EAST ? push : -push, kind == "uppercut" || kind == "uppercut_hit" ? 4 : 0)
+
+/mob/living/carbon/fnf_act(kind, mic_arm, facing, style, hold = 3)
+	. = ..()
+	if(!limb_rig)
+		return
+	setDir(facing)
+	var/list/pose = fnf_pose(kind, mic_arm, facing, style)
+	limb_rig.play(list(
+		list(fnf_scale_pose(pose, 1.15), 0.5, CUBIC_EASING|EASE_OUT),
+		list(pose, hold, SINE_EASING),
+		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
+	), settle_after = FALSE)
+
 /// Lost. Run off the health bar means going down in a heap.
 /mob/living/proc/fnf_lose(knocked_out)
 	fnf_flash("#6f6fff", 3 SECONDS)
@@ -254,6 +354,8 @@
 					pose[free_arm] = list("swing" = 35, "raise" = 5, "elbow" = 0)
 				if(2, "hey")
 					pose[free_arm] = list("swing" = 175, "raise" = 5, "elbow" = 0)
+				if("ugh")
+					pose[free_arm] = list("swing" = 20, "raise" = 15, "elbow" = 60)
 			if(style == "tankman")
 				// Parade-ground stiff: stands up straight whatever he's singing.
 				var/list/chest = pose[RIG_CHEST]

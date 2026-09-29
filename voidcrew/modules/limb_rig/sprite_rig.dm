@@ -40,6 +40,8 @@
 	var/hat_scale = 1
 	/// How much of the bottom of the foot shoes cover, in pixels.
 	var/paw_height = 4
+	/// How much bigger held items are drawn, to fit the hand.
+	var/item_scale = 1
 	/// How much wider (or narrower) clothes are drawn on the torso.
 	var/torso_width = 1
 	/// How much wider clothes are drawn on each kind of limb segment ("arm", "forearm", "thigh", "shin"),
@@ -63,6 +65,7 @@
 	leg_rest = shape["leg_rest"]
 	cloth_masks = shape["cloth_masks"]
 	hat_scale = shape["hat_scale"] || 1
+	item_scale = shape["item_scale"] || 1
 	paw_height = shape["paw_height"] || 4
 	torso_width = shape["torso_width"] || 1
 	cloth_widths = shape["cloth_widths"]
@@ -360,7 +363,7 @@
 		.[cloth_parts["[side]_forearm"]] = get_cloth_map("[side]_forearm", facing) * chain[2]
 		// Held items are drawn for a human hand; move that hand to this wrist.
 		var/list/human_hand = get_rig_joint(side == "l" ? RIG_L_ARM : RIG_R_ARM, facing)
-		.[item_parts[side]] = rig_joint_matrix(human_hand[1], HUMAN_HAND_Y, 1, chain[5], chain[3], chain[4])
+		.[item_parts[side]] = rig_joint_matrix(human_hand[1], HUMAN_HAND_Y, item_scale, chain[5], chain[3], chain[4], item_scale)
 
 #undef HUMAN_HIPS_Y
 #undef HUMAN_ELBOW_Y

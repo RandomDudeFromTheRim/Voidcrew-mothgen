@@ -222,8 +222,20 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	// Everyone faces east, so the right hand is the one the crowd sees. Gunners keep the gun there
 	// and the mic in the other.
 	if(look["gun"])
-		npc.put_in_r_hand(new /obj/item/toy/gun(npc))
+		npc.put_in_r_hand(new /obj/item/toy/fnf_gun(npc))
 		npc.put_in_l_hand(new /obj/item/fnf_microphone(npc))
 	else
 		npc.put_in_r_hand(new /obj/item/fnf_microphone(npc))
 	return npc
+
+/// Pico's (and Tankman's) gun: a stage prop, as big and mean-looking as a real submachine gun, that
+/// fires nothing. Handed out for a song and taken back after.
+/obj/item/toy/fnf_gun
+	name = "prop submachine gun"
+	desc = "A chunky plastic submachine gun painted up to look like the real thing. The barrel is solid, and it rattles when shaken."
+	icon = 'icons/obj/weapons/guns/ballistic.dmi'
+	icon_state = "c20r"
+	inhand_icon_state = "c20r"
+	lefthand_file = 'icons/mob/inhands/weapons/guns_lefthand.dmi'
+	righthand_file = 'icons/mob/inhands/weapons/guns_righthand.dmi'
+	w_class = WEIGHT_CLASS_NORMAL

@@ -6,6 +6,8 @@
 	var/lane
 	/// How long it's held, in milliseconds. 0 for a tap.
 	var/length = 0
+	/// What the chart says happens on it besides singing ("ugh", "weekend-1-firegun"...), or null.
+	var/kind
 	/// Hit or missed already.
 	var/judged = FALSE
 	/// Being held down right now.
@@ -37,7 +39,7 @@
 	var/is_cpu = FALSE
 	/// The challenger's side, on the right.
 	var/is_right = FALSE
-	/// list(time, lane, hold) for every note, in order.
+	/// list(time, lane, hold, kind) for every note, in order.
 	var/list/chart
 	/// The next note in the chart to put on screen.
 	var/next_note = 1
@@ -55,6 +57,8 @@
 	var/style
 	/// Held items the singer can't let go of while singing, as weakrefs.
 	var/list/datum/weakref/locked_items = list()
+	/// Things handed to the singer for the song (Pico's gun), taken back after.
+	var/list/obj/item/props = list()
 	/// The HUD style to put back afterwards, if it was hidden.
 	var/old_hud_version
 	/// Whether the singer's screen was zoomed in on the stage.
@@ -166,8 +170,20 @@
 		zoom_screen(FNF_ZOOM)
 		zoomed = TRUE
 
+/// Puts a prop for the song in the singer's free hand, if they have one free.
+/datum/fnf_side/proc/give_prop(prop_type)
+	if(!singer)
+		return
+	var/obj/item/prop = new prop_type(singer.drop_location())
+	if(!singer.put_in_hands(prop))
+		qdel(prop)
+		return
+	ADD_TRAIT(prop, TRAIT_NODROP, FNF_BATTLE_TRAIT)
+	props += prop
+
 /// Gives back everything lock_in() took. Safe to call more than once.
 /datum/fnf_side/proc/unlock()
+	QDEL_LIST(props)
 	if(!singer)
 		return
 	REMOVE_TRAIT(singer, TRAIT_HANDS_BLOCKED, FNF_BATTLE_TRAIT)
@@ -279,6 +295,8 @@
 	note.time = entry[1]
 	note.lane = entry[2]
 	note.length = entry[3]
+	if(length(entry) >= 4)
+		note.kind = entry[4]
 	live += note
 	// Notes rise from below at a steady speed and cross the strums right on their time.
 	var/until = max(note.time - now, 0)
@@ -390,7 +408,9 @@
 		splash(note.lane)
 	var/hold_time = max(hold_left / 100, 2)
 	busy_until = world.time + hold_time + 1.5
-	singer?.fnf_sing(note.lane, hold_time, mic_arm, facing, style)
+	// Some notes are a move rather than a line ("ugh!", a punch, a gunshot): the stage acts those out.
+	if(!battle.stage?.note_hit(src, note))
+		singer?.fnf_sing(note.lane, hold_time, mic_arm, facing, style)
 	if(!hold_left)
 		live -= note
 		qdel(note)
@@ -438,7 +458,8 @@
 	if(singer)
 		SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/miss[rand(1, 3)].ogg", volume = 45))
 		busy_until = world.time + 3
-		singer.fnf_miss(mic_arm, facing, style)
+		if(!battle.stage?.note_missed(src, note))
+			singer.fnf_miss(mic_arm, facing, style)
 	update_score_text()
 
 /// Lets a note that's no longer in play keep drifting up, greyed out, and then go.
@@ -482,6 +503,11 @@
 /datum/fnf_side/proc/hey()
 	busy_until = world.time + 8
 	singer?.fnf_hey(mic_arm, facing, style)
+
+/// Acts out a one-off move (see fnf_pose()), and keeps the beat from interrupting it.
+/datum/fnf_side/proc/act(kind, hold = 3)
+	busy_until = world.time + hold + 2
+	singer?.fnf_act(kind, mic_arm, facing, style, hold)
 
 /datum/fnf_side/proc/get_accuracy()
 	return judged_count ? accuracy_total / judged_count * 100 : 100

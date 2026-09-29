@@ -52,6 +52,8 @@
 	var/list/datum/weakref/panned = list()
 	/// Extra time before the count in, in deciseconds, for a stage that's still fading in.
 	var/lead_in = 0
+	/// Everything going on around the singers: the girlfriend, lyrics, props, the song's events.
+	var/datum/fnf_stage/stage
 
 /datum/fnf_battle/New(datum/fnf_song/song, difficulty, obj/item/fnf_microphone/microphone)
 	src.song = song
@@ -80,6 +82,7 @@
 	QDEL_NULL(right)
 	sides.Cut()
 	QDEL_NULL(healthbar)
+	QDEL_NULL(stage)
 	if(npc && !QDELETED(npc))
 		do_sparks(3, FALSE, npc)
 		npc.visible_message(span_notice("[npc] bows, and is gone."))
@@ -173,6 +176,12 @@
 		// By name, even with Tankman's face covered.
 		left.singer_name = opponent.real_name
 		left.update_score_text()
+	// Singing as someone other than Boyfriend (Pico, in a Pico mix): moving like them, and holding
+	// what they hold. Nobody brings a gun to a fistfight, though.
+	if(song.player_character && song.player_character != "bf")
+		right.style = song.player_character
+		if(GLOB.fnf_opponents[song.player_character]?["gun"] && !is_fight())
+			right.give_prop(/obj/item/toy/fnf_gun)
 	sides = list(left, right)
 
 	// The bar hangs between the two, above their strums.
@@ -182,6 +191,7 @@
 	camera_x = (left_turf.x + right_turf.x) * world.icon_size / 2 + 16
 	camera_y = (left_turf.y + right_turf.y) * world.icon_size / 2 + 16 + 36
 	pan_cameras()
+	stage = new(src, left_turf, right_turf)
 
 	preload(challenger)
 	preload(opponent)
@@ -246,8 +256,12 @@
 	panned.Cut()
 
 /// Three tiles to the challenger's left is the opponent's spot, or as close as there's room.
+/// Whether this song is a fistfight rather than a sing-off (Blazin'), and they need to be close.
+/datum/fnf_battle/proc/is_fight()
+	return song.id == "blazin"
+
 /datum/fnf_battle/proc/find_opponent_spot(turf/right_turf, mob/living/opponent)
-	for(var/distance in list(3, 2, 4))
+	for(var/distance in (is_fight() ? list(1, 2) : list(3, 2, 4)))
 		var/turf/spot = locate(right_turf.x - distance, right_turf.y, right_turf.z)
 		if(!spot)
 			continue
@@ -294,6 +308,8 @@
 		healthbar?.bop()
 		for(var/datum/fnf_side/side as anything in sides)
 			side.bop(crochet / 100)
+		stage?.bop(crochet / 100)
+	stage?.tick(now)
 	var/list/events = chart["events"]
 	while(next_event <= length(events))
 		var/list/event = events[next_event]
@@ -304,7 +320,7 @@
 	if(state == FNF_STATE_PLAYING && now >= end_ms)
 		finish()
 
-/// Chart events: the camera turning to whoever's singing, and singers shouting "hey!".
+/// Chart events: the camera turning to whoever's singing, and anyone on stage doing something.
 /datum/fnf_battle/proc/run_event(list/event)
 	if(event["e"] == "FocusCamera")
 		// 0 is the player, 1 the opponent, 2 the girlfriend in the middle.
@@ -318,10 +334,8 @@
 	if(event["e"] != "PlayAnimation")
 		return
 	var/list/value = event["v"]
-	if(!islist(value) || value["anim"] != "hey")
-		return
-	var/datum/fnf_side/side = value["target"] == "bf" ? right : (value["target"] == "dad" ? left : null)
-	side?.hey()
+	if(islist(value))
+		stage?.play_animation(value["target"], value["anim"])
 
 /// Pushes the health toward whoever did well (or away from whoever did badly).
 /datum/fnf_battle/proc/adjust_health(amount, datum/fnf_side/side)

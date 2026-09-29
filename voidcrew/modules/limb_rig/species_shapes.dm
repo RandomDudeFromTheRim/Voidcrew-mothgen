@@ -21,6 +21,7 @@
 	), \
 	"leg_rest" = list(2, 4, 2), \
 	"hat_scale" = 1.25, \
+	"item_scale" = 1.25, \
 	"paw_height" = 2.8, \
 	"torso_width" = 1.12, \
 	"torso_depth" = 0.95, \

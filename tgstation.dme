@@ -7032,6 +7032,7 @@
 #include "voidcrew\modules\fnf\poses.dm"
 #include "voidcrew\modules\fnf\side.dm"
 #include "voidcrew\modules\fnf\songs.dm"
+#include "voidcrew\modules\fnf\stage.dm"
 #include "voidcrew\modules\food_and_drinks\drinks\bottles.dm"
 #include "voidcrew\modules\holopads\ship_holocall.dm"
 #include "voidcrew\modules\intents\_defines.dm"
