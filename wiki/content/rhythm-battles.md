@@ -56,7 +56,7 @@ The bar hangs between the singers with each singer's head on it, facing the othe
 
 ## Game over
 
-Getting run off the bar also gives you, and only you, a game over. The world goes black around you. If you're an Experiment, you're left standing alone, drawn in outline and cowering, and get shot in the head: the head turns red and whips back, and you go over backwards in a spray of blood and lie there twitching. Then the game over music plays until you choose. While you're down you can't move or touch anything, and your microphone stays in your hand.
+Getting run off the bar also gives you, and only you, a game over. The world goes black around you. If you're an Experiment, you're left standing alone, drawn in outline and cowering, and get shot in the head: the head turns red and whips back, and you go over backwards in a spray of blood and lie there twitching. Anyone else dies the way Pico does, to his game over music, with only your own body left lit: usually a knife to the head and a fountain of blood, with RETRY written in it; in 2hot the spray can goes off in your face and leaves you charred, RETRY in pink smoke; in Blazin' a punch to the gut drops you face down, RETRY splattered under you. Then the game over music plays until you choose. While you're down you can't move or touch anything, and your microphone stays in your hand.
 
 - **RETRY** (against the game only) starts the same song again. An Experiment makes its last stand first: "Let's not give up just yet." flickers over everything while the world slowly fades back in, then the song starts.
 - **GIVE UP** fades everything back and lets you get up.

@@ -294,7 +294,7 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	if(!fexists(file_path))
 		return null
 	. = list()
-	var/list/lines = splittext(replacetext(file2text(file_path), "\r", ""), "\n")
+	var/list/lines = splittext(replacetext(file2text(file_path), ascii2text(13), ""), "\n")
 	var/index = 1
 	while(index <= length(lines))
 		var/line = lines[index]

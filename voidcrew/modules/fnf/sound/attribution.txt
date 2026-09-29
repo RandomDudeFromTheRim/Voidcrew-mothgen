@@ -4,6 +4,8 @@ miss1-3 - missnote1-3
 loss - fnf_loss_sfx
 gameover_loop, gameover_retry - gameOver, gameOverEnd
 shot1-4, gun_cock - Pico's gun, from Weekend 1 (shot1-4, Gun_Prep)
+loss_pico, gameover_loop_pico, gameover_retry_pico - Pico's game over (fnf_loss_sfx-pico, gameOver-pico, gameOverEnd-pico)
+loss_pico_explode, loss_pico_gutpunch - Pico's Weekend 1 deaths (fnf_loss_sfx-pico-explode, fnf_loss_sfx-pico-gutpunch)
 The RETRY and GIVE UP buttons in icons/fnf_buttons.dmi are lettered in the game's font.
 
 Casualties Unknown, by Orsoniks:
