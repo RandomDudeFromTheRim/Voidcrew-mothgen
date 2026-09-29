@@ -10,7 +10,8 @@
  * and spines onto the torso like a shirt.
  */
 /datum/limb_rig/sprites/humanoid
-	/// Wings off the torso, unmasked, stretched onto the body like the shirt is.
+	/// Wings off the torso, unmasked, stretched onto the body like the shirt is. Hung on the mob, not
+	/// the upper body, so they can go behind the legs.
 	var/obj/effect/abstract/limb_rig_part/wings_part
 	/// The head, as the species draws it, on the head's cloth piece.
 	var/list/head_images
@@ -18,11 +19,54 @@
 	var/list/chest_marks
 	/// The body sprite on each piece, by piece id.
 	var/list/skin_images = list()
+	/// How much deeper (or shallower) clothes are drawn on the torso side-on. torso_width is front-on.
+	var/torso_depth = 1
+
+/datum/limb_rig/sprites/humanoid/refresh_shape()
+	. = ..()
+	var/mob/living/carbon/human/human_owner = owner
+	torso_depth = human_owner.dna.species.limb_rig_shape["torso_depth"] || torso_width
+
+/**
+ * Clothes are stretched from human bones, but a human limb's joint isn't the middle of the limb
+ * (a human arm hangs a pixel or so outside its shoulder). Line the middle of each human sleeve and
+ * trouser leg up with the middle of this body's limb instead, and draw the torso side-on to its
+ * own depth.
+ */
+/datum/limb_rig/sprites/humanoid/get_cloth_map(part_id, facing)
+	var/matrix/map = ..()
+	var/facing_name = dir2text(facing)
+	if(part_id == RIG_CHEST && (facing & (EAST|WEST)))
+		var/list/hips = skeleton[facing_name][RIG_CHEST]
+		map.Translate(16.5 - hips[1], 0)
+		map.Scale(torso_depth / torso_width, 1)
+		map.Translate(hips[1] - 16.5, 0)
+	var/middle = get_human_limb_middles()[facing_name][part_id]
+	if(isnull(middle))
+		return map
+	var/side = copytext(part_id, 1, 2)
+	var/segment = copytext(part_id, 3)
+	var/is_arm = findtext(segment, "arm")
+	var/list/root = part_id == RIG_CHEST ? list(16, 0) : get_rig_joint(side == "l" ? (is_arm ? RIG_L_ARM : RIG_L_LEG) : (is_arm ? RIG_R_ARM : RIG_R_LEG), facing)
+	var/width = part_id == RIG_CHEST ? ((facing & (EAST|WEST)) ? torso_depth : torso_width) : (cloth_widths?[segment] || 1)
+	map.Translate(-(middle - root[1]) * width, 0)
+	return map
+
+/// Where the middle of each piece of a human is across, by direction then piece: sleeves and
+/// trouser legs are cut around these. Arms hidden behind the body aren't moved.
+/proc/get_human_limb_middles()
+	var/static/list/middles = list(
+		"south" = list("l_arm" = 22, "r_arm" = 10, "l_forearm" = 22.5, "r_forearm" = 9.5, "l_thigh" = 18.5, "r_thigh" = 13.5, "l_shin" = 19.1, "r_shin" = 12.9),
+		"north" = list("l_arm" = 10, "r_arm" = 22, "l_forearm" = 9.5, "r_forearm" = 22.5, "l_thigh" = 13.5, "r_thigh" = 18.5, "l_shin" = 12.9, "r_shin" = 19.1),
+		"east" = list("r_arm" = 13.25, "r_forearm" = 14.5, "l_thigh" = 16.5, "r_thigh" = 15.8, "l_shin" = 17.1, "r_shin" = 17.1, RIG_CHEST = 16.1),
+		"west" = list("l_arm" = 19.75, "l_forearm" = 18.5, "l_thigh" = 17.2, "r_thigh" = 16.5, "l_shin" = 16.9, "r_shin" = 16.9, RIG_CHEST = 16.9),
+	)
+	return middles
 
 /datum/limb_rig/sprites/humanoid/build_pieces()
 	. = ..()
 	wings_part = new_part(RIG_CHEST)
-	pivot.vis_contents += wings_part
+	hang_on_owner(wings_part)
 	// The tail as the species draws it, carried on the tail bone.
 	tail_part = new_part(RIG_TAIL)
 	hang_on_owner(tail_part)
@@ -104,14 +148,14 @@
 /datum/limb_rig/sprites/humanoid/refresh_facing()
 	. = ..()
 	var/facing = owner.dir
-	// Behind the back, unless the back is what's seen.
-	wings_part.layer = facing == NORTH ? -1 : -8
+	// Behind everything, legs included, unless the back is what's seen.
+	wings_part.layer = facing == NORTH ? -1 : -10
 	tail_part.layer = parts[RIG_TAIL].layer + 0.1
 	sort_pieces()
 
 /datum/limb_rig/sprites/humanoid/get_pose_matrices(list/pose, facing)
 	. = ..()
-	.[wings_part] = matrix(.[cloth_parts[RIG_CHEST]])
+	.[wings_part] = .[cloth_parts[RIG_CHEST]] * .[pivot]
 	// From where a human's tail joins on to this body's tail bone, then swung with it.
 	var/list/root = get_tail_root(facing)
 	var/list/bone = skeleton[dir2text(facing)][RIG_TAIL]

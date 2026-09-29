@@ -170,6 +170,8 @@
 	if(opponent == npc)
 		left.style = song.opponent_character
 		left.is_cpu = TRUE
+		// By name, even with Tankman's face covered.
+		left.singer_name = opponent.real_name
 		left.update_score_text()
 	sides = list(left, right)
 

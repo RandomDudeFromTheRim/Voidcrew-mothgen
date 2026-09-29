@@ -12,18 +12,19 @@
 	"always" = TRUE, \
 	"rig_type" = /datum/limb_rig/sprites/humanoid, \
 	"sprites" = 'voidcrew/modules/limb_rig/icons/humanoid.dmi', \
-	"cloth_masks" = 'voidcrew/modules/expie/icons/cloth_masks.dmi', \
+	"cloth_masks" = 'voidcrew/modules/limb_rig/icons/humanoid_cloth_masks.dmi', \
 	"skeleton" = list( \
-		"south" = list("l_arm" = list(list(21.3, 24.4), list(21.41, 18.9), list(21.3, 13.6)), "r_arm" = list(list(10.7, 24.4), list(10.59, 18.9), list(10.7, 13.6)), "l_leg" = list(list(18.35, 14.6), list(18.35, 8.2), list(18.35, 2.2), list(18.35, 0)), "r_leg" = list(list(13.65, 14.6), list(13.65, 8.2), list(13.65, 2.2), list(13.65, 0)), "head" = list(16, 26.6), "crown" = list(16, 35.6), "chest" = list(16, 14.0), "tail" = list(16, 15.2)), \
-		"north" = list("l_arm" = list(list(10.7, 24.4), list(10.59, 18.9), list(10.7, 13.6)), "r_arm" = list(list(21.3, 24.4), list(21.41, 18.9), list(21.3, 13.6)), "l_leg" = list(list(13.65, 14.6), list(13.65, 8.2), list(13.65, 2.2), list(13.65, 0)), "r_leg" = list(list(18.35, 14.6), list(18.35, 8.2), list(18.35, 2.2), list(18.35, 0)), "head" = list(16, 26.6), "crown" = list(16, 35.6), "chest" = list(16, 14.0), "tail" = list(16, 15.2)), \
-		"east" = list("l_arm" = list(list(15.8, 24.4), list(15.8, 18.9), list(16.0, 13.6)), "r_arm" = list(list(15.8, 24.4), list(15.8, 18.9), list(16.0, 13.6)), "l_leg" = list(list(16, 14.6), list(16.15, 8.2), list(15.9, 2.2), list(15.9, 0)), "r_leg" = list(list(16, 14.6), list(16.15, 8.2), list(15.9, 2.2), list(15.9, 0)), "head" = list(16.3, 26.6), "crown" = list(16.3, 35.6), "chest" = list(16, 14.0), "tail" = list(13.8, 15.2)), \
-		"west" = list("l_arm" = list(list(16.2, 24.4), list(16.2, 18.9), list(16.0, 13.6)), "r_arm" = list(list(16.2, 24.4), list(16.2, 18.9), list(16.0, 13.6)), "l_leg" = list(list(16, 14.6), list(15.85, 8.2), list(16.1, 2.2), list(16.1, 0)), "r_leg" = list(list(16, 14.6), list(15.85, 8.2), list(16.1, 2.2), list(16.1, 0)), "head" = list(15.7, 26.6), "crown" = list(15.7, 35.6), "chest" = list(16, 14.0), "tail" = list(18.2, 15.2)), \
+		"south" = list("l_arm" = list(list(22.85, 24.9), list(22.98, 19.4), list(22.85, 14.1)), "r_arm" = list(list(10.15, 24.9), list(10.02, 19.4), list(10.15, 14.1)), "l_leg" = list(list(19.05, 15.1), list(19.05, 8.7), list(19.05, 2.7), list(19.05, 0.5)), "r_leg" = list(list(13.95, 15.1), list(13.95, 8.7), list(13.95, 2.7), list(13.95, 0.5)), "head" = list(16.5, 26.7), "crown" = list(16.5, 35.3), "chest" = list(16.5, 14.5), "tail" = list(16.5, 15.7)), \
+		"north" = list("l_arm" = list(list(10.15, 24.9), list(10.02, 19.4), list(10.15, 14.1)), "r_arm" = list(list(22.85, 24.9), list(22.98, 19.4), list(22.85, 14.1)), "l_leg" = list(list(13.95, 15.1), list(13.95, 8.7), list(13.95, 2.7), list(13.95, 0.5)), "r_leg" = list(list(19.05, 15.1), list(19.05, 8.7), list(19.05, 2.7), list(19.05, 0.5)), "head" = list(16.5, 26.7), "crown" = list(16.5, 35.3), "chest" = list(16.5, 14.5), "tail" = list(16.5, 15.7)), \
+		"east" = list("l_arm" = list(list(15.7, 24.9), list(15.7, 19.4), list(15.9, 14.1)), "r_arm" = list(list(15.7, 24.9), list(15.7, 19.4), list(15.9, 14.1)), "l_leg" = list(list(16.5, 15.1), list(16.65, 8.7), list(16.4, 2.7), list(16.4, 0.5)), "r_leg" = list(list(16.5, 15.1), list(16.65, 8.7), list(16.4, 2.7), list(16.4, 0.5)), "head" = list(16.8, 26.7), "crown" = list(16.8, 35.3), "chest" = list(16.5, 14.5), "tail" = list(14.3, 15.7)), \
+		"west" = list("l_arm" = list(list(17.3, 24.9), list(17.3, 19.4), list(17.1, 14.1)), "r_arm" = list(list(17.3, 24.9), list(17.3, 19.4), list(17.1, 14.1)), "l_leg" = list(list(16.5, 15.1), list(16.35, 8.7), list(16.6, 2.7), list(16.6, 0.5)), "r_leg" = list(list(16.5, 15.1), list(16.35, 8.7), list(16.6, 2.7), list(16.6, 0.5)), "head" = list(16.2, 26.7), "crown" = list(16.2, 35.3), "chest" = list(16.5, 14.5), "tail" = list(18.7, 15.7)), \
 	), \
 	"leg_rest" = list(2, 4, 2), \
 	"hat_scale" = 1.25, \
 	"paw_height" = 2.8, \
-	"torso_width" = 1.2, \
-	"cloth_widths" = list("thigh" = 1.3, "shin" = 1.2, "arm" = 1.25, "forearm" = 1.2)
+	"torso_width" = 1.12, \
+	"torso_depth" = 0.95, \
+	"cloth_widths" = list("thigh" = 1.3, "shin" = 1.05, "arm" = 1.4, "forearm" = 1.05)
 
 /datum/species/human
 	limb_rig_shape = list(HUMANOID_RIG_BODY)
