@@ -61,6 +61,8 @@
 	var/old_vis_flags
 	/// Whether they're still on show over the blackout.
 	var/showing_body = FALSE
+	/// The knife in their neck, to go down with them.
+	var/obj/effect/abstract/fnf_prop/knife
 
 /**
  * * kill_kind - the kind of the note whose miss ended it, if it had one
@@ -127,13 +129,14 @@
 
 /datum/fnf_game_over/Destroy()
 	if(singer)
-		UnregisterSignal(singer, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT))
+		UnregisterSignal(singer, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT, COMSIG_LIVING_POST_UPDATE_TRANSFORM))
 		release_singer()
 		for(var/category in categories)
 			singer.clear_fullscreen(category, FALSE)
 		SEND_SOUND(singer, sound(null, channel = music_channel))
 	categories.Cut()
 	QDEL_LIST(props)
+	knife = null
 	blackout = null
 	figure = null
 	retry_button = null
@@ -200,7 +203,7 @@
 
 /// The usual Pico death: a knife flies in and sticks in their head, and the blood goes everywhere.
 /datum/fnf_game_over/proc/throw_knife()
-	var/obj/effect/abstract/fnf_prop/knife = add_prop('icons/obj/service/kitchen.dmi', "knife", ahead() * 90, FNF_NECK_Y + 8)
+	knife = add_prop('icons/obj/service/kitchen.dmi', "knife", ahead() * 90, FNF_NECK_Y + 8)
 	knife.transform = turn(matrix(), 90 * ahead())
 	animate(knife, pixel_w = ahead() * 5, pixel_z = FNF_NECK_Y, transform = turn(matrix(), 720 + 110 * ahead()), time = 2.5, easing = LINEAR_EASING)
 	addtimer(CALLBACK(src, PROC_REF(knife_hits)), 2.5, TIMER_DELETE_ME)
@@ -211,19 +214,22 @@
 	animate(blackout, color = "#5a0000", time = 0)
 	animate(color = "#000000", time = 3)
 	// The fountain: drops thrown up out of the head, raining back down.
+	var/blood_colour = get_blood_colour()
 	for(var/i in 1 to 14)
 		var/obj/effect/abstract/fnf_prop/drop = add_prop('icons/effects/blood.dmi', "drip[rand(1, 5)]", ahead() * 3, FNF_NECK_Y)
+		drop.color = blood_colour
 		var/drift = rand(-26, 26)
 		animate(drop, pixel_w = ahead() * 3 + drift * 0.5, pixel_z = FNF_NECK_Y + rand(18, 36), time = 3 + i * 0.3, easing = SINE_EASING|EASE_OUT)
 		animate(pixel_w = ahead() * 3 + drift, pixel_z = rand(-14, -10), alpha = 180, time = 5, easing = QUAD_EASING|EASE_IN)
 	var/obj/effect/abstract/fnf_prop/pool = add_prop('icons/effects/blood.dmi', "floor[rand(1, 7)]", ahead() * -8, -6, 50.5)
+	pool.color = blood_colour
 	pool.alpha = 0
 	pool.transform = matrix() * 0.3
 	animate(pool, alpha = 255, transform = matrix() * 1.4, time = 25, delay = 8, easing = SINE_EASING)
 
 /// 2hot's: the can Pico should have shot comes down on them and goes off in their face.
 /datum/fnf_game_over/proc/throw_can()
-	var/obj/effect/abstract/fnf_prop/can = add_prop('icons/obj/drinks/soda.dmi', "cola", ahead() * 60, FNF_FACE_Y + 30)
+	var/obj/effect/abstract/fnf_prop/can = add_prop('icons/obj/art/crayons.dmi', "spraycan", ahead() * 60, FNF_FACE_Y + 30)
 	animate(can, pixel_w = ahead() * 4, pixel_z = FNF_FACE_Y, transform = turn(matrix(), 540), time = 3, easing = QUAD_EASING|EASE_IN)
 	addtimer(CALLBACK(src, PROC_REF(can_explodes), can), 3, TIMER_DELETE_ME)
 
@@ -286,15 +292,39 @@
 	SEND_SOUND(singer, sound("sound/items/weapons/punch[rand(1, 4)].ogg", volume = 70))
 	singer.fnf_act("hit_low", singer.fnf_mic_arm(facing), facing, null, 6)
 
-/// Down they go, and the blood (or the paint) spreads out under them.
+/// The colour of the singer's blood, to bleed with.
+/datum/fnf_game_over/proc/get_blood_colour()
+	return singer.get_bloodtype()?.get_damage_color(singer) || "#a10808"
+
+/// Down they go, and the blood spreads out under them.
 /datum/fnf_game_over/proc/fall()
 	singer.add_traits(list(TRAIT_FLOORED), FNF_GAME_OVER_TRAIT)
+	if(knife)
+		// Lying down turns them to face the viewer, so the neck is dead centre, then the whole body
+		// turns onto its side: the knife goes with it.
+		RegisterSignal(singer, COMSIG_LIVING_POST_UPDATE_TRANSFORM, PROC_REF(on_body_turned))
 	if(death == "gutpunch")
 		// Keeled over in their own blood, coughed up with the punch.
 		var/obj/effect/abstract/fnf_prop/pool = add_prop('icons/effects/blood.dmi', "floor[rand(1, 7)]", ahead() * 6, -8, 50.5)
+		pool.color = get_blood_colour()
 		pool.alpha = 0
 		pool.transform = matrix() * 0.4
 		animate(pool, alpha = 255, transform = matrix() * 1.3, time = 18, easing = SINE_EASING)
+
+/datum/fnf_game_over/proc/on_body_turned(mob/living/source, resize, lying_angle, is_opposite_angle)
+	SIGNAL_HANDLER
+	UnregisterSignal(singer, COMSIG_LIVING_POST_UPDATE_TRANSFORM)
+	if(lying_angle)
+		knife_follows(lying_angle)
+
+/// Keeps the knife in the neck as the body turns onto its side.
+/datum/fnf_game_over/proc/knife_follows(angle)
+	if(!knife)
+		return
+	// The neck, from the middle of the body, turned the way the body turned.
+	var/neck_x = FNF_NECK_Y * sin(angle)
+	var/neck_z = FNF_NECK_Y * cos(angle) + PIXEL_Y_OFFSET_LYING
+	animate(knife, pixel_w = neck_x, pixel_z = neck_z, transform = turn(matrix(), 110 * ahead() + angle), time = UPDATE_TRANSFORM_ANIMATION_TIME, easing = EASE_IN|EASE_OUT)
 
 /datum/fnf_game_over/proc/cock_gun()
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/gun_cock.ogg", volume = 60))

@@ -34,6 +34,20 @@ GLOBAL_LIST(fnf_weeks)
 /// Where the week lists are.
 #define FNF_WEEKS_DIR "data/fnf/weeks/"
 
+/// Funkin's own weeks, for when the week lists weren't fetched with the songs.
+GLOBAL_LIST_INIT(fnf_default_weeks, list(
+	"sserafim" = list("name" = "LE SSERAFIM", "songs" = list("spaghetti")),
+	"tutorial" = list("name" = "TEACHING TIME", "songs" = list("tutorial")),
+	"week1" = list("name" = "DADDY DEAREST", "songs" = list("bopeebo", "fresh", "dadbattle")),
+	"week2" = list("name" = "SPOOKY MONTH", "songs" = list("spookeez", "south", "monster")),
+	"week3" = list("name" = "PICO", "songs" = list("pico", "philly-nice", "blammed")),
+	"week4" = list("name" = "MOMMY MUST MURDER", "songs" = list("satin-panties", "high", "milf")),
+	"week5" = list("name" = "RED SNOW", "songs" = list("cocoa", "eggnog", "winter-horrorland")),
+	"week6" = list("name" = "HATING SIMULATOR FT. MOAWLING", "songs" = list("senpai", "roses", "thorns")),
+	"week7" = list("name" = "TANKMAN FT. JOHNNYUTAH", "songs" = list("ugh", "guns", "stress")),
+	"weekend1" = list("name" = "DUE DEBTS", "songs" = list("darnell", "lit-up", "2hot", "blazin")),
+))
+
 /// Each player's own audio offset in milliseconds, by ckey: how late their sound comes out.
 GLOBAL_LIST_EMPTY(fnf_offsets)
 
@@ -83,9 +97,10 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	for(var/file_name in flist(FNF_WEEKS_DIR))
 		if(copytext(file_name, -5) == ".json")
 			week_files += copytext(file_name, 1, -5)
-	sortTim(week_files, GLOBAL_PROC_REF(cmp_fnf_week))
-	for(var/week_id in week_files)
-		var/list/week = fnf_read_json("[FNF_WEEKS_DIR][week_id].json")
+	var/list/week_ids = length(week_files) ? week_files : assoc_to_keys(GLOB.fnf_default_weeks)
+	sortTim(week_ids, GLOBAL_PROC_REF(cmp_fnf_week))
+	for(var/week_id in week_ids)
+		var/list/week = length(week_files) ? fnf_read_json("[FNF_WEEKS_DIR][week_id].json") : GLOB.fnf_default_weeks[week_id]
 		var/list/week_songs = list()
 		for(var/song_id in week?["songs"])
 			week_songs += by_id[song_id]

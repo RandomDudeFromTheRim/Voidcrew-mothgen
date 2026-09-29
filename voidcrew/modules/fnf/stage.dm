@@ -192,29 +192,32 @@
 	var/datum/fnf_side/pico = battle.right
 	if(!darnell.singer || !pico.singer)
 		return TRUE
+	// Where the can hangs to be shot: in the air between them, right where Pico's gun points.
+	var/hover_x = gap_px * 0.55
+	var/hover_y = 31 + max(gap_px * 0.45 - 9, 8) * 0.7
 	switch(move)
 		if("lightcan")
 			darnell.act("cock", 3)
 			QDEL_NULL(can)
 			can = new(get_turf(darnell.singer))
-			can.icon = 'icons/obj/drinks/soda.dmi'
-			can.icon_state = "cola"
+			can.icon = 'icons/obj/art/crayons.dmi'
+			can.icon_state = "spraycan"
 			can.pixel_w = 8
-			can.pixel_z = 10
+			can.pixel_z = 6
 			playsound(darnell.singer, 'sound/items/lighter/zippo_on.ogg', 50, TRUE)
 		if("kickcan")
 			darnell.act("kick", 2)
 			if(can)
 				playsound(darnell.singer, 'sound/items/weapons/genhit1.ogg', 40, TRUE)
-				// Up in an arc, over toward Pico.
-				animate(can, pixel_w = gap_px * 0.45, pixel_z = 56, transform = turn(matrix(), 360), time = 4, easing = SINE_EASING|EASE_OUT)
-				animate(pixel_z = 40, time = 4, easing = SINE_EASING|EASE_IN)
+				// Up in an arc over toward Pico, and hanging there.
+				animate(can, pixel_w = hover_x - 16, pixel_z = hover_y + 10 - 16, transform = turn(matrix(), 360), time = 4, easing = SINE_EASING|EASE_OUT)
+				animate(pixel_z = hover_y - 16, time = 6, easing = SINE_EASING)
 		if("kneecan")
 			darnell.act("kick", 2)
 			if(can)
 				playsound(darnell.singer, 'sound/items/weapons/genhit2.ogg', 40, TRUE)
-				animate(can, pixel_w = gap_px * 0.55, pixel_z = 72, transform = turn(matrix(), 180), time = 4, easing = SINE_EASING|EASE_OUT)
-				animate(pixel_z = 64, time = 6, easing = SINE_EASING)
+				animate(can, pixel_w = hover_x - 16, pixel_z = hover_y + 14 - 16, transform = turn(matrix(), 180), time = 3, easing = SINE_EASING|EASE_OUT)
+				animate(pixel_z = hover_y - 16, time = 5, easing = SINE_EASING)
 		if("cockgun")
 			pico.act("cock", 3)
 			playsound(pico.singer, 'voidcrew/modules/fnf/sound/gun_cock.ogg', 50, TRUE)
@@ -223,6 +226,7 @@
 				pico.act("shoot", 2)
 				playsound(pico.singer, "voidcrew/modules/fnf/sound/shot[rand(1, 4)].ogg", 60, TRUE)
 				if(can)
+					tracer(get_turf(darnell.singer), gap_px - 9, 31, can.pixel_w + 16, can.pixel_z + 16)
 					var/obj/effect/temp_visual/explosion/fast/pop = new(can.loc)
 					pop.pixel_w = can.pixel_w - 32
 					pop.pixel_z = can.pixel_z - 32
@@ -230,15 +234,47 @@
 					playsound(can, 'sound/effects/pop_expl.ogg', 40, TRUE)
 					QDEL_NULL(can)
 			else
-				// The can drops right on the shooter.
+				// Unshot, the can comes down and goes off in Pico's face.
 				if(can)
-					animate(can, pixel_w = gap_px, pixel_z = 24, time = 2, easing = QUAD_EASING|EASE_IN)
-					QDEL_IN(can, 3)
+					var/face_x = gap_px - 3
+					animate(can, pixel_w = face_x - 16, pixel_z = 31 - 16, transform = turn(matrix(), 540), time = 2, easing = QUAD_EASING|EASE_IN)
+					addtimer(CALLBACK(src, PROC_REF(can_in_face), can, face_x), 2, TIMER_DELETE_ME)
 					can = null
-				pico.act("hit_high", 3)
-				playsound(pico.singer, 'sound/items/weapons/genhit3.ogg', 50, TRUE)
-				popup(pico.singer, "OW!", "#ff6a4a")
 	return TRUE
+
+/// The can Pico didn't shoot blows up in his face: a big chunk of health, and charred for a moment.
+/datum/fnf_stage/proc/can_in_face(obj/effect/abstract/fnf_hud/missed_can, face_x)
+	var/turf/where = missed_can.loc
+	qdel(missed_can)
+	var/datum/fnf_side/pico = battle?.right
+	if(!pico?.singer || !where)
+		return
+	var/obj/effect/temp_visual/explosion/fast/bang = new(where)
+	bang.pixel_w = face_x - 48
+	bang.pixel_z = 31 - 48
+	bang.transform = matrix() * 0.55
+	playsound(pico.singer, 'sound/effects/pop_expl.ogg', 70, TRUE)
+	shake_camera(pico.singer, 3, 2)
+	pico.singer.fnf_flash("#2a3470", 8)
+	pico.act("hit_high", 4)
+	popup(pico.singer, "BOOM!", "#ff8a3a")
+	battle.adjust_health(-32, pico)
+
+/// A bullet's streak, from one point to another (pixels from the bottom left of a turf).
+/datum/fnf_stage/proc/tracer(turf/from_turf, from_x, from_y, to_x, to_y)
+	var/delta_x = to_x - from_x
+	var/delta_y = to_y - from_y
+	var/length = sqrt(delta_x ** 2 + delta_y ** 2)
+	var/obj/effect/abstract/fnf_hud/streak = new(from_turf)
+	streak.icon_state = "bar"
+	streak.color = "#fff3a0"
+	streak.pixel_w = (from_x + to_x) / 2 - 16
+	streak.pixel_z = (from_y + to_y) / 2 - 16
+	var/matrix/line = matrix(length / 32, 0, 0, 0, 1 / 32, 0)
+	line.Turn(-arctan(delta_x, delta_y))
+	streak.transform = line
+	animate(streak, alpha = 0, time = 2)
+	QDEL_IN(streak, 3)
 
 /**
  * Blazin': every note is a move in the fight between Pico (right) and Darnell (left), named for

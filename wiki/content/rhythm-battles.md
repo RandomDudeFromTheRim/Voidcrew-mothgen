@@ -44,8 +44,8 @@ Songs with a girlfriend in them (Girlfriend, or Nene in the Pico mixes) bring he
 
 Some moments get acted out: Boyfriend's "hey!" in Bopeebo, Tankman's "ugh" in Ugh, a burp or a laugh in the Pico mixes. Weekend 1 goes further:
 
-- **2hot**: Darnell lights cans and kicks them up; Pico racks his gun and shoots them out of the air. Miss the shot and the can lands on Pico.
-- **Blazin'** is a fistfight rather than a sing-off, fought close up with no gun. Every note is a punch, block, dodge or uppercut. Hit it and it goes Pico's way; miss a punch and it whiffs, miss a block and Darnell's punch lands.
+- **2hot**: Darnell lights spray cans and kicks them up into the air in front of Pico, who racks his gun and shoots them down. Miss the shot and the can blows up in Pico's face, taking about a third of the health bar with it.
+- **Blazin'** is a fistfight rather than a sing-off, fought close up with no gun, and only your own arrows show. Every note is a punch, block, dodge or uppercut. Hit it and it goes Pico's way; miss a punch and it whiffs, miss a block and Darnell's punch lands.
 
 ## The health bar
 

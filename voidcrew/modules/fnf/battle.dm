@@ -185,6 +185,10 @@
 		if(GLOB.fnf_opponents[song.player_character]?["gun"] && !is_fight())
 			right.give_prop(/obj/item/toy/fnf_gun)
 	sides = list(left, right)
+	// Up close in a fight, the two sets of arrows would sit on top of each other. Like Funkin', only
+	// the player's show.
+	if(is_fight())
+		left.strumline.alpha = 0
 
 	// The bar hangs between the two, above their strums.
 	var/center_x = 16 + (left_turf.x - right_turf.x) * world.icon_size / 2
