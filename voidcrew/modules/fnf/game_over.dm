@@ -7,9 +7,12 @@
  * twitching in the spreading pool (all baked into fnf_dead.dmi, after Boyfriend's death).
  *
  * Anyone else dies like Pico does, to his game over music, acted out by their own body with the
- * rest of the world blacked out: a knife to the head and a fountain of blood (RETRY written in the
- * blood), or in 2hot the spray can blowing up in their face and leaving them charred (RETRY in
- * pink smoke), or in Blazin' a gut punch that puts them face down (RETRY splattered under them).
+ * rest of the world blacked out: a knife in the neck and a fountain of blood (RETRY written in the
+ * blood); or, missing a shot in 2hot, the spray can blowing up in their face, leaving them charred,
+ * dazed and coughing up smoke (RETRY in pink smoke); or in Blazin' a punch to the gut that folds
+ * them up and drops them in their own blood (RETRY splattered under them).
+ *
+ * Any of them can be watched from the battle microphone's settings, without losing a song first.
  *
  * Then it waits, the game over music looping, for the singer to pick: RETRY (against the game
  * only) or GIVE UP. Until then they're down on the floor, can't touch anything, and their mic
@@ -25,6 +28,10 @@
  */
 /// Burnt black-blue, after a can goes off in your face.
 #define FNF_CHARRED "#2a3470"
+/// Where a prop sits to be at the neck and at the face: offsets for a 32 by 32 sprite's middle, on
+/// a body a quarter bigger than a human.
+#define FNF_NECK_Y 11
+#define FNF_FACE_Y 15
 
 /datum/fnf_game_over
 	var/mob/living/singer
@@ -55,7 +62,11 @@
 	/// Whether they're still on show over the blackout.
 	var/showing_body = FALSE
 
-/datum/fnf_game_over/New(mob/living/singer, datum/fnf_song/song, difficulty, can_retry, facing)
+/**
+ * * kill_kind - the kind of the note whose miss ended it, if it had one
+ * * forced_death - how to die, for a preview: "shot", "knife", "explode" or "gutpunch"
+ */
+/datum/fnf_game_over/New(mob/living/singer, datum/fnf_song/song, difficulty, can_retry, facing, kill_kind, forced_death)
 	src.singer = singer
 	src.song = song
 	src.difficulty = difficulty
@@ -71,7 +82,8 @@
 		ADD_TRAIT(held, TRAIT_NODROP, FNF_GAME_OVER_TRAIT)
 		stuck_items += WEAKREF(held)
 	var/expie = is_species(singer, /datum/species/experiment)
-	death = expie ? "shot" : (song.id == "2hot" ? "explode" : (song.id == "blazin" ? "gutpunch" : "knife"))
+	death = forced_death || (expie ? "shot" : (kill_kind == "weekend-1-firegun" ? "explode" : (song?.id == "blazin" ? "gutpunch" : "knife")))
+	expie = death == "shot"
 	// An Experiment is drawn separately, dying on the floor. Anyone else stays up to act it out.
 	singer.add_traits(expie ? list(TRAIT_FLOORED, TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_UI_BLOCKED) : list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_UI_BLOCKED), FNF_GAME_OVER_TRAIT)
 
@@ -85,8 +97,9 @@
 			if("explode")
 				SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/loss_pico_explode.ogg", volume = 60))
 				addtimer(CALLBACK(src, PROC_REF(throw_can)), 4, TIMER_DELETE_ME)
-				addtimer(CALLBACK(src, PROC_REF(fall)), 16, TIMER_DELETE_ME)
-				addtimer(CALLBACK(src, PROC_REF(show_buttons)), 24, TIMER_DELETE_ME)
+				// Left standing, dazed, coughing up smoke: no falling over for this one.
+				addtimer(CALLBACK(src, PROC_REF(daze)), 12, TIMER_DELETE_ME)
+				addtimer(CALLBACK(src, PROC_REF(show_buttons)), 22, TIMER_DELETE_ME)
 			if("gutpunch")
 				SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/loss_pico_gutpunch.ogg", volume = 60))
 				// A moment late: the battle puts everyone back at rest as it ends.
@@ -134,6 +147,8 @@
 /datum/fnf_game_over/proc/release_singer()
 	hide_body()
 	singer.remove_atom_colour(TEMPORARY_COLOUR_PRIORITY, FNF_CHARRED)
+	// Stop swaying about dazed.
+	singer.fnf_rest()
 	singer.remove_traits(list(TRAIT_FLOORED, TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_UI_BLOCKED), FNF_GAME_OVER_TRAIT)
 	for(var/datum/weakref/item_ref as anything in stuck_items)
 		var/obj/item/held = item_ref.resolve()
@@ -185,9 +200,9 @@
 
 /// The usual Pico death: a knife flies in and sticks in their head, and the blood goes everywhere.
 /datum/fnf_game_over/proc/throw_knife()
-	var/obj/effect/abstract/fnf_prop/knife = add_prop('icons/obj/service/kitchen.dmi', "knife", ahead() * 90, 30)
+	var/obj/effect/abstract/fnf_prop/knife = add_prop('icons/obj/service/kitchen.dmi', "knife", ahead() * 90, FNF_NECK_Y + 8)
 	knife.transform = turn(matrix(), 90 * ahead())
-	animate(knife, pixel_w = ahead() * 6, pixel_z = 26, transform = turn(matrix(), 720 + 110 * ahead()), time = 2.5, easing = LINEAR_EASING)
+	animate(knife, pixel_w = ahead() * 5, pixel_z = FNF_NECK_Y, transform = turn(matrix(), 720 + 110 * ahead()), time = 2.5, easing = LINEAR_EASING)
 	addtimer(CALLBACK(src, PROC_REF(knife_hits)), 2.5, TIMER_DELETE_ME)
 
 /datum/fnf_game_over/proc/knife_hits()
@@ -196,11 +211,11 @@
 	animate(blackout, color = "#5a0000", time = 0)
 	animate(color = "#000000", time = 3)
 	// The fountain: drops thrown up out of the head, raining back down.
-	for(var/i in 1 to 10)
-		var/obj/effect/abstract/fnf_prop/drop = add_prop('icons/effects/blood.dmi', "drip[rand(1, 5)]", ahead() * 4, 28)
+	for(var/i in 1 to 14)
+		var/obj/effect/abstract/fnf_prop/drop = add_prop('icons/effects/blood.dmi', "drip[rand(1, 5)]", ahead() * 3, FNF_NECK_Y)
 		var/drift = rand(-26, 26)
-		animate(drop, pixel_w = ahead() * 4 + drift * 0.5, pixel_z = 40 + rand(10, 30), time = 3 + i * 0.3, easing = SINE_EASING|EASE_OUT)
-		animate(pixel_w = ahead() * 4 + drift, pixel_z = rand(-4, 2), alpha = 180, time = 5, easing = QUAD_EASING|EASE_IN)
+		animate(drop, pixel_w = ahead() * 3 + drift * 0.5, pixel_z = FNF_NECK_Y + rand(18, 36), time = 3 + i * 0.3, easing = SINE_EASING|EASE_OUT)
+		animate(pixel_w = ahead() * 3 + drift, pixel_z = rand(-14, -10), alpha = 180, time = 5, easing = QUAD_EASING|EASE_IN)
 	var/obj/effect/abstract/fnf_prop/pool = add_prop('icons/effects/blood.dmi', "floor[rand(1, 7)]", ahead() * -8, -6, 50.5)
 	pool.alpha = 0
 	pool.transform = matrix() * 0.3
@@ -208,14 +223,14 @@
 
 /// 2hot's: the can Pico should have shot comes down on them and goes off in their face.
 /datum/fnf_game_over/proc/throw_can()
-	var/obj/effect/abstract/fnf_prop/can = add_prop('icons/obj/drinks/soda.dmi', "cola", ahead() * 60, 60)
-	animate(can, pixel_w = ahead() * 4, pixel_z = 26, transform = turn(matrix(), 540), time = 3, easing = QUAD_EASING|EASE_IN)
+	var/obj/effect/abstract/fnf_prop/can = add_prop('icons/obj/drinks/soda.dmi', "cola", ahead() * 60, FNF_FACE_Y + 30)
+	animate(can, pixel_w = ahead() * 4, pixel_z = FNF_FACE_Y, transform = turn(matrix(), 540), time = 3, easing = QUAD_EASING|EASE_IN)
 	addtimer(CALLBACK(src, PROC_REF(can_explodes), can), 3, TIMER_DELETE_ME)
 
 /datum/fnf_game_over/proc/can_explodes(obj/effect/abstract/fnf_prop/can)
 	props -= can
 	qdel(can)
-	var/obj/effect/abstract/fnf_prop/bang = add_prop('icons/effects/96x96.dmi', "explosionfast", ahead() * 4 - 32, -6)
+	var/obj/effect/abstract/fnf_prop/bang = add_prop('icons/effects/96x96.dmi', "explosionfast", ahead() * 4 - 32, FNF_FACE_Y - 32)
 	bang.transform = matrix() * 0.7
 	QDEL_IN(bang, 12)
 	animate(blackout, color = "#ffffff", time = 0)
@@ -224,11 +239,47 @@
 	singer.add_atom_colour(FNF_CHARRED, TEMPORARY_COLOUR_PRIORITY)
 	singer.fnf_act("hit_high", singer.fnf_mic_arm(facing), facing, null, 8)
 	for(var/i in 1 to 6)
-		var/obj/effect/abstract/fnf_prop/puff = add_prop('icons/effects/effects.dmi', "smoke", rand(-10, 10), 20)
+		var/obj/effect/abstract/fnf_prop/puff = add_prop('icons/effects/effects.dmi', "smoke", rand(-10, 10), FNF_FACE_Y)
 		puff.color = "#ff5ac8"
 		puff.alpha = 220
 		puff.transform = matrix() * 0.5
-		animate(puff, pixel_w = rand(-24, 24), pixel_z = 40 + i * 8, transform = matrix() * (1.2 + i * 0.2), alpha = 0, time = 20 + i * 3, easing = SINE_EASING|EASE_OUT)
+		animate(puff, pixel_w = rand(-24, 24), pixel_z = FNF_FACE_Y + 14 + i * 8, transform = matrix() * (1.2 + i * 0.2), alpha = 0, time = 20 + i * 3, easing = SINE_EASING|EASE_OUT)
+
+/// After the bang: swaying on the spot, stars round the head, coughing up smoke until they choose.
+/datum/fnf_game_over/proc/daze()
+	if(!figure)
+		return
+	// Drawn round a human's head: lifted up to this one's.
+	var/obj/effect/abstract/fnf_prop/stars = add_prop('icons/effects/effects.dmi', "dazed", 0, 6)
+	stars.alpha = 0
+	animate(stars, alpha = 255, time = 3)
+	var/mic_arm = singer.fnf_mic_arm(facing)
+	var/mob/living/carbon/rigged = singer
+	if(istype(rigged) && rigged.limb_rig)
+		var/list/rest = fnf_pose("rest", mic_arm, facing, null)
+		var/list/sway_left = fnf_nudge_pose(fnf_nudge_pose(rest, RIG_HEAD, "tilt", 14), RIG_CHEST, "lean", 5)
+		var/list/sway_right = fnf_nudge_pose(fnf_nudge_pose(rest, RIG_HEAD, "tilt", -14), RIG_CHEST, "lean", -5)
+		sway_left = fnf_nudge_pose(sway_left, RIG_HEAD, "nod", 12)
+		sway_right = fnf_nudge_pose(sway_right, RIG_HEAD, "nod", 12)
+		rigged.limb_rig.play(list(list(sway_left, 8, SINE_EASING), list(sway_right, 8, SINE_EASING)), loop = -1, settle_after = FALSE)
+	cough()
+
+/datum/fnf_game_over/proc/cough()
+	if(retrying || !figure)
+		return
+	var/sound_file = "sound/mobs/humanoids/human/cough/[singer.gender == FEMALE ? "female_cough[rand(1, 6)]" : "male_cough[rand(1, 4)]"].ogg"
+	SEND_SOUND(singer, sound(sound_file, volume = 45))
+	for(var/i in 1 to 3)
+		var/obj/effect/abstract/fnf_prop/puff = add_prop('icons/effects/effects.dmi', "smoke", ahead() * 6, FNF_FACE_Y - 2)
+		puff.color = pick("#3a3a3a", "#ff5ac8")
+		puff.transform = matrix() * 0.25
+		animate(puff, pixel_w = ahead() * (14 + i * 6), pixel_z = FNF_FACE_Y + 4 + i * 3, transform = matrix() * 0.7, alpha = 0, time = 10 + i * 2, easing = SINE_EASING|EASE_OUT)
+		QDEL_IN(puff, 16)
+		addtimer(CALLBACK(src, PROC_REF(forget_prop), puff), 15, TIMER_DELETE_ME)
+	addtimer(CALLBACK(src, PROC_REF(cough)), rand(20, 35), TIMER_DELETE_ME)
+
+/datum/fnf_game_over/proc/forget_prop(obj/effect/abstract/fnf_prop/prop)
+	props -= prop
 
 /// Blazin's: folded in half by a punch to the gut.
 /datum/fnf_game_over/proc/gut_punch()
@@ -239,10 +290,11 @@
 /datum/fnf_game_over/proc/fall()
 	singer.add_traits(list(TRAIT_FLOORED), FNF_GAME_OVER_TRAIT)
 	if(death == "gutpunch")
-		var/obj/effect/abstract/fnf_prop/splat = add_prop('icons/effects/blood.dmi', "floor[rand(1, 7)]", 0, -8, 50.5)
-		splat.color = "#ff3a78"
-		splat.alpha = 0
-		animate(splat, alpha = 230, transform = matrix() * 1.3, time = 10, easing = SINE_EASING)
+		// Keeled over in their own blood, coughed up with the punch.
+		var/obj/effect/abstract/fnf_prop/pool = add_prop('icons/effects/blood.dmi', "floor[rand(1, 7)]", ahead() * 6, -8, 50.5)
+		pool.alpha = 0
+		pool.transform = matrix() * 0.4
+		animate(pool, alpha = 255, transform = matrix() * 1.3, time = 18, easing = SINE_EASING)
 
 /datum/fnf_game_over/proc/cock_gun()
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/gun_cock.ogg", volume = 60))
@@ -498,3 +550,5 @@
 		game_over.give_up()
 
 #undef FNF_CHARRED
+#undef FNF_NECK_Y
+#undef FNF_FACE_Y

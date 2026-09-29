@@ -452,6 +452,8 @@
 	combo = 0
 	score -= 10
 	set_voice(FALSE)
+	// What the killing blow was decides how they die: a missed shot in 2hot blows up in their face.
+	battle.last_miss_kind = note.kind
 	battle.adjust_health(-4, src)
 	show_rating("miss")
 	fade_out(note)

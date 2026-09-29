@@ -107,9 +107,12 @@
 	if(!player)
 		return CLICK_ACTION_BLOCKING
 	var/zoom_label = GLOB.fnf_no_zoom[player.ckey] ? "Zoom: off" : "Zoom: on"
-	var/choice = tgui_alert(user, "Battle settings", "Battle microphone", list("Audio offset", zoom_label))
+	var/choice = tgui_alert(user, "Battle settings", "Battle microphone", list("Audio offset", zoom_label, "Preview a game over"))
 	if(!choice || QDELETED(player))
 		return CLICK_ACTION_BLOCKING
+	if(choice == "Preview a game over")
+		INVOKE_ASYNC(src, PROC_REF(preview_game_over), user)
+		return CLICK_ACTION_SUCCESS
 	if(choice == zoom_label)
 		if(GLOB.fnf_no_zoom[player.ckey])
 			GLOB.fnf_no_zoom -= player.ckey
@@ -124,6 +127,21 @@
 	GLOB.fnf_offsets[player.ckey] = offset
 	to_chat(user, span_notice("Your audio offset is now [offset]ms. Your ping ([round(player.avgping)]ms) is already taken off every press."))
 	return CLICK_ACTION_SUCCESS
+
+/// Plays a game over on the spot, without losing a song first, to see how it looks.
+/obj/item/fnf_microphone/proc/preview_game_over(mob/living/user)
+	var/list/deaths = list("Knife (most songs)" = "knife", "Spray can (missing a shot in 2hot)" = "explode", "Gut punch (Blazin')" = "gutpunch")
+	if(is_species(user, /datum/species/experiment))
+		deaths = list("Shot (every song)" = "shot")
+	var/choice = tgui_input_list(user, "Which game over?", "Battle microphone", deaths)
+	if(!choice || !user.is_holding(src) || user.stat != CONSCIOUS || user.client == null)
+		return
+	if(battle && battle.state != FNF_STATE_READY)
+		balloon_alert(user, "mid-song!")
+		return
+	if(user.screens["fnf_blackout"])
+		return
+	new /datum/fnf_game_over(user, null, null, FALSE, user.dir == EAST ? EAST : WEST, null, deaths[choice])
 
 /datum/loadout_item/pocket_items/fnf_microphone
 	name = "Battle Microphone"
