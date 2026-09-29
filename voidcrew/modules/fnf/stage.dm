@@ -1,6 +1,8 @@
 /**
  * Everything on a rhythm battle's stage besides the two singers singing:
- * - The girlfriend (or Nene), summoned to stand behind them, bopping to the beat and cheering.
+ * - The girlfriend (or Nene), summoned to stand behind them, bopping to the beat and cheering. In
+ *   Stress she's Pico (or Otis) up on the speaker, gunning down the tankmen who run at the stage
+ *   from both sides, on the song's own speaker track. Week 4 brings Mommy's henchmen, dancing.
  * - The song's lyrics, where it has them, under the stage.
  * - Chart events that have someone do something: Boyfriend's "hey!", Tankman's "ugh", Pico's
  *   burp.
@@ -17,6 +19,21 @@
 	var/mob/living/carbon/human/girlfriend
 	/// Whoever the player carries through the song (Stress: Girlfriend, or Nene clinging to Pico).
 	var/mob/living/carbon/human/carried
+	/// Until when the girlfriend's busy (shooting), and shouldn't bop.
+	var/girlfriend_busy_until = 0
+	/// Week 4's backup dancers.
+	var/list/mob/living/carbon/human/henchmen = list()
+	/// Stress's tankmen: every one made so far, and the ones free to run in again.
+	var/list/mob/living/carbon/human/soldiers = list()
+	var/list/mob/living/carbon/human/idle_soldiers = list()
+	/// The next shot on the speaker track to send a tankman in for.
+	var/next_shot = 1
+	/// Where the singers stand, for the tankmen to run at.
+	var/turf/left_spot
+	var/turf/right_spot
+	/// The knife stuck in Tankman's head, and whose head it's in.
+	var/image/head_knife
+	var/atom/knifed
 	/// The next line of the lyrics to show, and when the one showing ends (song ms).
 	var/next_lyric = 1
 	var/lyric_ends = -1
@@ -39,8 +56,12 @@
 /datum/fnf_stage/New(datum/fnf_battle/battle, turf/left_turf, turf/right_turf)
 	src.battle = battle
 	gap_px = (right_turf.x - left_turf.x) * world.icon_size
+	left_spot = left_turf
+	right_spot = right_turf
 	summon_girlfriend(left_turf, right_turf)
 	summon_carried(right_turf)
+	if(battle.song.id in list("satin-panties", "high", "milf"))
+		summon_henchmen(left_turf, right_turf)
 	if(length(battle.song.lyrics) && battle.healthbar)
 		lyric_text = new
 		lyric_text.maptext_width = 256
@@ -59,6 +80,15 @@
 	if(carried && !QDELETED(carried))
 		qdel(carried)
 	carried = null
+	QDEL_LIST(henchmen)
+	for(var/mob/living/soldier as anything in soldiers)
+		GLOB.move_manager.stop_looping(soldier)
+	QDEL_LIST(soldiers)
+	idle_soldiers.Cut()
+	if(knifed && head_knife)
+		knifed.cut_overlay(head_knife)
+	knifed = null
+	head_knife = null
 	battle?.healthbar?.vis_contents -= lyric_text
 	QDEL_NULL(lyric_text)
 	battle?.healthbar?.vis_contents -= dialogue_text
@@ -80,8 +110,16 @@
 	if(!middle || middle.is_blocked_turf(exclude_mobs = FALSE))
 		return
 	girlfriend = fnf_summon_opponent(character, middle)
+	var/speaker_shooter = length(battle.chart["speaker"])
 	for(var/obj/item/held in girlfriend.held_items)
-		qdel(held)
+		if(!speaker_shooter || !istype(held, /obj/item/toy/fnf_gun))
+			qdel(held)
+	// Whoever's up on the speaker in Stress dual-wields: Pico two guns, Otis two rifles.
+	if(speaker_shooter)
+		var/gun_type = GLOB.fnf_opponents[character]["gun"]
+		if(!ispath(gun_type))
+			gun_type = /obj/item/toy/fnf_gun
+		girlfriend.put_in_hands(new gun_type(girlfriend))
 	girlfriend.setDir(SOUTH)
 	do_sparks(2, FALSE, girlfriend)
 
@@ -101,9 +139,24 @@
 	carried.pixel_z = 5
 	carried.layer = battle.right.singer.layer - 0.01
 
+/// Week 4: three of Mommy's henchmen dancing in a row behind the stage, where there's room.
+/datum/fnf_stage/proc/summon_henchmen(turf/left_turf, turf/right_turf)
+	for(var/spot_x in list(left_turf.x, round((left_turf.x + right_turf.x) / 2), right_turf.x))
+		var/turf/spot = locate(spot_x, left_turf.y + 2, left_turf.z)
+		if(!spot || spot.is_blocked_turf(exclude_mobs = FALSE))
+			continue
+		var/mob/living/carbon/human/henchman = fnf_summon_opponent("henchman", spot)
+		for(var/obj/item/held in henchman.held_items)
+			qdel(held)
+		henchman.setDir(SOUTH)
+		henchmen += henchman
+
 /datum/fnf_stage/proc/bop(beat_time)
-	if(girlfriend && !QDELETED(girlfriend))
+	if(girlfriend && !QDELETED(girlfriend) && world.time >= girlfriend_busy_until)
+		girlfriend.setDir(SOUTH)
 		girlfriend.fnf_bop(beat_time, RIG_R_ARM, SOUTH, null)
+	for(var/mob/living/carbon/human/henchman as anything in henchmen)
+		henchman.fnf_dance(beat_time, battle.last_beat % 2)
 	if(carried && !QDELETED(carried))
 		carried.fnf_bop(beat_time, RIG_R_ARM, battle.right.facing, null)
 	var/beat = battle.last_beat
@@ -170,7 +223,6 @@
 
 /datum/fnf_stage/proc/darnell_laughs()
 	battle.left?.act("taunt", 6)
-	popup(battle.left?.singer, "Heh heh heh!")
 
 /**
  * Week 6's dialogue, from data/fnf/dialogue/ (fetched with the songs): read the song's conversation
@@ -249,8 +301,97 @@
 	if(shown < length(text))
 		addtimer(CALLBACK(src, PROC_REF(type_dialogue), speaker, text, shown), 1.4, TIMER_DELETE_ME)
 
+/// How long a tankman takes to run in, in song milliseconds.
+#define FNF_SOLDIER_RUN_MS 1600
+/// Most tankmen out at once. More shots than that at once are just shots.
+#define FNF_MAX_SOLDIERS 10
+
+/// Sends in the tankmen the speaker is about to shoot.
+/datum/fnf_stage/proc/send_soldiers(now)
+	var/list/shots = battle.chart["speaker"]
+	if(!length(shots) || !girlfriend || QDELETED(girlfriend))
+		return
+	while(next_shot <= length(shots))
+		var/list/shot = shots[next_shot]
+		if(shot[1] - FNF_SOLDIER_RUN_MS > now)
+			break
+		next_shot++
+		if(shot[1] > now)
+			send_soldier(shot[2] <= 1, shot[1] - now)
+
+/// A tankman runs in from off one side, to be shot as he gets near the stage.
+/datum/fnf_stage/proc/send_soldier(from_left, ms_left)
+	var/turf/near = locate(from_left ? left_spot.x - 1 : right_spot.x + 1, left_spot.y, left_spot.z)
+	var/turf/start = locate(from_left ? left_spot.x - 5 : right_spot.x + 5, left_spot.y, left_spot.z)
+	if(!near || !start)
+		return
+	var/mob/living/carbon/human/soldier = get_soldier(start)
+	if(!soldier)
+		return
+	soldier.forceMove(start)
+	soldier.alpha = 255
+	soldier.setDir(from_left ? EAST : WEST)
+	GLOB.move_manager.move_to(soldier, near, 0, max(round(ms_left / 100 / 4, world.tick_lag), world.tick_lag))
+	addtimer(CALLBACK(src, PROC_REF(shoot_soldier), soldier, from_left), ms_left / 100, TIMER_DELETE_ME)
+
+/// A tankman off the bench, or a new one if they're all out and there's room for another.
+/datum/fnf_stage/proc/get_soldier(turf/where)
+	if(length(idle_soldiers))
+		var/mob/living/carbon/human/soldier = idle_soldiers[length(idle_soldiers)]
+		idle_soldiers.len--
+		return soldier
+	if(length(soldiers) >= FNF_MAX_SOLDIERS)
+		return null
+	var/mob/living/carbon/human/soldier = new(where)
+	soldier.fully_replace_character_name(soldier.real_name, "Tankman soldier")
+	soldier.equipOutfit(/datum/outfit/fnf_soldier)
+	soldiers += soldier
+	return soldier
+
+/// Bang: the one on the speaker turns and fires, and down he goes.
+/datum/fnf_stage/proc/shoot_soldier(mob/living/carbon/human/soldier, from_left)
+	if(QDELETED(soldier) || !girlfriend || QDELETED(girlfriend))
+		return
+	GLOB.move_manager.stop_looping(soldier)
+	var/facing = from_left ? WEST : EAST
+	girlfriend.setDir(facing)
+	girlfriend.fnf_act("aim_both", RIG_L_ARM, facing, null, 1)
+	girlfriend_busy_until = world.time + 3
+	var/turf/shooter_turf = get_turf(girlfriend)
+	var/turf/target_turf = get_turf(soldier)
+	if(shooter_turf && target_turf)
+		tracer(shooter_turf, 16 + (from_left ? -10 : 10), 26, (target_turf.x - shooter_turf.x) * world.icon_size + 16, (target_turf.y - shooter_turf.y) * world.icon_size + 22)
+	soldier.fnf_act("hit_high", RIG_R_ARM, soldier.dir, null, 2)
+	ADD_TRAIT(soldier, TRAIT_FLOORED, FNF_BATTLE_TRAIT)
+	var/obj/effect/abstract/fnf_hud/blood = new(target_turf)
+	blood.icon = 'icons/effects/blood.dmi'
+	blood.icon_state = "floor[rand(1, 7)]"
+	blood.color = "#a10808"
+	blood.plane = GAME_PLANE
+	blood.layer = LOW_OBJ_LAYER
+	blood.alpha = 0
+	animate(blood, alpha = 230, time = 5)
+	animate(alpha = 0, time = 10, delay = 8)
+	QDEL_IN(blood, 25)
+	addtimer(CALLBACK(src, PROC_REF(bench_soldier), soldier), 15, TIMER_DELETE_ME)
+
+/// Fades a shot tankman out and puts him back on the bench for the next run.
+/datum/fnf_stage/proc/bench_soldier(mob/living/carbon/human/soldier)
+	if(QDELETED(soldier))
+		return
+	animate(soldier, alpha = 0, time = 4)
+	addtimer(CALLBACK(src, PROC_REF(soldier_benched), soldier), 4, TIMER_DELETE_ME)
+
+/datum/fnf_stage/proc/soldier_benched(mob/living/carbon/human/soldier)
+	if(QDELETED(soldier))
+		return
+	REMOVE_TRAIT(soldier, TRAIT_FLOORED, FNF_BATTLE_TRAIT)
+	soldier.moveToNullspace()
+	idle_soldiers += soldier
+
 /// Puts up the lyrics as the song reaches them.
 /datum/fnf_stage/proc/tick(now)
+	send_soldiers(now)
 	if(!lyric_text)
 		return
 	var/list/lyrics = battle.song.lyrics
@@ -266,24 +407,6 @@
 			continue
 		lyric_ends = line[2]
 		lyric_text.maptext = MAPTEXT("<span style='text-align:center;font-size:8pt;color:#ffffff;-dm-text-outline:1px #000000'><i>[html_encode(line[3])]</i></span>")
-
-/// Words over someone's head, rising and fading: "UGH!", "Hey!".
-/datum/fnf_stage/proc/popup(mob/living/over, text, colour = "#ffffff")
-	if(!over)
-		return
-	var/obj/effect/abstract/fnf_hud/text/words = new(get_turf(over))
-	words.maptext = MAPTEXT("<span style='text-align:center;font-size:9pt;color:[colour];-dm-text-outline:1px #000000'><b>[html_encode(text)]</b></span>")
-	words.pixel_z = 44
-	words.transform = matrix() * 1.4
-	animate(words, transform = matrix(), time = 1.5, easing = BACK_EASING|EASE_OUT)
-	animate(pixel_z = 56, alpha = 0, time = 6, easing = SINE_EASING)
-	QDEL_IN(words, 8)
-
-/// Something said out loud, over their head, unless the song's lyrics already put it on screen.
-/datum/fnf_stage/proc/say_line(mob/living/over, text, colour = "#ffffff")
-	if(length(battle.song.lyrics))
-		return
-	popup(over, text, colour)
 
 /**
  * A chart's PlayAnimation event: someone on stage does something.
@@ -307,23 +430,17 @@
 		if("hey", "cheer")
 			side.hey()
 			// Boyfriend shouts "hey!"; Pico says "yeah!".
-			popup(side.singer, side.style == "pico" ? "Yeah!" : "Hey!", "#ffe066")
 			cheer()
 		if("ugh", "augh")
 			side.act("ugh", 4)
-			say_line(side.singer, anim == "ugh" ? "UGH!" : "AUGH!", "#ff6a4a")
 		if("laugh")
 			side.act("taunt", 5)
-			say_line(side.singer, "Heh heh heh!")
 		if("beat it")
 			side.act("taunt", 4)
-			say_line(side.singer, "Beat it!")
 		if("hehPrettyGood")
 			side.hey()
-			say_line(side.singer, "Heh, pretty good!")
 		if("burpSmile")
 			side.act("taunt", 3)
-			popup(side.singer, "*burp*")
 		if("redheadsAnim")
 			// "Ugh, redheads..."
 			side.act("taunt", 5)
@@ -355,14 +472,34 @@
 		return
 	playsound(tankman.singer, 'sound/items/weapons/bladeslice.ogg', 60, TRUE)
 	tankman.act("hit_high", 5)
-	popup(tankman.singer, "AGH!", "#ff6a4a")
+	stick_knife_in_head(tankman.singer)
+
+/**
+ * Leaves the knife stuck in someone's head for the rest of the song: on the head itself if they're
+ * rigged, so it nods with it. The in-hand knife sprite, handle out toward whoever threw it.
+ */
+/datum/fnf_stage/proc/stick_knife_in_head(mob/living/victim)
+	if(knifed)
+		return
+	var/mob/living/carbon/rigged = victim
+	var/datum/limb_rig/rig = istype(rigged) ? rigged.limb_rig : null
+	var/atom/holder = rig?.parts[RIG_HEAD] || victim
+	// Thrown from the right, so the blade points left into the head and the handle sticks out right.
+	head_knife = image('icons/mob/inhands/equipment/kitchen_righthand.dmi', "knife", dir = WEST)
+	// That sprite's blade is centred at (9.5, 13.5); the head's middle is about (19, 31), or (19, 25)
+	// on a human-sized head.
+	var/head_y = istype(rig, /datum/limb_rig/sprites) ? 31 : 25
+	head_knife.pixel_w = 19 - 9.5
+	head_knife.pixel_z = head_y - 13.5
+	head_knife.appearance_flags = RESET_COLOR|PIXEL_SCALE
+	holder.add_overlay(head_knife)
+	knifed = holder
 
 /// The girlfriend throws her arms up: "Hey!"
 /datum/fnf_stage/proc/cheer()
 	if(!girlfriend || QDELETED(girlfriend))
 		return
 	girlfriend.fnf_hey(RIG_R_ARM, SOUTH, null)
-	popup(girlfriend, "Hey!", "#ff8ad8")
 
 /// The singer on the other side from this one.
 /datum/fnf_stage/proc/rival_of(datum/fnf_side/side)
@@ -381,11 +518,9 @@
 			return TRUE
 		if("ugh")
 			side.act("ugh", 3)
-			say_line(side.singer, "UGH!", "#ff6a4a")
 			return TRUE
 		if("hehPrettyGood")
 			side.hey()
-			say_line(side.singer, "Heh, pretty good!")
 			return TRUE
 	if(findtext(kind, "weekend-1-") != 1)
 		return FALSE
@@ -481,7 +616,6 @@
 	shake_camera(pico.singer, 3, 2)
 	pico.singer.fnf_flash("#2a3470", 8)
 	pico.act("hit_high", 4)
-	popup(pico.singer, "BOOM!", "#ff8a3a")
 	battle.adjust_health(-32, pico)
 
 /// A bullet's streak, from one point to another (pixels from the bottom left of a turf).
@@ -524,7 +658,6 @@
 			punch_sound(darnell)
 		else
 			darnell.act("dodge_[height]", 3)
-			popup(pico.singer, "Whiff!")
 		return TRUE
 	if(blocked_punches[move])
 		var/height = blocked_punches[move]
@@ -577,7 +710,6 @@
 		if("fakeout")
 			pico.act("punch_high", 1)
 			darnell.act("block", 3)
-			popup(pico.singer, "Psych!")
 		if("taunt")
 			pico.act("taunt", 5)
 		if("idle")
@@ -590,3 +722,6 @@
 	if(struck.singer)
 		playsound(struck.singer, "sound/items/weapons/punch[rand(1, 4)].ogg", big ? 70 : 50, TRUE)
 		shake_camera(struck.singer, big ? 3 : 1, big ? 2 : 1)
+
+#undef FNF_SOLDIER_RUN_MS
+#undef FNF_MAX_SOLDIERS

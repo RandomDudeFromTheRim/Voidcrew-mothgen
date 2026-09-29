@@ -343,7 +343,7 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 
 /**
  * Loads one difficulty's chart. Returns list("player" = notes, "opponent" = notes,
- * "events" = events, "speed" = scroll speed), with each note a list(time in ms, lane 0-3,
+ * "events" = events, "speed" = scroll speed, "speaker" = list(list(ms, direction), ...)), with each note a list(time in ms, lane 0-3,
  * hold length in ms, kind or null), in time order.
  */
 /datum/fnf_song/proc/load_chart(difficulty)
@@ -380,7 +380,13 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	for(var/list/event in chart?["events"])
 		if(isnum(event["t"]))
 			events += list(event)
-	return list("player" = remove_stacked(player), "opponent" = remove_stacked(opponent), "events" = events, "speed" = speed)
+	// Stress's speaker track: when (and which way) whoever's on the speaker shoots a tankman.
+	var/list/speaker = list()
+	for(var/list/shot in chart?["notes"]?["picospeaker"])
+		if(isnum(shot["t"]) && isnum(shot["d"]))
+			speaker += list(list(shot["t"], shot["d"]))
+	sortTim(speaker, GLOBAL_PROC_REF(cmp_fnf_note))
+	return list("player" = remove_stacked(player), "opponent" = remove_stacked(opponent), "events" = events, "speed" = speed, "speaker" = speaker)
 
 /// The older format: the notes come in sections, and each section says whose turn it is. Lanes
 /// 0-3 are whoever's turn it is, 4-7 the other singer, except in Psych Engine 1.0 charts,

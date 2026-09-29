@@ -47,7 +47,9 @@
  * * kind - "rest", "bop", "hey", "miss", or a lane: 0 to 3 for left, down, up, right. Also the
  *   one-off moves events and special notes call for (see fnf_act()): "ugh", "kick", "cock",
  *   "shoot", and Blazin's fight: "punch_high", "punch_low", "block", "dodge_high", "dodge_low",
- *   "hit_high", "hit_low", "prep", "uppercut", "uppercut_hit", "taunt".
+ *   "hit_high", "hit_low", "prep", "uppercut", "uppercut_hit", "taunt". And "aim", the gun
+ *   levelled straight out ("aim_both" for two), and the backup dancers' "dance_left" and
+ *   "dance_right".
  * * mic_arm - the arm with the mic in it, RIG_L_ARM or RIG_R_ARM
  * * facing - which way the singer faces, WEST or EAST, to tell which arrow points at the rival
  * * style - a character's own way of moving on top (see fnf_apply_style), or null
@@ -189,6 +191,20 @@
 			.[RIG_HEAD] = list("nod" = -20)
 			.[RIG_L_LEG] = list("swing" = 10, "knee" = 30)
 			.[RIG_R_LEG] = list("swing" = -25)
+		if("aim", "aim_both")
+			// Gun levelled straight out at something, or both of them.
+			.[free_arm] = list("swing" = 90, "raise" = 5, "elbow" = 0)
+			if(kind == "aim_both")
+				.[mic_arm] = list("swing" = 82, "raise" = 12, "elbow" = 0)
+			.[RIG_CHEST] = list("bend" = 4)
+		if("dance_left", "dance_right")
+			// Hands up, hips swung out to one side and the head the other way.
+			var/way = kind == "dance_left" ? 1 : -1
+			.[RIG_L_ARM] = list("swing" = 150, "raise" = 25 + 15 * way, "elbow" = 40)
+			.[RIG_R_ARM] = list("swing" = 150, "raise" = 25 - 15 * way, "elbow" = 40)
+			.[RIG_CHEST] = list("lean" = 8 * way, "bend" = 4)
+			.[RIG_HEAD] = list("tilt" = -12 * way, "nod" = 6)
+			.[way > 0 ? RIG_L_LEG : RIG_R_LEG] = list("swing" = 20, "knee" = 25)
 		if("taunt")
 			// Come on then: beckoning, chin up, weight back.
 			.[free_arm] = list("swing" = 80, "raise" = 10, "elbow" = 80)
@@ -302,6 +318,18 @@
 		list(fnf_scale_pose(pose, 1.15), 0.5, CUBIC_EASING|EASE_OUT),
 		list(pose, hold, SINE_EASING),
 		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
+	), settle_after = FALSE)
+
+/// A backup dancer's move for one beat: into one side of the dance, then easing off it.
+/mob/living/proc/fnf_dance(beat_time, left)
+	fnf_nudge(left ? -2 : 2, -1)
+
+/mob/living/carbon/fnf_dance(beat_time, left)
+	if(!limb_rig)
+		return ..()
+	limb_rig.play(list(
+		list(fnf_pose(left ? "dance_left" : "dance_right", RIG_R_ARM, SOUTH, null), beat_time * 0.3, CUBIC_EASING|EASE_OUT),
+		list(fnf_scale_pose(fnf_pose(left ? "dance_left" : "dance_right", RIG_R_ARM, SOUTH, null), 0.6), beat_time * 0.7, SINE_EASING),
 	), settle_after = FALSE)
 
 /// Lost. Run off the health bar means going down in a heap.

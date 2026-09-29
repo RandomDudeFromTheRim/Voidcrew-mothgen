@@ -30,7 +30,7 @@
 #define FNF_CHARRED "#2a3470"
 /// Where a prop sits to be at the neck and at the face: offsets for a 32 by 32 sprite's middle, on
 /// a body a quarter bigger than a human.
-#define FNF_NECK_Y 11
+#define FNF_NECK_Y 11.5
 #define FNF_FACE_Y 15
 
 /datum/fnf_game_over
@@ -63,6 +63,10 @@
 	var/showing_body = FALSE
 	/// The knife in their neck, to go down with them.
 	var/obj/effect/abstract/fnf_prop/knife
+	/// Where the neck is, between the bottom of the head and the top of the torso: where the knife
+	/// goes in and the blood comes out. In pixels from the middle of the body, as props are placed.
+	var/neck_x = 0
+	var/neck_y = 0
 
 /**
  * * kill_kind - the kind of the note whose miss ended it, if it had one
@@ -203,29 +207,46 @@
 
 /// The usual Pico death: a knife flies in and sticks in their head, and the blood goes everywhere.
 /datum/fnf_game_over/proc/throw_knife()
-	knife = add_prop('icons/obj/service/kitchen.dmi', "knife", ahead() * 90, FNF_NECK_Y + 8)
-	knife.transform = turn(matrix(), 90 * ahead())
-	animate(knife, pixel_w = ahead() * 5, pixel_z = FNF_NECK_Y, transform = turn(matrix(), 720 + 110 * ahead()), time = 2.5, easing = LINEAR_EASING)
+	// Thrown from in front, so the blade points back into the neck and the handle sticks out front.
+	knife = add_prop('icons/mob/inhands/equipment/kitchen_righthand.dmi', "knife", ahead() * 90, 0)
+	knife.dir = facing == EAST ? WEST : EAST
+	neck_x = ahead() * 2
+	neck_y = FNF_NECK_Y
+	var/list/blade = knife_blade_offset()
+	knife.pixel_z = neck_y - blade[2] + 8
+	animate(knife, pixel_w = neck_x - blade[1], pixel_z = neck_y - blade[2], transform = turn(matrix(), 720), time = 2.5, easing = LINEAR_EASING)
 	addtimer(CALLBACK(src, PROC_REF(knife_hits)), 2.5, TIMER_DELETE_ME)
+
+/// Where the in-hand knife sprite's blade sits, from the middle of its 32 by 32 icon.
+/datum/fnf_game_over/proc/knife_blade_offset()
+	return knife.dir == WEST ? list(-6.5, -2.5) : list(1.5, -2.5)
 
 /datum/fnf_game_over/proc/knife_hits()
 	SEND_SOUND(singer, sound('sound/items/weapons/bladeslice.ogg', volume = 60))
 	singer.fnf_act("hit_high", singer.fnf_mic_arm(facing), facing, null, 6)
 	animate(blackout, color = "#5a0000", time = 0)
 	animate(color = "#000000", time = 3)
-	// The fountain: drops thrown up out of the head, raining back down.
-	var/blood_colour = get_blood_colour()
-	for(var/i in 1 to 14)
-		var/obj/effect/abstract/fnf_prop/drop = add_prop('icons/effects/blood.dmi', "drip[rand(1, 5)]", ahead() * 3, FNF_NECK_Y)
-		drop.color = blood_colour
-		var/drift = rand(-26, 26)
-		animate(drop, pixel_w = ahead() * 3 + drift * 0.5, pixel_z = FNF_NECK_Y + rand(18, 36), time = 3 + i * 0.3, easing = SINE_EASING|EASE_OUT)
-		animate(pixel_w = ahead() * 3 + drift, pixel_z = rand(-14, -10), alpha = 180, time = 5, easing = QUAD_EASING|EASE_IN)
 	var/obj/effect/abstract/fnf_prop/pool = add_prop('icons/effects/blood.dmi', "floor[rand(1, 7)]", ahead() * -8, -6, 50.5)
-	pool.color = blood_colour
+	pool.color = get_blood_colour()
 	pool.alpha = 0
 	pool.transform = matrix() * 0.3
 	animate(pool, alpha = 255, transform = matrix() * 1.4, time = 25, delay = 8, easing = SINE_EASING)
+	gush()
+
+/// The fountain: blood gushing up out of the neck and raining back down, on and on until they pick.
+/datum/fnf_game_over/proc/gush()
+	if(retrying || !figure || !knife)
+		return
+	var/blood_colour = get_blood_colour()
+	for(var/i in 1 to 3)
+		var/obj/effect/abstract/fnf_prop/drop = add_prop('icons/effects/blood.dmi', "drip[rand(1, 5)]", neck_x, neck_y)
+		drop.color = blood_colour
+		var/drift = rand(-22, 22)
+		animate(drop, pixel_w = neck_x + drift * 0.4, pixel_z = neck_y + rand(24, 44), time = 3 + i, easing = SINE_EASING|EASE_OUT)
+		animate(pixel_w = neck_x + drift, pixel_z = rand(-14, -10), alpha = 160, time = 5, easing = QUAD_EASING|EASE_IN)
+		QDEL_IN(drop, 12)
+		addtimer(CALLBACK(src, PROC_REF(forget_prop), drop), 11, TIMER_DELETE_ME)
+	addtimer(CALLBACK(src, PROC_REF(gush)), 2, TIMER_DELETE_ME)
 
 /// 2hot's: the can Pico should have shot comes down on them and goes off in their face.
 /datum/fnf_game_over/proc/throw_can()
@@ -321,10 +342,12 @@
 /datum/fnf_game_over/proc/knife_follows(angle)
 	if(!knife)
 		return
-	// The neck, from the middle of the body, turned the way the body turned.
-	var/neck_x = FNF_NECK_Y * sin(angle)
-	var/neck_z = FNF_NECK_Y * cos(angle) + PIXEL_Y_OFFSET_LYING
-	animate(knife, pixel_w = neck_x, pixel_z = neck_z, transform = turn(matrix(), 110 * ahead() + angle), time = UPDATE_TRANSFORM_ANIMATION_TIME, easing = EASE_IN|EASE_OUT)
+	// The neck, from the middle of the body (dead centre now they face the viewer), turned the way
+	// the body turned. The fountain carries on from there.
+	neck_x = FNF_NECK_Y * sin(angle)
+	neck_y = FNF_NECK_Y * cos(angle) + PIXEL_Y_OFFSET_LYING
+	var/list/blade = knife_blade_offset()
+	animate(knife, pixel_w = neck_x - blade[1], pixel_z = neck_y - blade[2], transform = turn(matrix(), angle), time = UPDATE_TRANSFORM_ANIMATION_TIME, easing = EASE_IN|EASE_OUT)
 
 /datum/fnf_game_over/proc/cock_gun()
 	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/gun_cock.ogg", volume = 60))

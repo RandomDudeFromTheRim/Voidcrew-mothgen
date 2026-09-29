@@ -42,7 +42,7 @@ Above each singer's arrows are their name, score, misses and accuracy.
 
 Songs with a girlfriend in them (Girlfriend, or Nene in the Pico mixes) bring her along: she stands a step behind the two of you, bopping to the beat, and throws her arms up with a "Hey!" whenever someone else does. Songs with lyrics show them under the stage as they're sung.
 
-Stages do what they do in Funkin': lightning strikes the mansion in Week 2, making everyone jump; a train rumbles past in Week 3; Week 6 opens with its dialogue, typed out under the stage to its music (fetched with the songs); and Darnell opens with Darnell lighting a can and kicking it up for Pico to shoot. Singers stand four tiles apart (next to each other for a fistfight).
+Stages do what they do in Funkin': lightning strikes the mansion in Week 2, making everyone jump; a train rumbles past in Week 3; Mommy's henchmen dance in a row behind the stage all through Week 4; in Stress, Pico (or Otis, in the Pico mix) sits on the speaker dual-wielding, gunning down the tankmen who run in from both sides; Week 6 opens with its dialogue, typed out under the stage to its music (fetched with the songs); and Darnell opens with Darnell lighting a can and kicking it up for Pico to shoot. Singers stand four tiles apart (next to each other for a fistfight).
 
 Some moments get acted out: Boyfriend's "hey!" in Bopeebo, Tankman's "ugh" in Ugh, a burp or a laugh in the Pico mixes. Weekend 1 goes further:
 

@@ -14,7 +14,7 @@
  * - "hair", "hair_colour", "eyes"
  * - "outfit": list(list(item type, greyscale colours or null), ...)
  * - "mutant_colour", "ethereal_colour": for lizards and ethereals
- * - "gun": TRUE to hold a gun as well as the mic
+ * - "gun": TRUE to hold a gun as well as the mic, or the prop gun's type
  * - "size": how big they're drawn, for the ones who tower over (or come up short of) Boyfriend
  */
 GLOBAL_LIST_INIT(fnf_opponents, list(
@@ -54,23 +54,24 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		"eyes" = "#3fbf4f",
 		"gun" = TRUE,
 		"outfit" = list(
-			// Green shirt, khaki trousers.
-			list(/obj/item/clothing/under/costume/buttondown/slacks, "#3fa34d#2f7a3a#a8875a#3a2a1a"),
+			// Green shirt, tan trousers (the colours are shirt, buckle, belt, trousers).
+			list(/obj/item/clothing/under/costume/buttondown/slacks, "#3fa34d#c0c0c0#5a3a22#c89a64"),
 			list(/obj/item/clothing/shoes/sneakers, "#8a1f2a#f2e6d8"),
 		),
 	),
 	"darnell" = list(
+		// Red-brown skin, a huge purple flat-top, purple hoodie, near-black grey-green trousers, and
+		// big white sneakers with orange flames.
 		"name" = "Darnell",
 		"species" = /datum/species/human,
-		"tone" = "african2",
-		"hair" = "Short Hair",
-		"hair_colour" = "#120d0a",
-		"eyes" = "#3a2418",
+		"skin" = "#a83838",
+		"hair" = "Flat Top (Big)",
+		"hair_colour" = "#4a3c78",
+		"eyes" = "#1a1a1a",
 		"outfit" = list(
-			list(/obj/item/clothing/under/color, "#243026"),
-			list(/obj/item/clothing/suit/jacket/oversized, "#5a2a6e"),
-			list(/obj/item/clothing/head/beanie, "#4a2360#4a2360"),
-			list(/obj/item/clothing/shoes/sneakers, "#6a3d8c#f0ecf6"),
+			list(/obj/item/clothing/under/color, "#283028"),
+			list(/obj/item/clothing/suit/jacket/oversized, "#803888"),
+			list(/obj/item/clothing/shoes/sneakers, "#f8f4f8#e8952a"),
 		),
 	),
 	"nene" = list(
@@ -100,6 +101,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		),
 	),
 	"senpai" = list(
+		// Orange hair, a pale blue-lavender shirt with a pink tie, dark grey trousers, black shoes.
 		"name" = "Senpai",
 		"species" = /datum/species/human,
 		"tone" = "caucasian1",
@@ -107,8 +109,8 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		"hair_colour" = "#f2a65a",
 		"eyes" = "#3a3a5a",
 		"outfit" = list(
-			list(/obj/item/clothing/under/color, "#2a2a40"),
-			list(/obj/item/clothing/suit/jacket/oversized, "#6a4f9a"),
+			list(/obj/item/clothing/under/costume/buttondown/slacks, "#9aa0f0#c0c0c8#2a2a30#3a3a46"),
+			list(/obj/item/clothing/neck/tie, "#e0507a"),
 			list(/obj/item/clothing/shoes/laceup, null),
 		),
 	),
@@ -163,6 +165,38 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		"outfit" = list(
 			list(/obj/item/clothing/under/costume/skeleton, null),
 			list(/obj/item/clothing/head/utility/hardhat/pumpkinhead, null),
+		),
+	),
+	"henchman" = list(
+		// Mommy Mearest's limo dancers: pink skin, spiky black hair, black shades, a purple suit
+		// jacket over a pink shirt and red tie, baggy grey-green trousers and dark green shoes.
+		"name" = "Mommy's henchman",
+		"species" = /datum/species/human,
+		"skin" = "#f07ab4",
+		"hair" = "Spiky",
+		"hair_colour" = "#241826",
+		"eyes" = "#1a1a1a",
+		"outfit" = list(
+			list(/obj/item/clothing/under/costume/buttondown/slacks, "#f08ab8#c0283a#5c6e5a#2a3a2a"),
+			list(/obj/item/clothing/suit/jacket/oversized, "#5a3a8a"),
+			list(/obj/item/clothing/glasses/sunglasses, null),
+			list(/obj/item/clothing/shoes/sneakers, "#3a5a44#2a3a30"),
+		),
+	),
+	"otis" = list(
+		// Darnell's mate, up on the speaker in the Pico mix of Stress with his rifle: pale, messy black
+		// hair, a purple-indigo jacket, grey trousers, orange and white sneakers.
+		"name" = "Otis",
+		"species" = /datum/species/human,
+		"tone" = "caucasian1",
+		"hair" = "Messy",
+		"hair_colour" = "#141418",
+		"eyes" = "#2a1a10",
+		"gun" = /obj/item/toy/fnf_gun/rifle,
+		"outfit" = list(
+			list(/obj/item/clothing/under/costume/buttondown/slacks, "#4a3aa0#2a2266#6a6a72#2a2a2a"),
+			list(/obj/item/clothing/suit/jacket/oversized, "#3e2e8e"),
+			list(/obj/item/clothing/shoes/sneakers, "#f0a020#f4f4f4"),
 		),
 	),
 	"spirit" = list(
@@ -222,7 +256,8 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	// Everyone faces east, so the right hand is the one the crowd sees. Gunners keep the gun there
 	// and the mic in the other.
 	if(look["gun"])
-		npc.put_in_r_hand(new /obj/item/toy/fnf_gun(npc))
+		var/gun_type = ispath(look["gun"]) ? look["gun"] : /obj/item/toy/fnf_gun
+		npc.put_in_r_hand(new gun_type(npc))
 		npc.put_in_l_hand(new /obj/item/fnf_microphone(npc))
 	else
 		npc.put_in_r_hand(new /obj/item/fnf_microphone(npc))
@@ -239,3 +274,23 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	lefthand_file = 'icons/mob/inhands/weapons/guns_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/weapons/guns_righthand.dmi'
 	w_class = WEIGHT_CLASS_NORMAL
+
+/// Stress's tankmen, running in to be shot off the stage: security officers in their armour, with
+/// prop guns and nothing real on them.
+/datum/outfit/fnf_soldier
+	name = "Rhythm battle soldier"
+	uniform = /obj/item/clothing/under/rank/security/officer
+	suit = /obj/item/clothing/suit/armor/vest/alt/sec
+	head = /obj/item/clothing/head/helmet/sec
+	shoes = /obj/item/clothing/shoes/jackboots
+	gloves = /obj/item/clothing/gloves/color/black
+	r_hand = /obj/item/toy/fnf_gun
+
+/// Otis's rifle, a wooden-stocked prop.
+/obj/item/toy/fnf_gun/rifle
+	name = "prop rifle"
+	desc = "A wooden-stocked plastic rifle, painted up to look like the real thing. The bolt doesn't move."
+	icon = 'icons/obj/weapons/guns/wide_guns.dmi'
+	icon_state = "sakhno"
+	inhand_icon_state = "sakhno"
+	w_class = WEIGHT_CLASS_BULKY
