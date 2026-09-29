@@ -58,3 +58,7 @@
 	TEST_ASSERT_EQUAL(physics.steps, 20 * 6, "The ragdoll didn't take a fixed number of steps.")
 	ragdoll.set_limb_physics(FALSE)
 	TEST_ASSERT_NULL(ragdoll.limb_rig.physics, "Turning physics off left it on.")
+	// The torso moves with its pivot in a pose; left where the ragdoll had it, it'd float off on
+	// its own. (animate() with no time sets the transform at once.)
+	var/matrix/torso = ragdoll.limb_rig.parts["chest"].transform
+	TEST_ASSERT(torso.a == 1 && torso.b == 0 && torso.c == 0 && torso.d == 0 && torso.e == 1 && torso.f == 0, "The torso stayed where the ragdoll left it after physics let go.")

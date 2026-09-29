@@ -37,6 +37,8 @@
 	var/steps = 0
 	/// The last positions read back, for inspecting: handle => list(x, y, angle, vx, vy, spin).
 	var/list/last_states
+	/// Every piece the simulation has put somewhere, to let go of again after.
+	var/list/drawn_pieces = list()
 
 /datum/limb_physics/New(datum/limb_rig/sprites/rig)
 	src.rig = rig
@@ -51,10 +53,16 @@
 	destroy_world()
 	if(rig?.physics == src)
 		rig.physics = null
-		// Back to the authored animation, from where it is now.
 		if(!QDELETED(rig) && !QDELETED(rig.owner))
+			// Let go of everything physics placed first: a pose doesn't place every piece (the torso
+			// moves with its pivot, not by itself), and anything it skips would stay where the
+			// ragdoll left it.
+			for(var/atom/movable/piece as anything in drawn_pieces)
+				animate(piece, transform = matrix(), time = 0)
+			// Back to the authored animation.
 			rig.snap_to(rig.held_pose)
 			rig.settle()
+	drawn_pieces.Cut()
 	rig = null
 	return ..()
 
@@ -180,6 +188,7 @@
 	var/list/matrices = rig.get_physics_matrices(segment_matrices, facing)
 	for(var/atom/movable/piece as anything in matrices)
 		animate(piece, transform = matrices[piece], time = time)
+		drawn_pieces[piece] = TRUE
 
 /// Shoves a segment: an impulse in newton-seconds, right and up are positive.
 /datum/limb_physics/proc/push(part_id, impulse_x, impulse_y)
