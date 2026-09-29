@@ -316,6 +316,10 @@
 
 /// Puts every piece in a pose immediately.
 /datum/limb_rig/proc/snap_to(list/pose)
+	// Physics has the pieces while it's on.
+	if(physics)
+		held_pose = pose
+		return
 	var/list/matrices = get_pose_matrices(pose, get_facing())
 	for(var/obj/effect/abstract/limb_rig_part/part as anything in matrices)
 		animate(part, transform = matrices[part], time = 0)
@@ -329,6 +333,9 @@
  * * settle_after - go back to idle once the sequence has played through (ignored when looping)
  */
 /datum/limb_rig/proc/play(list/keyframes, loop = 1, activity = RIG_ACTIVITY_ONESHOT, settle_after = TRUE)
+	// Physics has the pieces while it's on: authored animation waits until it's off again.
+	if(physics)
+		return
 	src.activity = activity
 	deltimer(settle_timer)
 	settle_timer = null
@@ -380,6 +387,8 @@
 
 /// How long crossing one tile takes right now, in deciseconds: whatever slows or speeds the mob up.
 /datum/limb_rig/proc/get_move_delay()
+	if(step_delay_override)
+		return step_delay_override
 	var/delay = owner.cached_multiplicative_slowdown
 	if(!delay)
 		delay = world.icon_size / max(owner.glide_size, 1) * world.tick_lag

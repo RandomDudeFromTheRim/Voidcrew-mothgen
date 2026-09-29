@@ -70,6 +70,9 @@
 	var/list/obj/effect/abstract/limb_rig_part/owner_pieces = list()
 	/// A tail, if the body has one: taken out of the body sprite so it can swing on its own.
 	var/obj/effect/abstract/limb_rig_part/tail_part
+	/// How long a step takes, in deciseconds, when something's moving the mob at its own pace (a
+	/// scripted run) rather than at the mob's speed. Null for the mob's speed.
+	var/step_delay_override
 	/// Side-on, covers the hole cutting the near arm out of the torso leaves, with a bit of the torso
 	/// beside it. Holds chest_patch_fill, a copy of the body nudged across so the torso lines up.
 	var/obj/effect/abstract/limb_rig_part/chest_patch
@@ -108,6 +111,7 @@
 		COMSIG_MOB_EMOTE,
 	))
 	deltimer(settle_timer)
+	QDEL_NULL(physics)
 	// Give the body back to the mob, as it stands now.
 	if(owner.limb_rig == src)
 		owner.limb_rig = null
@@ -327,6 +331,10 @@
 	if(old_dir == new_dir)
 		return
 	refresh_facing()
+	// The simulation is built from the bones facing one way: start it over facing the new way.
+	if(physics)
+		physics.rebuild()
+		return
 	// A pose looks different from every side, so snap to how the current one reads from here,
 	// then carry on with whatever loop was running.
 	snap_to(held_pose)
