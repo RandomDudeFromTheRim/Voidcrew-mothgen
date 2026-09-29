@@ -276,7 +276,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	w_class = WEIGHT_CLASS_NORMAL
 
 /// Stress's tankmen, running in to be shot off the stage: security officers in their armour, with
-/// prop guns and nothing real on them.
+/// prop guns (glued in their hands) and nothing real on them.
 /datum/outfit/fnf_soldier
 	name = "Rhythm battle soldier"
 	uniform = /obj/item/clothing/under/rank/security/officer

@@ -303,8 +303,8 @@
 
 /// How long a tankman takes to run in, in song milliseconds.
 #define FNF_SOLDIER_RUN_MS 1600
-/// Most tankmen out at once. More shots than that at once are just shots.
-#define FNF_MAX_SOLDIERS 10
+/// Most tankmen out at once, kept low: each is a whole rigged mob. Shots beyond that are just shots.
+#define FNF_MAX_SOLDIERS 4
 
 /// Sends in the tankmen the speaker is about to shoot.
 /datum/fnf_stage/proc/send_soldiers(now)
@@ -331,7 +331,11 @@
 	soldier.forceMove(start)
 	soldier.alpha = 255
 	soldier.setDir(from_left ? EAST : WEST)
-	GLOB.move_manager.move_to(soldier, near, 0, max(round(ms_left / 100 / 4, world.tick_lag), world.tick_lag))
+	// Running, strides timed to the pace he's moved at.
+	var/delay = max(round(ms_left / 100 / 4, world.tick_lag), world.tick_lag)
+	if(soldier.limb_rig)
+		soldier.limb_rig.step_delay_override = delay
+	GLOB.move_manager.move_to(soldier, near, 0, delay)
 	addtimer(CALLBACK(src, PROC_REF(shoot_soldier), soldier, from_left), ms_left / 100, TIMER_DELETE_ME)
 
 /// A tankman off the bench, or a new one if they're all out and there's room for another.
@@ -345,6 +349,11 @@
 	var/mob/living/carbon/human/soldier = new(where)
 	soldier.fully_replace_character_name(soldier.real_name, "Tankman soldier")
 	soldier.equipOutfit(/datum/outfit/fnf_soldier)
+	if(soldier.move_intent != MOVE_INTENT_RUN)
+		soldier.toggle_move_intent()
+	// Their guns are part of the show: glued in, so nothing ever ends up on the floor.
+	for(var/obj/item/held in soldier.held_items)
+		ADD_TRAIT(held, TRAIT_NODROP, FNF_BATTLE_TRAIT)
 	soldiers += soldier
 	return soldier
 
@@ -361,8 +370,18 @@
 	var/turf/target_turf = get_turf(soldier)
 	if(shooter_turf && target_turf)
 		tracer(shooter_turf, 16 + (from_left ? -10 : 10), 26, (target_turf.x - shooter_turf.x) * world.icon_size + 16, (target_turf.y - shooter_turf.y) * world.icon_size + 22)
-	soldier.fnf_act("hit_high", RIG_R_ARM, soldier.dir, null, 2)
-	ADD_TRAIT(soldier, TRAIT_FLOORED, FNF_BATTLE_TRAIT)
+	soldier.limb_rig?.step_delay_override = null
+	// Knocked flying: a ragdoll, kicked away from the shooter, falling however physics has it.
+	// Without the physics library, a flinch and a fall.
+	if(soldier.set_limb_physics(TRUE))
+		var/datum/limb_physics/ragdoll = soldier.limb_rig.physics
+		var/away = from_left ? -1 : 1
+		ragdoll.push(RIG_CHEST, away * 45, 12)
+		ragdoll.push(RIG_HEAD, away * 10, 4)
+		ragdoll.twist(RIG_CHEST, away * -2)
+	else
+		soldier.fnf_act("hit_high", RIG_R_ARM, soldier.dir, null, 2)
+		ADD_TRAIT(soldier, TRAIT_FLOORED, FNF_BATTLE_TRAIT)
 	var/obj/effect/abstract/fnf_hud/blood = new(target_turf)
 	blood.icon = 'icons/effects/blood.dmi'
 	blood.icon_state = "floor[rand(1, 7)]"
@@ -373,18 +392,19 @@
 	animate(blood, alpha = 230, time = 5)
 	animate(alpha = 0, time = 10, delay = 8)
 	QDEL_IN(blood, 25)
-	addtimer(CALLBACK(src, PROC_REF(bench_soldier), soldier), 15, TIMER_DELETE_ME)
+	addtimer(CALLBACK(src, PROC_REF(bench_soldier), soldier), 8, TIMER_DELETE_ME)
 
-/// Fades a shot tankman out and puts him back on the bench for the next run.
+/// A shot tankman vanishes, quickly, and goes back on the bench for the next run.
 /datum/fnf_stage/proc/bench_soldier(mob/living/carbon/human/soldier)
 	if(QDELETED(soldier))
 		return
-	animate(soldier, alpha = 0, time = 4)
-	addtimer(CALLBACK(src, PROC_REF(soldier_benched), soldier), 4, TIMER_DELETE_ME)
+	animate(soldier, alpha = 0, time = 2)
+	addtimer(CALLBACK(src, PROC_REF(soldier_benched), soldier), 2, TIMER_DELETE_ME)
 
 /datum/fnf_stage/proc/soldier_benched(mob/living/carbon/human/soldier)
 	if(QDELETED(soldier))
 		return
+	soldier.set_limb_physics(FALSE)
 	REMOVE_TRAIT(soldier, TRAIT_FLOORED, FNF_BATTLE_TRAIT)
 	soldier.moveToNullspace()
 	idle_soldiers += soldier
