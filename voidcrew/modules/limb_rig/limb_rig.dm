@@ -226,9 +226,19 @@
 		if(standing)
 			. += standing
 
+/// Which of the four ways the mob faces. Facing a diagonal draws a four-direction sprite side-on,
+/// so northeast and southeast count as east, and the same for west.
+/datum/limb_rig/proc/get_facing()
+	var/facing = owner.dir
+	if(facing & EAST)
+		return EAST
+	if(facing & WEST)
+		return WEST
+	return facing || SOUTH
+
 /// Matches the masks and the draw order to the way the mob is facing.
 /datum/limb_rig/proc/refresh_facing()
-	var/facing = owner.dir
+	var/facing = get_facing()
 	var/static/list/torso_and_arms = list("torso_cut", "l_arm", "l_forearm", "r_arm", "r_forearm")
 	for(var/part_id in parts)
 		var/obj/effect/abstract/limb_rig_part/part = parts[part_id]

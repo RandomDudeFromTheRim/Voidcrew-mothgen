@@ -7,7 +7,7 @@ a local server straight from their public assets repository (github.com/FunkinCr
 data/ is gitignored, so nothing downloaded here ends up in a commit.
 
 Each song comes with its mixes (Erect, Pico): charts, metadata, instrumentals, the singers' Voices
-files, and lyrics where there are any. The week lists come too, so songs can be picked by week.
+files, and lyrics where there are any. The week lists come too, so songs can be picked by week, and Week 6's dialogue.
 That's a few hundred MB for the lot.
 
     python3 tools/fnf/fetch_funkin.py                  every song
@@ -82,7 +82,7 @@ def main():
             clone = pathlib.Path(tmp) / "assets"
             print("Fetching the song list...")
             git("clone", "--depth", "1", "--filter=blob:none", "--sparse", REPO, str(clone), cwd=tmp)
-            git("sparse-checkout", "set", "--no-cone", "/preload/data/songs/", "/preload/data/levels/", cwd=clone)
+            git("sparse-checkout", "set", "--no-cone", "/preload/data/songs/", "/preload/data/levels/", "/preload/data/dialogue/", cwd=clone)
 
         songs = {}
         for song_dir in sorted((clone / "preload" / "data" / "songs").iterdir()):
@@ -105,6 +105,7 @@ def main():
         if not local:
             patterns = ["/preload/data/songs/"]
             patterns.append("/preload/data/levels/")
+            patterns.append("/preload/data/dialogue/")
             for song_id, (_, audio) in songs.items():
                 patterns.extend(f"/songs/{song_id}/{name}" for name in audio)
             print(f"Fetching audio for {len(songs)} songs...")
@@ -132,6 +133,13 @@ def main():
             weeks.mkdir(parents=True, exist_ok=True)
             for week in levels.glob("*.json"):
                 shutil.copy2(week, weeks / week.name)
+
+        conversations = clone / "preload" / "data" / "dialogue" / "conversations"
+        if conversations.is_dir():
+            dialogue = ROOT / "data" / "fnf" / "dialogue"
+            dialogue.mkdir(parents=True, exist_ok=True)
+            for conversation in conversations.glob("*.json"):
+                shutil.copy2(conversation, dialogue / conversation.name)
     print(f"Done. Songs are in {DEST}.")
 
 

@@ -180,7 +180,7 @@
 		damage_marks[part_id] = marks
 
 /datum/limb_rig/sprites/refresh_facing()
-	var/facing = owner.dir
+	var/facing = get_facing()
 	for(var/part_id in cloth_parts)
 		var/obj/effect/abstract/limb_rig_part/cloth = cloth_parts[part_id]
 		var/mask_state = part_id

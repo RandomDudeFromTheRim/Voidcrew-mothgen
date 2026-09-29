@@ -182,6 +182,8 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	var/opponent_character
 	/// Who you sing as: "bf" usually, "pico" in a Pico mix.
 	var/player_character = "bf"
+	/// The same, with Funkin's variant on it: "bf-holding-gf" in Stress, carrying the girlfriend.
+	var/player_variant
 	/// Who cheers you on from the back, if anyone ("gf", "nene").
 	var/girlfriend_character
 	/// Timed lyrics, from the song's subtitles: list(list(start ms, end ms, text), ...).
@@ -223,6 +225,7 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 		opponent_voice_file = find_voice(characters?["opponentVocals"], characters?["opponent"])
 		opponent_character = fnf_base_character(characters?["opponent"])
 		player_character = fnf_base_character(characters?["player"]) || player_character
+		player_variant = characters?["player"]
 		girlfriend_character = fnf_base_character(characters?["girlfriend"])
 		if(!variation)
 			for(var/other in meta["playData"]?["songVariations"])

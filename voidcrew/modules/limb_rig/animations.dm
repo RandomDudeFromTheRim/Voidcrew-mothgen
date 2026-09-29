@@ -316,7 +316,7 @@
 
 /// Puts every piece in a pose immediately.
 /datum/limb_rig/proc/snap_to(list/pose)
-	var/list/matrices = get_pose_matrices(pose, owner.dir)
+	var/list/matrices = get_pose_matrices(pose, get_facing())
 	for(var/obj/effect/abstract/limb_rig_part/part as anything in matrices)
 		animate(part, transform = matrices[part], time = 0)
 
@@ -332,7 +332,7 @@
 	src.activity = activity
 	deltimer(settle_timer)
 	settle_timer = null
-	var/facing = owner.dir
+	var/facing = get_facing()
 	var/total_time = 0
 	for(var/list/keyframe as anything in keyframes)
 		total_time += keyframe[2]

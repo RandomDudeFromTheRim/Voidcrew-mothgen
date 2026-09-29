@@ -11,10 +11,10 @@ The battle microphone starts a rhythm battle: two singers stand side by side fac
 
 Use the microphone in your hand. You choose a week, then a song from it, a difficulty if the song has more than one, and who you're singing against. Weeks are grouped as Friday Night Funkin' has them (Week 1 is Bopeebo, Fresh and Dadbattle, Weekend 1 is Darnell, Lit Up, 2hot and Blazin'). Each song is followed by its mixes where it has them: the Erect remix, and the Pico Mix, where you sing as Pico, gun in your free hand, with his moves and his voice. Songs that aren't in a week are under "Other songs".
 
-- **Summon someone** starts at once. The song's own opponent appears three tiles to your left to sing the other part, and leaves when the song is over: Daddy Dearest, Mommy Mearest, Pico, Senpai, Tankman and the rest, each with their own moves (Pico and Tankman sing with a gun in the other hand). Songs without a known opponent get an Experiment called Experiment Dearest.
+- **Summon someone** starts at once. The song's own opponent appears four tiles to your left to sing the other part, and leaves when the song is over: Daddy Dearest, Mommy Mearest, Pico, Senpai, Tankman and the rest, each with their own moves (Pico and Tankman sing with a gun in the other hand). Songs without a known opponent get an Experiment called Experiment Dearest.
 - **I'll pick someone** cues the song up. Hit someone with the microphone to challenge them. A player gets asked whether they want to sing and has 20 seconds to answer. Anyone nobody is playing, conscious and willing or not, gets their part sung for them by the game.
 
-The singer who used the microphone always takes the right side. The opponent is moved three tiles to your left if there's room (two or four if not), and you turn to face each other. Both singers' cameras swing over to frame the stage, leaning toward whoever the song says is singing.
+The singer who used the microphone always takes the right side. The opponent is moved four tiles to your left if there's room (three or five if not), and you turn to face each other. Both singers' cameras swing over to frame the stage, leaning toward whoever the song says is singing.
 
 ## Playing
 
@@ -41,6 +41,8 @@ Above each singer's arrows are their name, score, misses and accuracy.
 ## On stage
 
 Songs with a girlfriend in them (Girlfriend, or Nene in the Pico mixes) bring her along: she stands a step behind the two of you, bopping to the beat, and throws her arms up with a "Hey!" whenever someone else does. Songs with lyrics show them under the stage as they're sung.
+
+Stages do what they do in Funkin': lightning strikes the mansion in Week 2, making everyone jump; a train rumbles past in Week 3; Week 6 opens with its dialogue, typed out under the stage to its music (fetched with the songs); and Darnell opens with Darnell lighting a can and kicking it up for Pico to shoot. Singers stand four tiles apart (next to each other for a fistfight).
 
 Some moments get acted out: Boyfriend's "hey!" in Bopeebo, Tankman's "ugh" in Ugh, a burp or a laugh in the Pico mixes. Weekend 1 goes further:
 

@@ -147,7 +147,7 @@
 
 /datum/limb_rig/sprites/humanoid/refresh_facing()
 	. = ..()
-	var/facing = owner.dir
+	var/facing = get_facing()
 	// Behind everything, legs included, unless the back is what's seen.
 	wings_part.layer = facing == NORTH ? -1 : -10
 	tail_part.layer = parts[RIG_TAIL].layer + 0.1

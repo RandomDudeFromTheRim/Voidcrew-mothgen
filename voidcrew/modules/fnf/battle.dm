@@ -188,7 +188,8 @@
 	// Up close in a fight, the two sets of arrows would sit on top of each other. Like Funkin', only
 	// the player's show.
 	if(is_fight())
-		left.strumline.alpha = 0
+		// Everything on the strumline ignores its alpha, so hide the lot outright.
+		left.strumline.invisibility = INVISIBILITY_ABSTRACT
 
 	// The bar hangs between the two, above their strums.
 	var/center_x = 16 + (left_turf.x - right_turf.x) * world.icon_size / 2
@@ -197,11 +198,12 @@
 	camera_x = (left_turf.x + right_turf.x) * world.icon_size / 2 + 16
 	camera_y = (left_turf.y + right_turf.y) * world.icon_size / 2 + 16 + 36
 	pan_cameras()
-	stage = new(src, left_turf, right_turf)
 
 	preload(challenger)
 	preload(opponent)
 	preload_onlookers(right_turf)
+	// After the listeners are in: the stage plays its intro to them.
+	stage = new(src, left_turf, right_turf)
 
 	state = FNF_STATE_COUNTDOWN
 	challenger.visible_message(span_boldnotice("[challenger] and [opponent] square up for a rhythm battle: [song.name]!"))
@@ -267,7 +269,8 @@
 	return song.id == "blazin"
 
 /datum/fnf_battle/proc/find_opponent_spot(turf/right_turf, mob/living/opponent)
-	for(var/distance in (is_fight() ? list(1, 2) : list(3, 2, 4)))
+	// Four tiles apart, so both singers' arrows and scores have room. Nose to nose for a fight.
+	for(var/distance in (is_fight() ? list(1, 2) : list(4, 3, 5)))
 		var/turf/spot = locate(right_turf.x - distance, right_turf.y, right_turf.z)
 		if(!spot)
 			continue

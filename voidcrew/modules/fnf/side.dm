@@ -170,16 +170,29 @@
 		zoom_screen(FNF_ZOOM)
 		zoomed = TRUE
 
-/// Puts a prop for the song in the singer's free hand, if they have one free.
+/**
+ * Puts a prop for the song (Pico's gun) in the singer's hand nearer the crowd, where it can be
+ * seen, moving whatever's there (the mic) to the other hand. The far hand is behind the body.
+ */
 /datum/fnf_side/proc/give_prop(prop_type)
 	if(!singer)
 		return
+	// Side-on, the left hand is the near one facing west, the right facing east.
+	var/near_index = facing == WEST ? 1 : 2
+	var/far_index = facing == WEST ? 2 : 1
+	var/obj/item/in_near_hand = singer.get_item_for_held_index(near_index)
+	if(in_near_hand)
+		if(singer.get_item_for_held_index(far_index))
+			return
+		singer.temporarilyRemoveItemFromInventory(in_near_hand, force = TRUE)
+		singer.put_in_hand(in_near_hand, far_index, forced = TRUE)
 	var/obj/item/prop = new prop_type(singer.drop_location())
-	if(!singer.put_in_hands(prop))
+	if(!singer.put_in_hand(prop, near_index, forced = TRUE))
 		qdel(prop)
 		return
 	ADD_TRAIT(prop, TRAIT_NODROP, FNF_BATTLE_TRAIT)
 	props += prop
+	mic_arm = singer.fnf_mic_arm(facing)
 
 /// Gives back everything lock_in() took. Safe to call more than once.
 /datum/fnf_side/proc/unlock()
