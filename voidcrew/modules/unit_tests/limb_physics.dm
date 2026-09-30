@@ -105,7 +105,12 @@
 	TEST_ASSERT(grip.multiplicative_slowdown <= 6, "Serverblight's hands slow people down without limit.")
 	chase.hold(null, 0)
 	TEST_ASSERT(!prey.has_movespeed_modifier(/datum/movespeed_modifier/serverblight_grip), "Serverblight's hands didn't let go.")
+	var/health_before = victim.maxHealth
 	chase.absorb(prey)
+	TEST_ASSERT_EQUAL(victim.maxHealth, health_before + 100, "Taking someone in didn't make Serverblight tougher.")
+	chase.update_hitboxes()
+	TEST_ASSERT_EQUAL(length(chase.hitboxes), 2, "Taking someone in didn't make Serverblight bigger to hit.")
+	var/obj/effect/serverblight_hitbox/hitbox = chase.hitboxes[1]
 	TEST_ASSERT_EQUAL(prey.loc, victim, "Serverblight didn't take its prey in.")
 	// Their body (12), their forearms two more hands.
 	TEST_ASSERT_EQUAL(length(blight.growths), 28 + 12, "Serverblight didn't grow its prey's body on.")
@@ -117,6 +122,8 @@
 	TEST_ASSERT(!QDELETED(blight), "Serverblight blew up with someone grown on.")
 	victim.set_limb_physics(FALSE)
 	TEST_ASSERT(QDELETED(chase), "Serverblight kept hunting after physics let go.")
+	TEST_ASSERT(QDELETED(hitbox), "Serverblight's hitboxes stayed after physics let go.")
+	TEST_ASSERT_EQUAL(victim.maxHealth, health_before, "Serverblight's victim kept its extra health after physics let go.")
 	TEST_ASSERT(isturf(prey.loc), "Serverblight kept its prey after physics let go.")
 	TEST_ASSERT(!HAS_TRAIT(victim, TRAIT_IMMOBILIZED) && !HAS_TRAIT(prey, TRAIT_IMMOBILIZED), "Serverblight's victims stayed held after physics let go.")
 	TEST_ASSERT(!(growth in victim.vis_contents), "Serverblight's growths stayed on after physics let go.")

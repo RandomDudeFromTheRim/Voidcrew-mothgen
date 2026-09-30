@@ -51,3 +51,5 @@
 #define SERVERBLIGHT_DEATH_TIME (1 MINUTES)
 /// With no gravity, how many fires between Serverblight throwing itself off things.
 #define SERVERBLIGHT_PUSHOFF_FIRES 5
+/// How much health each body Serverblight takes in adds to it.
+#define SERVERBLIGHT_HEALTH_PER_BODY 100

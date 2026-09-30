@@ -17,7 +17,9 @@
  *
  * Every head in it screams, all the time, each in its own voice, distorted.
  *
- * It can be killed like anyone. Damage doesn't slow it (nothing does: it isn't walking), but a hit
+ * It can be killed like anyone, but everyone it's taken in is more of it to get through:
+ * SERVERBLIGHT_HEALTH_PER_BODY more health each, and more of it to hit: a shot through a tile its
+ * mass sprawls over hits it (see update_hitboxes()). Damage doesn't slow it (nothing does: it isn't walking), but a hit
  * jerks the body, and a gun that kicks, or a shot that would knock someone down, shoves it back.
  * Dead, it falls in a heap for SERVERBLIGHT_DEATH_TIME, then gets back up, whole. Something it
  * can't get back up from (no head, say) ends it.
@@ -51,6 +53,10 @@
 	var/mob/living/carbon/held
 	/// When each voice screams next, by its place in get_voices(), as text.
 	var/list/next_screams = list()
+	/// Invisible stand-ins on the tiles round it that its mass sprawls over, taking shots for it.
+	var/list/obj/effect/serverblight_hitbox/hitboxes = list()
+	/// How much health everyone it's taken in has added to it.
+	var/bonus_health = 0
 	/// The fire it can next throw itself off something, with no gravity.
 	var/next_pushoff = 0
 	/// The timer getting it back up, while it's dead.
@@ -88,6 +94,7 @@
 /datum/serverblight_chase/Destroy()
 	STOP_PROCESSING(SSlimb_physics, src)
 	deltimer(rise_timer)
+	QDEL_LIST(hitboxes)
 	hold(null, 0)
 	if(world_handle)
 		vcphys_call("world_destroy", world_handle)
@@ -99,6 +106,8 @@
 			REMOVE_TRAITS_IN(taken, SERVERBLIGHT_TRAIT)
 	absorbed.Cut()
 	if(!QDELETED(host))
+		host.maxHealth -= bonus_health
+		host.updatehealth()
 		host.remove_offsets(SERVERBLIGHT_TRAIT, animate = FALSE)
 		host.set_dir_on_move = TRUE
 		host.rotate_on_lying = TRUE
@@ -160,6 +169,7 @@
 	place(state[1], state[2])
 	// Nothing to walk on, the legs just seize.
 	physics.walk_speed = host.has_gravity() ? sqrt(state[4] ** 2 + state[5] ** 2) : 0
+	update_hitboxes()
 	reach()
 
 /// The puck: list(x, y, angle, vx, vy, spin), in tiles. Null if it can't be read.
@@ -348,6 +358,9 @@
 	taken.ghostize(can_reenter_corpse = FALSE)
 	taken.set_limb_physics(FALSE)
 	absorbed += taken
+	bonus_health += SERVERBLIGHT_HEALTH_PER_BODY
+	host.maxHealth += SERVERBLIGHT_HEALTH_PER_BODY
+	host.updatehealth()
 	ADD_TRAIT(taken, TRAIT_IMMOBILIZED, SERVERBLIGHT_TRAIT)
 	ADD_TRAIT(taken, TRAIT_HANDS_BLOCKED, SERVERBLIGHT_TRAIT)
 	// Drawn from how they look before they're out of sight.
@@ -396,6 +409,9 @@
 	grip = 0
 	next_screams.Cut()
 	vcphys_call("body_set_velocity", world_handle, body, 0, 0, 0)
+	// Lying dead, it's only where it lies.
+	for(var/obj/effect/serverblight_hitbox/hitbox as anything in hitboxes)
+		hitbox.moveToNullspace()
 	host.visible_message(span_danger("[host] comes apart and lies still."))
 	rise_timer = addtimer(CALLBACK(src, PROC_REF(rise)), SERVERBLIGHT_DEATH_TIME, TIMER_STOPPABLE|TIMER_UNIQUE)
 
@@ -450,3 +466,54 @@
 /datum/serverblight_chase/proc/on_spacemove(atom/movable/source, movement_dir, continuous_move)
 	SIGNAL_HANDLER
 	return COMSIG_MOVABLE_STOP_SPACEMOVE
+
+/**
+ * Everyone it's taken in makes it bigger to hit: two more of the tiles round it for each, the ones
+ * its mass sprawls over (either side first, then above), wherever there's room.
+ */
+/datum/serverblight_chase/proc/update_hitboxes()
+	var/static/list/sprawl = list(EAST, WEST, NORTH, NORTHEAST, NORTHWEST)
+	var/wanted = min(length(absorbed) * 2, length(sprawl))
+	while(length(hitboxes) < wanted)
+		hitboxes += new /obj/effect/serverblight_hitbox(null, src)
+	var/turf/here = get_turf(host)
+	for(var/index in 1 to length(hitboxes))
+		var/obj/effect/serverblight_hitbox/hitbox = hitboxes[index]
+		var/turf/spot = here && get_step(here, sprawl[index])
+		if(!spot || spot.density)
+			if(hitbox.loc)
+				hitbox.moveToNullspace()
+			continue
+		if(hitbox.loc != spot)
+			hitbox.forceMove(spot)
+
+/// Where Serverblight's mass is, but not its body: stops shots, and hands them to the body.
+/obj/effect/serverblight_hitbox
+	name = "Serverblight"
+	invisibility = INVISIBILITY_ABSTRACT
+	anchored = TRUE
+	// Dense, so shots stop here; everything else is let through (see CanAllowThrough()).
+	density = TRUE
+	/// The hunt it's part of.
+	var/datum/serverblight_chase/chase
+
+/obj/effect/serverblight_hitbox/Initialize(mapload, datum/serverblight_chase/chase)
+	. = ..()
+	src.chase = chase
+
+/obj/effect/serverblight_hitbox/Destroy()
+	chase = null
+	return ..()
+
+/obj/effect/serverblight_hitbox/CanAllowThrough(atom/movable/mover, border_dir)
+	. = ..()
+	return . || !isprojectile(mover)
+
+/obj/effect/serverblight_hitbox/bullet_act(obj/projectile/proj, def_zone, piercing_hit = FALSE, blocked = 0)
+	. = ..()
+	if(. != BULLET_ACT_HIT)
+		return
+	var/mob/living/carbon/host = chase?.host
+	if(QDELETED(host) || host.stat == DEAD)
+		return BULLET_ACT_FORCE_PIERCE
+	return host.bullet_act(proj, def_zone, piercing_hit, host.check_projectile_armor(def_zone, proj))
