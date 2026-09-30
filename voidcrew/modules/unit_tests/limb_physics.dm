@@ -104,6 +104,7 @@
 	// are five more hands.
 	TEST_ASSERT_EQUAL(length(blight.growths), 28 + 24, "Serverblight didn't grow its prey's body on.")
 	TEST_ASSERT_EQUAL(length(blight.hands), 5 + 5, "Serverblight didn't get more hands from its prey.")
+	TEST_ASSERT(length(blight.glued), "Serverblight didn't glue its prey into itself.")
 	for(var/i in 1 to 10)
 		blight.process(0.1)
 		chase.process(0.1)

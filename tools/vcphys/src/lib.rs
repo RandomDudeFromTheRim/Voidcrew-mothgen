@@ -313,10 +313,13 @@ pub fn fixture_circle(args: &[String]) -> Reply {
     })
 }
 
-/// joint_revolute(world, body_a, body_b, anchor_x, anchor_y, lower, upper, motor_torque) -> joint
+/// joint_revolute(world, body_a, body_b, anchor_x, anchor_y, lower, upper, motor_torque[,
+/// collide_connected]) -> joint
 /// Pins two bodies together at a point in the world. The angle limits, if lower < upper, are
 /// relative to how the bodies sit now. A motor torque above 0 adds joint friction: a motor held
 /// at zero speed that can only push that hard, which keeps a ragdoll from flopping like string.
+/// collide_connected 1 lets the two bodies still collide with each other (Box2D otherwise stops
+/// jointed bodies colliding): pinned together where they overlap, they never stop pushing apart.
 pub fn joint_revolute(args: &[String]) -> Reply {
     let (a_id, b_id) = (handle(args, 1, "body_a")?, handle(args, 2, "body_b")?);
     let anchor = B2vec2::new(num(args, 3, "anchor_x")?, num(args, 4, "anchor_y")?);
@@ -329,7 +332,7 @@ pub fn joint_revolute(args: &[String]) -> Reply {
         }
         let mut def = B2revoluteJointDef::<NoData>::default();
         def.initialize(a, b, anchor);
-        def.base.collide_connected = false;
+        def.base.collide_connected = args.len() > 8 && num(args, 8, "collide_connected")? != 0.0;
         def.enable_limit = lower < upper;
         def.lower_angle = lower;
         def.upper_angle = upper;

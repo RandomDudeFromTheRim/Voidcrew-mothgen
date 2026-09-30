@@ -202,6 +202,7 @@
 	if(!prey_torso)
 		return FALSE
 	var/list/torso_frame = list(attach[1], attach[2], turn)
+	var/first_growth = length(growths) - length(made) + 1
 	// Their own forearms are hands now, and their legs walk with the rest, out of step.
 	var/stride = rand(0, 628) / 100
 	for(var/side in list("l", "r"))
@@ -222,8 +223,89 @@
 		var/list/arm_at = segment_point(torso_frame, prey_hips, list(shoulder[1], prey_hips[2] + (prey_neck[2] - prey_hips[2]) * rand(40, 95) / 100))
 		var/list/grown = grow_copy(prey_rig, prey_segments, list("[side]_arm", "[side]_forearm"), prey_torso, arm_at, turn + TORADIANS(pick(-1, 1) * rand(60, 150)), 1.6)
 		add_hand(grown["[side]_forearm"], prey_segments["[side]_forearm"], 1.6, 1)
+
+	// Glued into everything it's grown into, so it can never get out of it.
+	var/list/new_bodies = list()
+	for(var/index in first_growth to length(growths))
+		new_bodies += growths[index][3]
+	glue(new_bodies)
 	rig.sort_pieces()
 	return TRUE
+
+/**
+ * Glues each body to the few others nearest it (within half a metre): pinned together where they
+ * are, still colliding with each other, the pin seizing. Every fire, glued pieces lying in each
+ * other are shoved apart (see push_apart()), and the glue won't let them go.
+ */
+/datum/limb_physics/proc/glue(list/bodies)
+	var/list/states = read_states()
+	if(!states)
+		return
+	var/list/everything = list()
+	for(var/part_id in body_by_part)
+		everything += body_by_part[part_id]
+	for(var/list/growth as anything in growths)
+		everything += growth[3]
+	var/list/already = list()
+	for(var/list/pair as anything in glued)
+		already["[pair[1]]-[pair[2]]"] = TRUE
+		already["[pair[2]]-[pair[1]]"] = TRUE
+	for(var/body in bodies)
+		var/list/here = states["[body]"]
+		if(!here)
+			continue
+		// The nearest few, nearest first.
+		var/list/nearest = list()
+		for(var/other in everything)
+			if(other == body || already["[body]-[other]"])
+				continue
+			var/list/there = states["[other]"]
+			var/distance = there && sqrt((there[1] - here[1]) ** 2 + (there[2] - here[2]) ** 2)
+			if(isnull(distance) || distance > 0.5)
+				continue
+			nearest[other] = distance
+		sortTim(nearest, GLOBAL_PROC_REF(cmp_numeric_asc), associative = TRUE)
+		for(var/other in nearest.Copy(1, min(length(nearest), SERVERBLIGHT_GLUE_PER_PIECE) + 1))
+			var/list/there = states["[other]"]
+			var/joint = vcphys_call("joint_revolute", world_handle, body, other, (here[1] + there[1]) / 2, (here[2] + there[2]) / 2, 0, 0, 0, 1)
+			if(!joint)
+				continue
+			vcphys_call("joint_set_motor", world_handle, joint, 30, 250)
+			spasms += list(list(joint, 30, 250))
+			glued += list(list(body, other))
+			already["[body]-[other]"] = TRUE
+			already["[other]-[body]"] = TRUE
+
+/**
+ * Pushback, as physics engines do for props stuck inside each other: every glued pair lying less
+ * than SERVERBLIGHT_PUSHBACK_REACH apart is shoved apart, harder the deeper in they are. The glue
+ * holds, so they never get anywhere: they shake. And a governor: nothing goes faster than
+ * SERVERBLIGHT_TOP_SPEED, so the shaking never blows the simulation apart.
+ */
+/datum/limb_physics/proc/push_apart()
+	for(var/list/pair as anything in glued)
+		var/list/first = last_states["[pair[1]]"]
+		var/list/second = last_states["[pair[2]]"]
+		if(!first || !second)
+			continue
+		var/dx = second[1] - first[1]
+		var/dy = second[2] - first[2]
+		var/distance = sqrt(dx ** 2 + dy ** 2)
+		if(distance >= SERVERBLIGHT_PUSHBACK_REACH)
+			continue
+		if(distance < 0.001)
+			var/direction = rand(0, 359)
+			dx = cos(direction)
+			dy = sin(direction)
+			distance = 1
+		var/push = SERVERBLIGHT_PUSHBACK * (SERVERBLIGHT_PUSHBACK_REACH - min(distance, SERVERBLIGHT_PUSHBACK_REACH)) / SERVERBLIGHT_PUSHBACK_REACH
+		vcphys_call("body_impulse", world_handle, pair[2], push * dx / distance, push * dy / distance)
+		vcphys_call("body_impulse", world_handle, pair[1], -push * dx / distance, -push * dy / distance)
+	for(var/handle in last_states)
+		var/list/state = last_states[handle]
+		var/speed = sqrt(state[4] ** 2 + state[5] ** 2)
+		if(speed > SERVERBLIGHT_TOP_SPEED)
+			vcphys_call("body_set_velocity", world_handle, handle, state[4] * SERVERBLIGHT_TOP_SPEED / speed, state[5] * SERVERBLIGHT_TOP_SPEED / speed, clamp(state[6], -40, 40))
 
 /**
  * Grows copies of some of a rig's segments, jointed to each other as the rig has them, and the
@@ -482,6 +564,7 @@
 	hands.Cut()
 	chain_joints.Cut()
 	legs.Cut()
+	glued.Cut()
 	surroundings.Cut()
 	latched.Cut()
 	prey_x = null

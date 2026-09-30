@@ -158,3 +158,24 @@ fn a_slider_slides_along_walls_and_teleports() {
     assert!((moved[0] + 3.0).abs() < 0.01 && (moved[1] - 4.0).abs() < 0.01, "teleport didn't take: {moved:?}");
     assert!(call(fixture_circle, &[&world, &slider, "0", "0", "0", "1", "0", "0", "0"]).is_err());
 }
+
+/// Two boxes glued where they overlap, still colliding with each other: pushed apart, the glue
+/// holds them anyway.
+#[test]
+fn glued_bodies_still_collide() {
+    let world = ok(world_create, &["0", "0"]);
+    let a = ok(body_create, &[&world, "2", "0", "0", "0", "0", "0"]);
+    ok(fixture_box, &[&world, &a, "0.5", "0.5", "0", "0", "0", "1", "0.7", "0", "0"]);
+    let b = ok(body_create, &[&world, "2", "0.4", "0", "0", "0", "0"]);
+    ok(fixture_box, &[&world, &b, "0.5", "0.5", "0", "0", "0", "1", "0.7", "0", "0"]);
+    ok(joint_revolute, &[&world, &a, &b, "0.2", "0", "0", "0", "0", "1"]);
+    for _ in 0..30 {
+        ok(world_step, &[&world, "0.016666667", "8", "3", "1"]);
+    }
+    let read = |body: &str| -> Vec<f32> { ok(body_read, &[&world, body]).split(' ').skip(1).map(|v| v.parse().unwrap()).collect() };
+    let (first, second) = (read(&a), read(&b));
+    let apart = ((second[0] - first[0]).powi(2) + (second[1] - first[1]).powi(2)).sqrt();
+    // The overlap pushed them round the pin (they started 0.4 apart, overlapping by 0.6).
+    assert!(first[2].abs() + second[2].abs() > 0.01 || apart > 0.41, "they didn't collide: {first:?} {second:?}");
+    assert!(apart < 1.0, "the glue let go: {apart}");
+}

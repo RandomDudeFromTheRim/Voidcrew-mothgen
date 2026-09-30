@@ -67,6 +67,8 @@
 	var/list/merged = list()
 	/// Serverblight's walls and furniture from around it, as it goes.
 	var/list/surroundings = list()
+	/// Pieces Serverblight has glued together: list(body handle, body handle) each.
+	var/list/glued = list()
 	/// Serverblight's walking leg joints: list(joint handle, where in the stride it starts) each.
 	var/list/legs = list()
 	/// How fast the body's being moved about, in tiles a second, for its legs to keep up with.
@@ -201,6 +203,7 @@
 		seize()
 		walk_legs()
 		pull_tips()
+		push_apart()
 	// Always the same number of equal steps: the tick's actual length never comes into it.
 	if(!vcphys_call("world_step", world_handle, LIMB_PHYSICS_DT, velocity_iterations, position_iterations, LIMB_PHYSICS_STEPS_PER_FIRE))
 		qdel(src)

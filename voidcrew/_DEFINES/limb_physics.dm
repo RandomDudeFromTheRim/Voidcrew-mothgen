@@ -39,3 +39,11 @@
 #define SERVERBLIGHT_GRIP_SLOWDOWN 0.8
 /// The most Serverblight's hands slow anyone down, however many there are: slow, never stuck.
 #define SERVERBLIGHT_GRIP_MAX_SLOWDOWN 6
+/// How many of the pieces nearest it each piece of someone taken in is glued to.
+#define SERVERBLIGHT_GLUE_PER_PIECE 3
+/// How hard glued pieces lying in each other are shoved apart, at most, in newton-seconds a fire...
+#define SERVERBLIGHT_PUSHBACK 12
+/// ...and how close, in metres, they have to be for it.
+#define SERVERBLIGHT_PUSHBACK_REACH 0.9
+/// The fastest any piece of a Serverblighted body is let go, in metres a second.
+#define SERVERBLIGHT_TOP_SPEED 20
