@@ -32,13 +32,15 @@ GAME = 793089
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SONGS = ROOT / "data" / "fnf" / "songs"
 WEEKS = ROOT / "data" / "fnf" / "weeks"
+# GameJolt turns away Python's own user agent (403), so ask as a browser would.
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
 
 
 def api(path, data=None):
     request = urllib.request.Request(
         f"https://gamejolt.com/site-api/web/discover/games/{path}",
         data=json.dumps(data).encode() if data is not None else None,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
     )
     with urllib.request.urlopen(request, timeout=60) as reply:
         return json.load(reply)["payload"]
@@ -51,7 +53,8 @@ def download(to):
         sys.exit("GameJolt lists no downloads for Corruption+.")
     url = api(f"builds/get-download-url/{builds[0]['id']}", {"forceDownload": True})["url"]
     print(f"Downloading {builds[0]['primary_file']['filename']} ({builds[0]['primary_file']['filesize'] // 1_000_000} MB)...")
-    with urllib.request.urlopen(url, timeout=600) as reply, open(to, "wb") as out:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=600) as reply, open(to, "wb") as out:
         shutil.copyfileobj(reply, out)
 
 
