@@ -103,10 +103,13 @@
 
 /// She stands a step behind, halfway between the singers, if there's room.
 /datum/fnf_stage/proc/summon_girlfriend(turf/left_turf, turf/right_turf)
-	var/character = battle.song.girlfriend_character
-	if(!GLOB.fnf_opponents[character])
+	summon_girlfriend_as(battle.song.girlfriend_character)
+
+/// Summons someone to stand behind the singers, as one of the looks in opponents.dm.
+/datum/fnf_stage/proc/summon_girlfriend_as(character)
+	if(!GLOB.fnf_opponents[character] || !left_spot || !right_spot)
 		return
-	var/turf/middle = locate(round((left_turf.x + right_turf.x) / 2), left_turf.y + 1, left_turf.z)
+	var/turf/middle = locate(round((left_spot.x + right_spot.x) / 2), left_spot.y + 1, left_spot.z)
 	if(!middle || middle.is_blocked_turf(exclude_mobs = FALSE))
 		return
 	girlfriend = fnf_summon_opponent(character, middle)

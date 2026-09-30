@@ -54,6 +54,8 @@
 	var/lead_in = 0
 	/// Everything going on around the singers: the girlfriend, lyrics, props, the song's events.
 	var/datum/fnf_stage/stage
+	/// A Corruption+ song's cast, playing out (see corruption.dm).
+	var/datum/fnf_corruption/corruption
 	/// The kind of the last note missed, if it had one: what finished someone off.
 	var/last_miss_kind
 
@@ -84,6 +86,7 @@
 	QDEL_NULL(right)
 	sides.Cut()
 	QDEL_NULL(healthbar)
+	QDEL_NULL(corruption)
 	QDEL_NULL(stage)
 	if(npc && !QDELETED(npc))
 		do_sparks(3, FALSE, npc)
@@ -204,6 +207,8 @@
 	preload_onlookers(right_turf)
 	// After the listeners are in: the stage plays its intro to them.
 	stage = new(src, left_turf, right_turf)
+	if(song.corruption)
+		corruption = new(src)
 
 	state = FNF_STATE_COUNTDOWN
 	challenger.visible_message(span_boldnotice("[challenger] and [opponent] square up for a rhythm battle: [song.name]!"))
@@ -319,6 +324,7 @@
 			side.bop(crochet / 100)
 		stage?.bop(crochet / 100)
 	stage?.tick(now)
+	corruption?.tick(now)
 	var/list/events = chart["events"]
 	while(next_event <= length(events))
 		var/list/event = events[next_event]

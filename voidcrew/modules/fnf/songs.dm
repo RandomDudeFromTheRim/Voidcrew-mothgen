@@ -97,10 +97,11 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	for(var/file_name in flist(FNF_WEEKS_DIR))
 		if(copytext(file_name, -5) == ".json")
 			week_files += copytext(file_name, 1, -5)
-	var/list/week_ids = length(week_files) ? week_files : assoc_to_keys(GLOB.fnf_default_weeks)
+	// Fetched week lists, and Funkin's own for any that weren't (a mod's songs fetched on their own).
+	var/list/week_ids = week_files | assoc_to_keys(GLOB.fnf_default_weeks)
 	sortTim(week_ids, GLOBAL_PROC_REF(cmp_fnf_week))
 	for(var/week_id in week_ids)
-		var/list/week = length(week_files) ? fnf_read_json("[FNF_WEEKS_DIR][week_id].json") : GLOB.fnf_default_weeks[week_id]
+		var/list/week = (week_id in week_files) ? fnf_read_json("[FNF_WEEKS_DIR][week_id].json") : GLOB.fnf_default_weeks[week_id]
 		var/list/week_songs = list()
 		for(var/song_id in week?["songs"])
 			week_songs += by_id[song_id]
@@ -115,15 +116,17 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	GLOB.fnf_weeks = weeks
 	return weeks
 
-/// "Week 1" for week1, "Weekend 1" for weekend1, "Tutorial" for tutorial.
+/// "Week 1" for week1, "Weekend 1" for weekend1, "Tutorial" for tutorial, "Corruption+ 1" for Corruption+'s.
 /proc/fnf_week_label(week_id)
+	if(findtext(week_id, "corruption-") == 1)
+		return "Corruption+ [copytext(week_id, 12)]"
 	if(findtext(week_id, "weekend") == 1)
 		return "Weekend [copytext(week_id, 8)]"
 	if(findtext(week_id, "week") == 1)
 		return "Week [copytext(week_id, 5)]"
 	return capitalize(week_id)
 
-/// The tutorial first, then the weeks in order, then the weekends, then anything else.
+/// The tutorial first, then the weeks in order, then the weekends, then Corruption+, then anything else.
 /proc/cmp_fnf_week(week_a, week_b)
 	var/rank_a = fnf_week_rank(week_a)
 	var/rank_b = fnf_week_rank(week_b)
@@ -136,6 +139,8 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 		return 0
 	if(findtext(week_id, "weekend") == 1)
 		return 2000 + (text2num(copytext(week_id, 8)) || 0)
+	if(findtext(week_id, "corruption-") == 1)
+		return 2500 + (text2num(copytext(week_id, 12)) || 0)
 	if(findtext(week_id, "week") == 1)
 		return 1000 + (text2num(copytext(week_id, 5)) || 0)
 	return 3000
@@ -192,6 +197,12 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	var/valid = FALSE
 	/// For charts in the older format, each difficulty's chart file.
 	var/list/legacy_files
+	/// Who an older-format chart starts with, as it names them: list("player", "opponent", "gf").
+	var/list/legacy_cast
+	/// Its "Change Character" events: list(list(ms, "player"/"opponent"/"gf", character), ...).
+	var/list/character_changes
+	/// Whether it's one of Corruption+'s (see corruption.dm): its player is one of the mod's characters.
+	var/corruption = FALSE
 
 /datum/fnf_song/New(path, id, variation)
 	src.path = path
@@ -272,11 +283,22 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	name = first_song["song"] || id
 	if(isnum(first_song["bpm"]))
 		bpm = first_song["bpm"]
+	legacy_cast = list("player" = first_song["player1"], "opponent" = first_song["player2"], "gf" = first_song["gfVersion"] || first_song["player3"])
+	character_changes = read_character_changes(first_song)
 	if(fexists("[path]Voices-Player.ogg"))
 		player_voice_file = "[path]Voices-Player.ogg"
 	else
 		player_voice_file = find_voice(null, first_song["player1"])
 	opponent_character = fnf_base_character(first_song["player2"])
+	// Corruption+'s songs: its characters, as their looks here.
+	if(GLOB.fnf_corruption_cast[legacy_cast["player"]])
+		corruption = TRUE
+		opponent_character = GLOB.fnf_corruption_cast[legacy_cast["opponent"]]?["look"]
+		// Whoever's behind the speakers, wherever in the song they turn up first.
+		girlfriend_character = GLOB.fnf_corruption_cast[legacy_cast["gf"]]?["look"]
+		for(var/list/change as anything in character_changes)
+			if(!girlfriend_character && change[2] == "gf")
+				girlfriend_character = GLOB.fnf_corruption_cast[change[3]]?["look"]
 	if(fexists("[path]Voices-Opponent.ogg"))
 		opponent_voice_file = "[path]Voices-Opponent.ogg"
 	else
@@ -284,6 +306,37 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	if(!player_voice_file && fexists("[path]Voices.ogg"))
 		player_voice_file = "[path]Voices.ogg"
 	valid = TRUE
+
+/**
+ * An older-format song's "Change Character" events, from its chart and its events.json (Psych
+ * Engine keeps them in either, or both), in order: list(list(ms, role, character), ...).
+ */
+/datum/fnf_song/proc/read_character_changes(list/song_data)
+	var/list/raw = list()
+	for(var/list/entry in song_data["events"])
+		if(length(entry) >= 2)
+			raw += list(entry)
+	var/list/events_file = fnf_read_json("[path]events.json")
+	for(var/list/entry in events_file?["song"]?["events"])
+		if(length(entry) >= 2)
+			raw += list(entry)
+	var/static/list/roles = list("0" = "player", "bf" = "player", "boyfriend" = "player", "1" = "opponent", "dad" = "opponent", "2" = "gf", "gf" = "gf", "girlfriend" = "gf")
+	var/list/seen = list()
+	. = list()
+	for(var/list/entry as anything in raw)
+		var/list/events = entry[2]
+		if(!islist(events))
+			continue
+		for(var/list/event in events)
+			if(length(event) < 3 || event[1] != "Change Character")
+				continue
+			var/role = roles[lowertext(trim("[event[2]]"))]
+			var/key = "[entry[1]]-[role]-[event[3]]"
+			if(!role || seen[key])
+				continue
+			seen[key] = TRUE
+			. += list(list(entry[1], role, "[event[3]]"))
+	sortTim(., GLOBAL_PROC_REF(cmp_fnf_note))
 
 /// The first Voices-<name>.ogg that exists for these singers. Funkin' names variants like
 /// "bf-car", while the file is just Voices-bf, so the part before any hyphen is tried too. A mix's

@@ -16,6 +16,7 @@
  * - "mutant_colour", "ethereal_colour": for lizards and ethereals
  * - "gun": TRUE to hold a gun as well as the mic, or the prop gun's type
  * - "size": how big they're drawn, for the ones who tower over (or come up short of) Boyfriend
+ * - "socks": which socks they wear; "hair_gradient": list(gradient style, colour) for their hair
  * - "face_eyes": the eyes their face has in a battle (see faces.dm), if not solid black: "white" for
  *   the ones Funkin' draws with white eyes, "demon" for Daddy and Mommy Dearest's red glare
  */
@@ -212,6 +213,84 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		"species" = /datum/species/ethereal,
 		"ethereal_colour" = "#ff3a3a",
 	),
+	// Corruption+'s (see corruption.dm), as their sprites have them.
+	"kapi" = list(
+		// PaperKitty's arcade cat: grey fur and hair, a blue jacket, dark grey trousers, blue sneakers.
+		"name" = "Kapi",
+		"species" = /datum/species/human/felinid,
+		"skin" = "#b8b8c4",
+		"hair" = "Messy",
+		"hair_colour" = "#848484",
+		"eyes" = "#1a1a24",
+		"outfit" = list(
+			list(/obj/item/clothing/under/color, "#3c3c48"),
+			list(/obj/item/clothing/suit/jacket/oversized, "#4860c0"),
+			list(/obj/item/clothing/shoes/sneakers, "#4860c0#f4f4f4"),
+		),
+	),
+	"skarlet" = list(
+		// Rechi's Skarlet Bunny: pink-white fur, hot pink hair, bunny ears, a blue jacket over white,
+		// black boots.
+		"name" = "Skarlet",
+		"species" = /datum/species/human,
+		"female" = TRUE,
+		"skin" = "#f8d4e8",
+		"hair" = "Long Fringe",
+		"hair_colour" = "#fc006c",
+		"eyes" = "#78006c",
+		"outfit" = list(
+			list(/obj/item/clothing/under/costume/buttondown/shorts, "#fce4f0#fc006c#b4a8fc#303048"),
+			list(/obj/item/clothing/suit/jacket/oversized, "#0c609c"),
+			list(/obj/item/clothing/head/costume/rabbitears, null),
+			list(/obj/item/clothing/shoes/jackboots, null),
+		),
+	),
+	"carol" = list(
+		// bb-panzu's Carol: brown skin, a big black afro, a maroon turtleneck over a black skirt,
+		// striped knee socks and light brown boots.
+		"name" = "Carol",
+		"species" = /datum/species/human,
+		"female" = TRUE,
+		"skin" = "#6e4424",
+		"hair" = "Afro (Large)",
+		"hair_colour" = "#161214",
+		"eyes" = "#1a1a1a",
+		"socks" = "Knee-high (Striped)",
+		"outfit" = list(
+			list(/obj/item/clothing/under/dress/skirt/turtleskirt, "#6e1e3c#1a1a1e"),
+			list(/obj/item/clothing/shoes/winterboots, null),
+		),
+	),
+	"mora" = list(
+		// Broken Wires' last surprise: pale, black hair going purple, a purple top, black cargo
+		// trousers, white sneakers.
+		"name" = "Mora",
+		"species" = /datum/species/human,
+		"female" = TRUE,
+		"skin" = "#f0f0fc",
+		"hair" = "Messy",
+		"hair_colour" = "#24243c",
+		"hair_gradient" = list("Fade Down", "#543ca8"),
+		"eyes" = "#301890",
+		"outfit" = list(
+			list(/obj/item/clothing/under/costume/buttondown/slacks, "#543ca8#c0c0c8#24243c#24243c"),
+			list(/obj/item/clothing/shoes/sneakers, "#f0f0fc#f0f0fc"),
+		),
+	),
+	"marble" = list(
+		// A cat girl behind the speaker, only ever seen long corrupted: dark all over.
+		"name" = "Marble",
+		"species" = /datum/species/human/felinid,
+		"female" = TRUE,
+		"skin" = "#3c3c48",
+		"hair" = "Long Fringe",
+		"hair_colour" = "#242424",
+		"eyes" = "#1a1a1a",
+		"outfit" = list(
+			list(/obj/item/clothing/under/color, "#242424"),
+			list(/obj/item/clothing/shoes/jackboots, null),
+		),
+	),
 ))
 
 /proc/fnf_summon_opponent(character, turf/spot)
@@ -241,6 +320,12 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	if(look["hair"])
 		npc.set_hairstyle(look["hair"], update = FALSE)
 		npc.set_haircolor(look["hair_colour"], update = FALSE)
+	var/list/gradient = look["hair_gradient"]
+	if(gradient)
+		npc.grad_style[GRADIENT_HAIR_KEY] = gradient[1]
+		npc.grad_color[GRADIENT_HAIR_KEY] = gradient[2]
+	if(look["socks"])
+		npc.socks = look["socks"]
 	if(look["eyes"])
 		npc.set_eye_color(look["eyes"], look["eyes"])
 	// Skin no human skin tone covers (Daddy and Mommy are lavender).
@@ -260,6 +345,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	if(look["size"])
 		npc.update_transform(look["size"])
 	npc.fnf_face_eyes = look["face_eyes"]
+	npc.fnf_look = character
 	if(!npc.dna.species.limb_rig_shape?["always"])
 		npc.add_quirk(/datum/quirk/overanimated)
 	// Everyone faces east, so the right hand is the one the crowd sees. Gunners keep the gun there

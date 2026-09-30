@@ -15,6 +15,8 @@
 /mob/living/carbon
 	/// Which eyes this singer's face has in a rhythm battle, if not solid black: "white" or "demon".
 	var/fnf_face_eyes
+	/// Which of opponents.dm's looks this is, if it was summoned as one.
+	var/fnf_look
 
 /datum/limb_rig
 	/// The face being pulled, while a rhythm battle has one on.
@@ -81,6 +83,8 @@
 /datum/limb_rig/sprites/get_fnf_face_images(expression)
 	if(sprite_icon != 'voidcrew/modules/expie/icons/rig.dmi')
 		return list()
+	if(is_face_corrupted())
+		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_experiment_corrupt.dmi', "experiment", expression, -16)
 	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi', "experiment_[expression]")
 	// Its sprites are 64 wide, drawn from 16 pixels left of the piece.
 	face.pixel_w = -16
@@ -97,6 +101,8 @@
 	var/face_set = get_fnf_face_set(head?.limb_id)
 	if(!face_set)
 		return list()
+	if(is_face_corrupted())
+		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_corrupt.dmi', face_set, expression, 0)
 	var/image/cover = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set]_cover")
 	cover.layer = FLOAT_LAYER
 	// The head's own shade, tinted as the head is (a head drawn in its own colours isn't).
@@ -122,3 +128,21 @@
 		if(SPECIES_SKELETON)
 			return "skeleton"
 	return "human"
+
+/// Whether corruption has taken the face (see corruption.dm).
+/datum/limb_rig/proc/is_face_corrupted()
+	return corruption && get_corruption_of(RIG_HEAD, null) >= FNF_CORRUPTION_FACE
+
+/**
+ * A corrupted face: glowing, so drawn in its own colours whatever's drained the rest, and lit in
+ * the dark.
+ */
+/datum/limb_rig/proc/get_corrupted_face_images(face_icon, face_set, expression, offset)
+	var/state = "[face_set]_[corruption_eyes == "red" ? "corruptred" : "corrupt"]_[expression == "blink" ? "idle" : expression]"
+	var/image/face = image(face_icon, state)
+	face.pixel_w = offset
+	face.layer = FLOAT_LAYER
+	face.appearance_flags = RESET_COLOR
+	var/mutable_appearance/glow = emissive_appearance(face_icon, state, owner, FLOAT_LAYER, appearance_flags = RESET_COLOR)
+	glow.pixel_w = offset
+	return list(face, glow)

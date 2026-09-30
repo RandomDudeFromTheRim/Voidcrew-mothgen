@@ -84,3 +84,39 @@
 	singer.fnf_rest()
 	TEST_ASSERT_NULL(rig.fnf_face, "The face stayed on after the battle.")
 	TEST_ASSERT_NULL(rig.fnf_face_images, "The face is still drawn after the battle.")
+
+/// Corruption+'s cast all have looks, a body corrupts piece by piece and comes back clean, and a
+/// song's character changes are read from its chart and its events file, in order, once each.
+/datum/unit_test/fnf_corruption
+
+/datum/unit_test/fnf_corruption/Run()
+	for(var/character in GLOB.fnf_corruption_cast)
+		var/list/cast = GLOB.fnf_corruption_cast[character]
+		if(cast["look"])
+			TEST_ASSERT(GLOB.fnf_opponents[cast["look"]], "Corruption+'s [character] has no look: [cast["look"]].")
+
+	var/mob/living/carbon/human/consistent/singer = allocate(/mob/living/carbon/human/consistent)
+	singer.update_limb_rig()
+	singer.setDir(EAST)
+	var/datum/limb_rig/rig = singer.limb_rig
+	rig.set_corruption(0.1)
+	// The far side goes first: facing east, the left arm's taken before the right.
+	TEST_ASSERT(rig.get_corruption_of("l_arm", "l") > rig.get_corruption_of("r_arm", "l"), "Corruption didn't start on the far side.")
+	TEST_ASSERT(!rig.is_face_corrupted(), "The face was taken with barely any corruption.")
+	rig.set_corruption(1, "red")
+	TEST_ASSERT(length(rig.corruption_images), "Corruption drew nothing on the body.")
+	TEST_ASSERT(rig.is_face_corrupted(), "Full corruption didn't take the face.")
+	rig.set_corruption(0)
+	TEST_ASSERT_NULL(rig.corruption_images, "Corruption stayed drawn on the body after it was cleared.")
+
+	var/datum/fnf_song/song = new("data/fnf/tests/", "none")
+	song.path = "data/fnf/tests/"
+	var/list/changes = song.read_character_changes(list("events" = list(
+		list(2000, list(list("Change Character", "1", "kapi1"))),
+		list(1000, list(list("Change Character", "dad", "kapi"), list("Change Character", "2", "speakers"))),
+		list(2000, list(list("Change Character", "1", "kapi1"))),
+		list(3000, list(list("Play Animation", "meow", "Dad"))),
+	)))
+	TEST_ASSERT_EQUAL(length(changes), 3, "A chart's character changes weren't read once each.")
+	var/list/first = changes[1]
+	TEST_ASSERT(first[1] == 1000 && first[2] == "opponent" && first[3] == "kapi", "A chart's character changes are out of order, or their roles are wrong.")

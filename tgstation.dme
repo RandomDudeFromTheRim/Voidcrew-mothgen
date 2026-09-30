@@ -7026,6 +7026,7 @@
 #include "voidcrew\modules\dynamic_events\events\vent_clog.dm"
 #include "voidcrew\modules\dynamic_events\events\wormholes.dm"
 #include "voidcrew\modules\fnf\battle.dm"
+#include "voidcrew\modules\fnf\corruption.dm"
 #include "voidcrew\modules\fnf\faces.dm"
 #include "voidcrew\modules\fnf\game_over.dm"
 #include "voidcrew\modules\fnf\hud.dm"

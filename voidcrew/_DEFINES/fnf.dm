@@ -39,3 +39,13 @@
 /// Priority of a summoned opponent's skin colour over their limbs: the lowest, so anything else
 /// that recolours limbs (a hulk's green) still wins.
 #define FNF_SKIN_PRIORITY 1
+
+// Corruption+ songs (voidcrew/modules/fnf/corruption.dm).
+/// The colour corruption coats things in.
+#define FNF_CORRUPTION_COLOUR "#261636"
+/// What corrupted hands turn.
+#define FNF_CORRUPTION_HANDS "#a8102c"
+/// How much of the corruption it takes to swallow one piece of the body, start to finish.
+#define FNF_CORRUPTION_SPAN 0.35
+/// How far a head's taken over before its face is the corruption's.
+#define FNF_CORRUPTION_FACE 0.75
