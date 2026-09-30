@@ -47,10 +47,38 @@
 	/// Whether Serverblight has this body.
 	var/blighted = FALSE
 	/// What Serverblight grew on it: list(skin piece, clothes piece or null, body handle, the
-	/// segment it's a copy of, length scale, width scale) each.
+	/// segment's origin in its sprite, length scale, width scale, the clothes' map or null) each.
 	var/list/growths = list()
-	/// The bodies at the ends of Serverblight's growths, pulled outward every fire.
+	/// The bodies at the ends of Serverblight's growths, pulled on every fire.
 	var/list/tips = list()
+	/// Serverblight's hands: each a list of its fingers, list(body handle, list(x, y) from the
+	/// finger's joint to its tip in metres, before it's turned).
+	var/list/hands = list()
+	/// Every joint Serverblight has seizing: list(joint handle, top speed, torque) each.
+	var/list/spasms = list()
+	/// Which of Serverblight's hands have hold of its prey, by their index in hands, as text.
+	var/list/latched = list()
+	/// The joints along Serverblight's long arms, which go slack to grab.
+	var/list/chain_joints = list()
+	/// Where whoever Serverblight is reaching for stands, in metres in the body's frame, if anyone.
+	var/prey_x
+	var/prey_y
+	/// Everyone Serverblight has taken into this body, to grow back on if it starts over.
+	var/list/merged = list()
+	/// Serverblight's walls and furniture from around it, as it goes.
+	var/list/surroundings = list()
+	/// Serverblight's walking leg joints: list(joint handle, where in the stride it starts) each.
+	var/list/legs = list()
+	/// How fast the body's being moved about, in tiles a second, for its legs to keep up with.
+	var/walk_speed = 0
+	/// How far through a stride the legs are, in radians.
+	var/walk_phase = 0
+	/// The joints grow_copy() made last, by piece id.
+	var/list/last_joints
+	/// The joint grow() made last.
+	var/last_growth_joint
+	/// Serverblight's hunt, moving the body about, while it has one.
+	var/datum/serverblight_chase/chase
 
 /datum/limb_physics/New(datum/limb_rig/sprites/rig)
 	src.rig = rig
@@ -62,6 +90,8 @@
 
 /datum/limb_physics/Destroy()
 	STOP_PROCESSING(SSlimb_physics, src)
+	QDEL_NULL(chase)
+	merged.Cut()
 	if(blighted && !QDELETED(rig?.owner))
 		REMOVE_TRAITS_IN(rig.owner, SERVERBLIGHT_TRAIT)
 	destroy_world()
@@ -102,6 +132,11 @@
 		return
 	if(was_blighted)
 		blight()
+		for(var/mob/living/carbon/prey as anything in merged.Copy())
+			if(QDELETED(prey) || prey.loc != rig.owner)
+				merged -= prey
+				continue
+			merge(prey)
 
 /**
  * Makes the world: a floor and walls, and a body for every segment, starting exactly where the
@@ -162,7 +197,9 @@
 	if(QDELETED(rig) || QDELETED(rig.owner))
 		qdel(src)
 		return PROCESS_KILL
-	if(length(tips))
+	if(blighted)
+		seize()
+		walk_legs()
 		pull_tips()
 	// Always the same number of equal steps: the tick's actual length never comes into it.
 	if(!vcphys_call("world_step", world_handle, LIMB_PHYSICS_DT, velocity_iterations, position_iterations, LIMB_PHYSICS_STEPS_PER_FIRE))

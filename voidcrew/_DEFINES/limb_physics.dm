@@ -21,3 +21,21 @@
 #define LIMB_PHYSICS_HUMAN_HAND_Y 12.5
 /// The trait source Serverblight holds its victim still with.
 #define SERVERBLIGHT_TRAIT "serverblight"
+/// How many metres of the ragdoll's frame a tile is.
+#define SERVERBLIGHT_TILE_METRES (32 / LIMB_PHYSICS_PPM)
+/// How fast Serverblight hunts, in tiles a second.
+#define SERVERBLIGHT_SPEED 5.5
+/// How far it can see someone to hunt them, in tiles.
+#define SERVERBLIGHT_SIGHT 8
+/// Someone in reach of Serverblight's hands, to them: a box this big, in metres, feet at the bottom.
+#define SERVERBLIGHT_PREY_HALF_WIDTH 0.45
+#define SERVERBLIGHT_PREY_HALF_HEIGHT 0.9
+/// How much holding it takes to take someone: a point for every hand on them, every fire (with
+/// five hands, six fires of all of them). Nothing holding them, it slips back two a fire.
+#define SERVERBLIGHT_ASSIMILATION 30
+/// How many people taken in are grown onto the body. Past that they're only taken.
+#define SERVERBLIGHT_MAX_DRAWN_MERGES 3
+/// How much slower someone moves for each of Serverblight's hands on them, in deciseconds a tile.
+#define SERVERBLIGHT_GRIP_SLOWDOWN 0.8
+/// The most Serverblight's hands slow anyone down, however many there are: slow, never stuck.
+#define SERVERBLIGHT_GRIP_MAX_SLOWDOWN 6

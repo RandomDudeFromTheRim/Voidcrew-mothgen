@@ -132,3 +132,29 @@ fn collisions_limits_and_motors_can_change() {
     ok(world_destroy, &[&world]);
     ok(world_destroy, &[&world2]);
 }
+
+/// Top-down, as the Serverblight chase uses it: no gravity, a circle that never turns, sliding
+/// along a wall it's pushed into, then teleported and stopped while touching it.
+#[test]
+fn a_slider_slides_along_walls_and_teleports() {
+    let world = ok(world_create, &["0", "0"]);
+    let wall = ok(body_create, &[&world, "0", "2", "0", "0", "0", "0"]);
+    ok(fixture_box, &[&world, &wall, "0.5", "5", "0", "0", "0", "0", "0", "0", "0"]);
+    let slider = ok(body_create, &[&world, "2", "1.2", "0", "0", "1", "0", "0", "1"]);
+    ok(fixture_circle, &[&world, &slider, "0.3", "0", "0", "1", "0", "0", "0"]);
+    for _ in 0..60 {
+        // Diagonally into the wall: the wall stops the x, the y carries on.
+        ok(body_force, &[&world, &slider, "3", "3"]);
+        ok(world_step, &[&world, "0.016666667", "8", "3", "1"]);
+    }
+    let state: Vec<f32> = ok(body_read, &[&world, &slider]).split(' ').skip(1).map(|v| v.parse().unwrap()).collect();
+    assert!(state[0] < 1.21, "went into the wall: x {}", state[0]);
+    assert!(state[1] > 0.5, "didn't slide along it: y {}", state[1]);
+    assert_eq!(state[2], 0.0, "turned with fixed rotation");
+    ok(body_set_transform, &[&world, &slider, "-3", "4", "0"]);
+    ok(body_set_velocity, &[&world, &slider, "0", "0", "0"]);
+    ok(world_step, &[&world, "0.016666667", "8", "3", "1"]);
+    let moved: Vec<f32> = ok(body_read, &[&world, &slider]).split(' ').skip(1).map(|v| v.parse().unwrap()).collect();
+    assert!((moved[0] + 3.0).abs() < 0.01 && (moved[1] - 4.0).abs() < 0.01, "teleport didn't take: {moved:?}");
+    assert!(call(fixture_circle, &[&world, &slider, "0", "0", "0", "1", "0", "0", "0"]).is_err());
+}

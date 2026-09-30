@@ -1,0 +1,326 @@
+/**
+ * Serverblight's hunt: the one thing in the game that doesn't move tile to tile.
+ *
+ * The blighted body is a puck in a top-down Box2D world of its own (no gravity, a metre to a tile),
+ * walled in by the dense tiles and furniture around it. It's pushed after whoever's nearest, so it
+ * speeds up, overshoots, slides along walls and lurches sideways, the way things move in SS14
+ * rather than the way mobs walk here. The mob follows the puck: onto whichever tile it's over, and
+ * pixel-shifted the rest of the way, so it's drawn exactly where it is between tiles.
+ *
+ * Close enough, the ragdoll's hands go for its prey (see /datum/limb_physics/proc/set_prey()).
+ * Each hand that has hold of them slows them down more, until they tear loose or get away, and
+ * every hand on them every tick brings them closer to being taken: they leave their body, and
+ * their body is folded into the mass, bringing more hands.
+ */
+/datum/serverblight_chase
+	/// The ragdoll this is moving about.
+	var/datum/limb_physics/physics
+	/// The blighted mob.
+	var/mob/living/carbon/host
+	/// The top-down world, as the library's handle.
+	var/world_handle
+	/// The puck the mob follows.
+	var/body
+	/// The walls' handles, rebuilt as it goes.
+	var/list/wall_bodies = list()
+	/// Where the walls were last built around.
+	var/turf/walls_centre
+	/// The tile the mob was last put on, to notice anyone else moving it.
+	var/turf/last_turf
+	/// Who it's after, if anyone.
+	var/mob/living/carbon/prey
+	/// The way to them, when they aren't in a straight line: turfs, next one first.
+	var/list/path
+	/// Fires so far.
+	var/fires = 0
+	/// How near the prey is to being taken: a point for every hand on them, every fire.
+	var/grip = 0
+	/// Everyone it has taken, held inside the mob.
+	var/list/absorbed = list()
+	/// Whoever its hands are slowing down, if anyone.
+	var/mob/living/carbon/held
+	/// Whether the mob could already pass through other mobs before this.
+	var/had_passmob
+
+/datum/serverblight_chase/New(datum/limb_physics/physics)
+	src.physics = physics
+	host = physics.rig.owner
+	physics.chase = src
+	var/turf/here = get_turf(host)
+	world_handle = vcphys_call("world_create", 0, 0)
+	body = world_handle && vcphys_call("body_create", world_handle, LIMB_PHYSICS_DYNAMIC, here.x + 0.5, here.y + 0.5, 0, 0, 0, 0, 1)
+	// A kilogram, so an impulse is the change in speed.
+	if(!body || !vcphys_call("fixture_circle", world_handle, body, 0.3, 0, 0, 1 / (PI * 0.3 ** 2), 0, 0, 0))
+		qdel(src)
+		return
+	last_turf = here
+	had_passmob = host.pass_flags & PASSMOB
+	// Over people rather than stopped by them: it has to get its hands round them.
+	host.pass_flags |= PASSMOB
+	// Sliding every which way without turning round (turning would start the ragdoll over).
+	host.set_dir_on_move = FALSE
+	build_walls()
+	START_PROCESSING(SSlimb_physics, src)
+
+/datum/serverblight_chase/Destroy()
+	STOP_PROCESSING(SSlimb_physics, src)
+	hold(null, 0)
+	if(world_handle)
+		vcphys_call("world_destroy", world_handle)
+	world_handle = null
+	var/turf/drop = get_turf(host)
+	for(var/mob/living/carbon/taken as anything in absorbed)
+		if(!QDELETED(taken) && taken.loc == host)
+			taken.forceMove(drop)
+			REMOVE_TRAITS_IN(taken, SERVERBLIGHT_TRAIT)
+	absorbed.Cut()
+	if(!QDELETED(host))
+		host.remove_offsets(SERVERBLIGHT_TRAIT, animate = FALSE)
+		host.set_dir_on_move = TRUE
+		if(!had_passmob)
+			host.pass_flags &= ~PASSMOB
+	if(physics?.chase == src)
+		physics.chase = null
+		physics.set_prey(null, null)
+	physics = null
+	host = null
+	prey = null
+	path = null
+	return ..()
+
+/datum/serverblight_chase/process(seconds_per_tick)
+	if(QDELETED(host) || QDELETED(physics))
+		qdel(src)
+		return PROCESS_KILL
+	// Shut in something, or buckled: wait it out.
+	if(!isturf(host.loc) || host.buckled)
+		return
+	fires++
+	var/turf/here = host.loc
+	// Moved by something else (pulled, thrown, teleported): pick up from there.
+	if(here != last_turf)
+		vcphys_call("body_set_transform", world_handle, body, here.x + 0.5, here.y + 0.5, 0)
+		vcphys_call("body_set_velocity", world_handle, body, 0, 0, 0)
+		last_turf = here
+		host.remove_offsets(SERVERBLIGHT_TRAIT, animate = FALSE)
+		build_walls()
+		physics.add_surroundings()
+	else if(fires % 10 == 0 || get_dist(here, walls_centre) > 2)
+		build_walls()
+	if(fires % 5 == 0 || !is_prey(prey))
+		find_prey()
+	var/list/state = read_puck()
+	if(!state)
+		qdel(src)
+		return PROCESS_KILL
+	steer(state)
+	if(!vcphys_call("world_step", world_handle, LIMB_PHYSICS_DT, LIMB_PHYSICS_VELOCITY_ITERATIONS, LIMB_PHYSICS_POSITION_ITERATIONS, LIMB_PHYSICS_STEPS_PER_FIRE))
+		qdel(src)
+		return PROCESS_KILL
+	state = read_puck()
+	if(!state)
+		qdel(src)
+		return PROCESS_KILL
+	place(state[1], state[2])
+	physics.walk_speed = sqrt(state[4] ** 2 + state[5] ** 2)
+	reach()
+
+/// The puck: list(x, y, angle, vx, vy, spin), in tiles. Null if it can't be read.
+/datum/serverblight_chase/proc/read_puck()
+	var/reply = vcphys_call("body_read", world_handle, body)
+	var/list/fields = reply && splittext(reply, " ")
+	if(length(fields) != 7)
+		return null
+	. = list()
+	for(var/i in 2 to 7)
+		var/value = text2num(fields[i])
+		if(!isnum(value) || value != value)
+			return null
+		. += value
+
+/// Walls round the mob, a tile's radius past what it can see: anything it couldn't walk into.
+/datum/serverblight_chase/proc/build_walls()
+	for(var/wall in wall_bodies)
+		vcphys_call("body_destroy", world_handle, wall)
+	wall_bodies.Cut()
+	walls_centre = get_turf(host)
+	if(!walls_centre)
+		return
+	var/range = SERVERBLIGHT_SIGHT + 1
+	for(var/turf/spot as anything in RANGE_TURFS(range, walls_centre))
+		if(spot == walls_centre || !spot.is_blocked_turf(TRUE, host))
+			continue
+		var/wall = vcphys_call("body_create", world_handle, LIMB_PHYSICS_STATIC, spot.x + 0.5, spot.y + 0.5, 0, 0, 0)
+		if(wall && vcphys_call("fixture_box", world_handle, wall, 0.5, 0.5, 0, 0, 0, 0, 0, 0, 0))
+			wall_bodies += wall
+	// The map's edge.
+	for(var/list/edge in list(list(0.5, world.maxy / 2, 0.5, world.maxy), list(world.maxx + 0.5, world.maxy / 2, 0.5, world.maxy), list(world.maxx / 2, 0.5, world.maxx, 0.5), list(world.maxx / 2, world.maxy + 0.5, world.maxx, 0.5)))
+		var/wall = vcphys_call("body_create", world_handle, LIMB_PHYSICS_STATIC, edge[1], edge[2], 0, 0, 0)
+		if(wall && vcphys_call("fixture_box", world_handle, wall, edge[3], edge[4], 0, 0, 0, 0, 0, 0, 0))
+			wall_bodies += wall
+
+/// Whether someone is worth hunting.
+/datum/serverblight_chase/proc/is_prey(mob/living/carbon/who)
+	return istype(who) && !QDELETED(who) && who != host && who.stat != DEAD && isturf(who.loc) && who.z == host.z && !(who in absorbed) && !who.limb_rig?.physics?.blighted && get_dist(who, host) <= SERVERBLIGHT_SIGHT
+
+/// The nearest person it can see, players first.
+/datum/serverblight_chase/proc/find_prey()
+	var/mob/living/carbon/best
+	var/best_score = INFINITY
+	for(var/mob/living/carbon/who in view(SERVERBLIGHT_SIGHT, host))
+		if(!is_prey(who))
+			continue
+		var/score = get_dist(who, host) + (who.client ? 0 : 100)
+		if(score < best_score)
+			best = who
+			best_score = score
+	if(best != prey)
+		path = null
+	prey = best
+
+/**
+ * Pushes the puck toward its prey: straight at them if nothing's in the way, else along a path
+ * round. Not smoothly: it lurches sideways and stops dead now and then, and never quite goes
+ * where it means to.
+ */
+/datum/serverblight_chase/proc/steer(list/state)
+	var/goal_x
+	var/goal_y
+	if(prey)
+		var/turf/prey_turf = get_turf(prey)
+		if(get_dist(host, prey) <= 1 || !length(get_line_blockers(prey_turf)))
+			path = null
+			goal_x = prey_turf.x + 0.5
+			goal_y = prey_turf.y + 0.5
+		else
+			if(!length(path) || fires % 10 == 0)
+				path = get_path_to(host, prey_turf, SERVERBLIGHT_SIGHT * 3, simulated_only = FALSE)
+			while(length(path))
+				var/turf/next = path[1]
+				if(abs(next.x + 0.5 - state[1]) >= 0.35 || abs(next.y + 0.5 - state[2]) >= 0.35)
+					goal_x = next.x + 0.5
+					goal_y = next.y + 0.5
+					break
+				path.Cut(1, 2)
+	var/want_x = 0
+	var/want_y = 0
+	if(!isnull(goal_x) && !prob(6))
+		var/dx = goal_x - state[1]
+		var/dy = goal_y - state[2]
+		var/distance = sqrt(dx ** 2 + dy ** 2)
+		if(distance > 0.05)
+			var/speed = min(SERVERBLIGHT_SPEED, distance * 6)
+			want_x = dx / distance * speed
+			want_y = dy / distance * speed
+	// Most of the way to the speed it wants each tick, no harder than about four gees.
+	var/push_x = (want_x - state[4]) * 0.6
+	var/push_y = (want_y - state[5]) * 0.6
+	var/push = sqrt(push_x ** 2 + push_y ** 2)
+	if(push > 4)
+		push_x *= 4 / push
+		push_y *= 4 / push
+	if(prob(12))
+		// A lurch across the way it's going.
+		var/across = pick(-1, 1) * rand(20, 40) / 10
+		var/speed = max(sqrt(state[4] ** 2 + state[5] ** 2), 0.1)
+		push_x += -state[5] / speed * across
+		push_y += state[4] / speed * across
+	vcphys_call("body_impulse", world_handle, body, push_x, push_y)
+
+/// Opaque or dense turfs between the mob and a turf.
+/datum/serverblight_chase/proc/get_line_blockers(turf/target)
+	. = list()
+	for(var/turf/spot as anything in get_line(get_turf(host), target))
+		if(spot.opacity || spot.is_blocked_turf(TRUE, host))
+			. += spot
+
+/// Puts the mob where the puck is: on the tile under it, shifted the rest of the way.
+/datum/serverblight_chase/proc/place(x, y)
+	var/turf/target = locate(floor(x), floor(y), host.z)
+	var/old_w = host.pixel_w
+	var/old_z = host.pixel_z
+	if(target && target != last_turf)
+		var/turf/from = last_turf
+		host.Move(target, get_dir(from, target), world.icon_size)
+		var/turf/now = get_turf(host)
+		if(now != target)
+			// Something the walls didn't have (someone's door shut, a wall went up): back onto the
+			// tile it's on, stopped.
+			x = clamp(x, now.x + 0.2, now.x + 0.8)
+			y = clamp(y, now.y + 0.2, now.y + 0.8)
+			vcphys_call("body_set_transform", world_handle, body, x, y, 0)
+			vcphys_call("body_set_velocity", world_handle, body, 0, 0, 0)
+			walls_centre = null
+		old_w += (from.x - now.x) * world.icon_size
+		old_z += (from.y - now.y) * world.icon_size
+		last_turf = now
+		physics.add_surroundings()
+	// Offset the rest of the way, easing there over the tick from where it's drawn now.
+	host.add_offsets(SERVERBLIGHT_TRAIT, round((x - last_turf.x - 0.5) * world.icon_size), null, null, round((y - last_turf.y - 0.5) * world.icon_size), animate = FALSE)
+	var/new_w = host.pixel_w
+	var/new_z = host.pixel_z
+	host.pixel_w = old_w
+	host.pixel_z = old_z
+	animate(host, pixel_w = new_w, pixel_z = new_z, time = SSlimb_physics.wait)
+
+/**
+ * Tells the ragdoll's hands where the prey is, if it's in reach, and takes them if every hand's
+ * been on them long enough. Any hand on them holds them.
+ */
+/datum/serverblight_chase/proc/reach()
+	if(!prey)
+		physics.set_prey(null, null)
+		hold(null, 0)
+		grip = 0
+		return
+	var/list/puck = read_puck()
+	// Where they stand in the ragdoll's frame: a tile is SERVERBLIGHT_TILE_METRES across, and a
+	// tile further north is drawn a tile higher.
+	var/dx = (prey.x + 0.5 - puck[1]) * SERVERBLIGHT_TILE_METRES
+	var/dy = (prey.y + 0.5 - puck[2]) * SERVERBLIGHT_TILE_METRES
+	if(abs(dx) > 2 * SERVERBLIGHT_TILE_METRES || abs(dy) > 2 * SERVERBLIGHT_TILE_METRES)
+		physics.set_prey(null, null)
+		hold(null, 0)
+		grip = 0
+		return
+	physics.set_prey(dx, dy)
+	var/holding = physics.count_gripping_hands()
+	hold(prey, holding)
+	grip = holding ? grip + holding : max(grip - 2, 0)
+	if(grip >= SERVERBLIGHT_ASSIMILATION)
+		absorb(prey)
+
+/// Takes someone: out of their body, which goes into the mass.
+/datum/serverblight_chase/proc/absorb(mob/living/carbon/taken)
+	grip = 0
+	prey = null
+	path = null
+	physics.set_prey(null, null)
+	hold(null, 0)
+	playsound(host, 'sound/effects/wounds/crackandbleed.ogg', 100, TRUE)
+	taken.visible_message(span_danger("[host] folds [taken] into itself."), span_userdanger("Every hand closes. You aren't in there any more."))
+	log_admin("Serverblight ([key_name(host)]) took [key_name(taken)] at [AREACOORD(host)].")
+	taken.ghostize(can_reenter_corpse = FALSE)
+	taken.set_limb_physics(FALSE)
+	absorbed += taken
+	ADD_TRAIT(taken, TRAIT_IMMOBILIZED, SERVERBLIGHT_TRAIT)
+	ADD_TRAIT(taken, TRAIT_HANDS_BLOCKED, SERVERBLIGHT_TRAIT)
+	// Drawn from how they look before they're out of sight.
+	physics.merge(taken)
+	taken.forceMove(host)
+
+/// Slows someone down for every hand on them, letting go of whoever it was holding before.
+/datum/serverblight_chase/proc/hold(mob/living/carbon/who, hands)
+	if(held && (held != who || !hands))
+		held.remove_movespeed_modifier(/datum/movespeed_modifier/serverblight_grip)
+		held = null
+	if(!who || !hands)
+		return
+	if(!held)
+		to_chat(who, span_userdanger("Long fingers close around you."))
+	held = who
+	who.add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/serverblight_grip, multiplicative_slowdown = clamp(hands * SERVERBLIGHT_GRIP_SLOWDOWN, 0, SERVERBLIGHT_GRIP_MAX_SLOWDOWN))
+
+/// Serverblight's hands on someone: slower for each one.
+/datum/movespeed_modifier/serverblight_grip
+	variable = TRUE

@@ -1,15 +1,19 @@
 /**
- * Serverblight: an admin smite that gets into a ragdoll's physics and ruins it.
+ * Serverblight: an admin smite that gets into a body's physics and ruins it, then sets it loose.
  *
- * Nothing here is animated. The body is made physical, then everything that keeps a ragdoll
- * looking like a body is turned against it: every joint's limits are swung round to bend the wrong
- * way and driven there by a motor, the arms grow on past the hand into long spinning chains ending
- * in fingers, a second pair of arms comes out of the ribs, the head is pinned to a foot and the
- * torso to a shin, and all of it collides with itself and with whatever walls and furniture stand
- * around the victim. The solver is starved of iterations, so it can never settle any of that: the
- * shaking is it failing to, every step.
+ * Nothing here is animated. The body is made physical and hung upright by the neck from nothing,
+ * and everything that keeps a ragdoll looking like a body is turned against it: every joint is
+ * bent the way it doesn't go, and a motor seizes it back and forth at random every tick. The arms
+ * carry on past the hands into long stiff limbs ending in six long fingers, a second pair of arms
+ * comes out of the ribs, a hand comes out of the mouth, and the head splits into mirrored copies.
+ * All of it collides with itself, and the solver gets too few iterations to ever settle any of
+ * it: the shaking is the simulation failing to, every step.
  *
- * Turning limb physics off (the Limb Physics: Toggle admin verb) puts the body back.
+ * Then it hunts (see serverblight_chase.dm): the body slides after the nearest person without
+ * walking tile to tile, and anyone it gets every hand on is taken out of their body, which joins
+ * the mass.
+ *
+ * Turning limb physics off (the Limb Physics: Toggle admin verb) ends it and lets go of everyone.
  */
 /datum/smite/serverblight
 	name = "Serverblight"
@@ -26,11 +30,13 @@
 	if(!victim.set_limb_physics(TRUE))
 		to_chat(user, span_warning("[victim] has no sprite-built limb rig to corrupt."), confidential = TRUE)
 		return
-	if(!victim.limb_rig.physics.blight())
+	var/datum/limb_physics/physics = victim.limb_rig.physics
+	if(!physics.blight())
 		to_chat(user, span_warning("[victim] is already blighted, or the physics library refused."), confidential = TRUE)
 		return
+	new /datum/serverblight_chase(physics)
 	playsound(victim, 'sound/effects/wounds/crack2.ogg', 100, TRUE)
-	to_chat(victim, span_userdanger("Something reaches into you and rewrites where your bones go."))
+	to_chat(victim, span_userdanger("Something reaches into you and rewrites where your bones go. Your body gets up without you."))
 	victim.visible_message(span_danger("[victim]'s body folds the wrong way, and keeps folding."), ignored_mobs = victim)
 
 /**
@@ -39,14 +45,14 @@
  */
 /proc/serverblight_joint_band(joint, facing)
 	var/static/list/bands = list(
-		"neck" = list(140, 160),
-		"shoulder" = list(160, 178),
-		"elbow" = list(-170, -150),
-		"hip" = list(-100, -80),
-		"knee" = list(60, 80),
-		"ankle" = list(140, 170),
+		"neck" = list(100, 170),
+		"shoulder" = list(120, 179),
+		"elbow" = list(-175, -110),
+		"hip" = list(-55, -15),
+		"knee" = list(45, 95),
+		"ankle" = list(100, 175),
 	)
-	var/list/band = bands[joint] || list(120, 150)
+	var/list/band = bands[joint] || list(100, 150)
 	if(facing == WEST)
 		return list(-band[2], -band[1])
 	return band.Copy()
@@ -62,77 +68,230 @@
 	if(!states)
 		return FALSE
 	blighted = TRUE
-	// Too few iterations to ever solve all of it: what's left over each step is the twitching.
+	// Too few iterations to ever solve all of it: what's left over each step is the shaking.
 	velocity_iterations = 4
 	position_iterations = 2
 	var/mirror = facing == WEST ? -1 : 1
+	var/side_on = facing & (EAST|WEST)
 
 	// Every segment collides with every other: a second, weightless box outside the ragdoll's group.
 	for(var/part_id in body_by_part)
 		var/list/segment = segments[part_id]
 		var/list/origin = segment["origin"]
 		var/list/end = segment["end"]
-		var/length = max(sqrt((end[1] - origin[1]) ** 2 + (end[2] - origin[2]) ** 2), 2)
-		vcphys_call("fixture_box", world_handle, body_by_part[part_id], segment["width"] / 2 / LIMB_PHYSICS_PPM, length / 2 / LIMB_PHYSICS_PPM, ((origin[1] + end[1]) / 2 - origin[1]) / LIMB_PHYSICS_PPM, ((origin[2] + end[2]) / 2 - origin[2]) / LIMB_PHYSICS_PPM, 0, 0, 0.7, 0.05, 0)
+		vcphys_call("fixture_box", world_handle, body_by_part[part_id], segment["width"] / 2 / LIMB_PHYSICS_PPM, segment_length(segment) / 2 / LIMB_PHYSICS_PPM, ((origin[1] + end[1]) / 2 - origin[1]) / LIMB_PHYSICS_PPM, ((origin[2] + end[2]) / 2 - origin[2]) / LIMB_PHYSICS_PPM, 0, 0, 0.7, 0.05, 0)
 
-	// Every joint bent the way it doesn't go, and driven further.
+	// Every joint bent the way it doesn't go, seizing.
 	for(var/part_id in joint_by_part)
 		var/list/band = serverblight_joint_band(segments[part_id]["joint"], facing)
 		var/joint = joint_by_part[part_id]
 		vcphys_call("joint_set_limits", world_handle, joint, TORADIANS(band[1]), TORADIANS(band[2]))
-		vcphys_call("joint_set_motor", world_handle, joint, band[1] > 0 ? -18 : 18, 45)
+		spasms += list(list(joint, 30, 150))
+	// Its legs walk it about (see walk_legs()), each in step with the other, the wrong way.
+	for(var/side in list("l", "r"))
+		make_leg(joint_by_part["[side]_thigh"], joint_by_part["[side]_shin"], side == "l" ? 0 : PI)
 
-	// Each arm goes on past the hand: three more forearms, spinning against each other, then fingers.
+	// Hung by the neck from nothing, so it never gets to lie down, lurching on the pin.
+	var/list/chest = states["[body_by_part[RIG_CHEST]]"]
+	var/list/chest_segment = segments[RIG_CHEST]
+	var/list/hips = chest_segment["origin"]
+	var/list/neck = chest_segment["end"]
+	var/anchor = vcphys_call("body_create", world_handle, LIMB_PHYSICS_STATIC, 0, 0, 0, 0, 0)
+	var/list/neck_at = segment_point(chest, hips, neck)
+	var/pin = anchor && vcphys_call("joint_revolute", world_handle, anchor, body_by_part[RIG_CHEST], neck_at[1], neck_at[2], TORADIANS(-18), TORADIANS(18), 0)
+	if(pin)
+		spasms += list(list(pin, 6, 600))
+
+	// The arms go on past the hands into long stiff limbs, ending in six long fingers.
 	for(var/side in list("l", "r"))
 		var/sign = (side == "l" ? 1 : -1) * mirror
 		var/source = "[side]_forearm"
 		var/list/segment = segments[source]
-		var/list/forearm = states["[body_by_part[source]]"]
-		var/list/wrist = segment_point(forearm, segment["origin"], segment["end"])
-		var/x = wrist[1]
-		var/y = wrist[2]
-		var/angle = forearm[3]
+		var/list/at = segment_point(states["[body_by_part[source]]"], segment["origin"], segment["end"])
+		var/angle = TORADIANS(110 * sign)
+		var/layer = rig.parts[source].layer <= -6 ? -7.5 : -1.6
 		var/parent = body_by_part[source]
-		var/link_length = segment_length(segment) * 1.7 / LIMB_PHYSICS_PPM
 		for(var/link in 1 to 3)
-			parent = grow(source, parent, x, y, angle, 1.7, 1, sign * (ISODD(link) ? 12 : -15.6), 40)
+			parent = grow(rig, source, segment, parent, at[1], at[2], angle, 1.6, 0.9, 20, 60, -25, 25, layer)
 			if(!parent)
 				return TRUE
-			x += link_length * sin(TODEGREES(angle))
-			y -= link_length * cos(TODEGREES(angle))
-		for(var/spread in list(-35, 0, 35))
-			var/finger = grow(source, parent, x, y, angle + TORADIANS(spread), 0.9, 0.35, sign * (spread <= 0 ? 14 : -14), 8)
+			chain_joints += last_growth_joint
+			at = growth_end(at, angle, segment, 1.6, 0.9)
+		var/list/hand = list()
+		for(var/spread in list(-60, -35, -12, 12, 35, 60))
+			var/finger = grow(rig, source, segment, parent, at[1], at[2], angle + TORADIANS(spread), 1.25, 0.3, 25, 5, -70, 70, layer)
 			if(finger)
-				tips += finger
+				hand += list(list(finger, segment_offset(segment, 1.25, 0.3)))
+		hands += list(hand)
 
 	// A second pair of arms out of the ribs.
-	var/list/chest_segment = segments[RIG_CHEST]
-	var/list/hips = chest_segment["origin"]
-	var/list/neck = chest_segment["end"]
-	var/list/chest = states["[body_by_part[RIG_CHEST]]"]
 	for(var/side in list("l", "r"))
-		var/height = side == "l" ? 0.55 : 0.3
-		var/list/root = segment_point(chest, hips, list(hips[1], hips[2] + (neck[2] - hips[2]) * height))
-		var/angle = chest[3] + TORADIANS((side == "l" ? 100 : -100) * mirror)
-		var/arm = grow("[side]_arm", body_by_part[RIG_CHEST], root[1], root[2], angle, 1.4, 1, 12, 30, -150, 150)
+		var/list/root = segment_point(chest, hips, list(hips[1], hips[2] + (neck[2] - hips[2]) * (side == "l" ? 0.6 : 0.35)))
+		var/angle = TORADIANS((side == "l" ? 75 : -75) * mirror)
+		var/layer = rig.parts["[side]_arm"].layer <= -6 ? -7.4 : -1.7
+		var/list/arm_segment = segments["[side]_arm"]
+		var/arm = grow(rig, "[side]_arm", arm_segment, body_by_part[RIG_CHEST], root[1], root[2], angle, 1.4, 1, 15, 40, -100, 100, layer)
 		if(!arm)
 			return TRUE
-		var/arm_length = segment_length(segments["[side]_arm"]) * 1.4 / LIMB_PHYSICS_PPM
-		var/hand = grow("[side]_forearm", arm, root[1] + arm_length * sin(TODEGREES(angle)), root[2] - arm_length * cos(TODEGREES(angle)), angle, 1.6, 1, -12, 30, -150, 150)
+		var/list/elbow = growth_end(root, angle, arm_segment, 1.4, 1)
+		var/list/forearm_segment = segments["[side]_forearm"]
+		var/hand = grow(rig, "[side]_forearm", forearm_segment, arm, elbow[1], elbow[2], angle, 1.6, 1, 15, 40, -120, 120, layer)
 		if(hand)
-			tips += hand
+			hands += list(list(list(hand, segment_offset(forearm_segment, 1.6, 1))))
 
-	// The head pinned to a foot and the torso to a shin, each halfway between where they are.
-	for(var/list/pair in list(list(RIG_HEAD, "l_foot"), list(RIG_CHEST, "r_shin")))
-		var/list/first = states["[body_by_part[pair[1]]]"]
-		var/list/second = states["[body_by_part[pair[2]]]"]
-		vcphys_call("joint_revolute", world_handle, body_by_part[pair[1]], body_by_part[pair[2]], (first[1] + second[1]) / 2, (first[2] + second[2]) / 2, 0, 0, 0)
+	// A hand out of the mouth: forward side-on, straight down from the front.
+	var/list/head_segment = segments[RIG_HEAD]
+	var/list/head_origin = head_segment["origin"]
+	var/list/head_end = head_segment["end"]
+	var/list/mouth = segment_point(states["[body_by_part[RIG_HEAD]]"], head_origin, list(head_origin[1] + (side_on ? 2 * mirror : 0), head_origin[2] + (head_end[2] - head_origin[2]) * 0.3))
+	var/mouth_angle = side_on ? TORADIANS(90 * mirror) : 0
+	var/list/mouth_segment = segments["r_forearm"]
+	var/mouth_hand = grow(rig, "r_forearm", mouth_segment, body_by_part[RIG_HEAD], mouth[1], mouth[2], mouth_angle, 1.1, 0.9, 20, 20, -40, 40, -1.5)
+	if(mouth_hand)
+		var/list/fingers_at = growth_end(mouth, mouth_angle, mouth_segment, 1.1, 0.9)
+		var/list/hand = list()
+		for(var/spread in list(-40, 0, 40))
+			var/finger = grow(rig, "r_forearm", mouth_segment, mouth_hand, fingers_at[1], fingers_at[2], mouth_angle + TORADIANS(spread), 0.8, 0.3, 25, 3, -60, 60, -1.5)
+			if(finger)
+				hand += list(list(finger, segment_offset(mouth_segment, 0.8, 0.3)))
+		hands += list(hand)
 
+	// The head splitting into mirrored copies of itself.
+	var/head_angle = states["[body_by_part[RIG_HEAD]]"][3]
+	for(var/spread in list(-28, 28))
+		grow(rig, RIG_HEAD, head_segment, body_by_part[RIG_CHEST], neck_at[1], neck_at[2], head_angle + TORADIANS(spread), 1, -1, 10, 40, spread - 20, spread + 20, -2.6)
+
+	for(var/list/hand as anything in hands)
+		for(var/list/finger as anything in hand)
+			tips += finger[1]
 	add_surroundings()
 	rig.sort_pieces()
 	ADD_TRAIT(rig.owner, TRAIT_IMMOBILIZED, SERVERBLIGHT_TRAIT)
 	ADD_TRAIT(rig.owner, TRAIT_HANDS_BLOCKED, SERVERBLIGHT_TRAIT)
 	return TRUE
+
+/**
+ * Grows someone's body into this one: their whole rig, standing up out of the torso (leaning a
+ * little), with two more legs and three more arms of theirs, all seizing like the rest. Their
+ * forearms and the new arms are more hands to hold people with. Their rig can be anyone's;
+ * nothing's drawn for someone without a sprite-built one. Kept track of, so it comes back if the
+ * simulation starts over.
+ */
+/datum/limb_physics/proc/merge(mob/living/carbon/prey)
+	merged |= prey
+	var/datum/limb_rig/sprites/prey_rig = prey.limb_rig
+	if(!blighted || !istype(prey_rig) || length(merged) > SERVERBLIGHT_MAX_DRAWN_MERGES)
+		return FALSE
+	var/list/states = last_states || read_states()
+	var/list/chest = states?["[body_by_part[RIG_CHEST]]"]
+	if(!chest)
+		return FALSE
+	var/list/chest_segment = segments[RIG_CHEST]
+	var/list/hips = chest_segment["origin"]
+	var/list/neck = chest_segment["end"]
+	var/list/prey_segments = prey_rig.get_physics_segments(facing)
+	var/list/prey_chest = prey_segments[RIG_CHEST]
+	var/list/prey_hips = prey_chest["origin"]
+	var/list/prey_neck = prey_chest["end"]
+
+	// Their body, up out of the torso.
+	var/list/attach = segment_point(chest, hips, list(hips[1], hips[2] + (neck[2] - hips[2]) * rand(30, 60) / 100))
+	var/turn = chest[3] + TORADIANS(rand(-15, 15))
+	var/list/made = grow_copy(prey_rig, prey_segments, prey_segments, body_by_part[RIG_CHEST], attach, turn, 1.3)
+	var/prey_torso = made[RIG_CHEST]
+	if(!prey_torso)
+		return FALSE
+	var/list/torso_frame = list(attach[1], attach[2], turn)
+	// Their own forearms are hands now, and their legs walk with the rest, out of step.
+	var/stride = rand(0, 628) / 100
+	for(var/side in list("l", "r"))
+		add_hand(made["[side]_forearm"], prey_segments["[side]_forearm"], 1.3, 1)
+		make_leg(last_joints["[side]_thigh"], last_joints["[side]_shin"], stride + (side == "l" ? 0 : PI))
+
+	// Two more legs, splayed out of their hips.
+	for(var/side in list("l", "r"))
+		var/list/thigh = prey_segments["[side]_thigh"]
+		var/list/leg_at = segment_point(torso_frame, prey_hips, thigh["origin"])
+		grow_copy(prey_rig, prey_segments, list("[side]_thigh", "[side]_shin", "[side]_foot"), prey_torso, leg_at, turn + TORADIANS((side == "l" ? 1 : -1) * rand(35, 70)), 1.6)
+		make_leg(last_joints["[side]_thigh"], last_joints["[side]_shin"], rand(0, 628) / 100)
+
+	// Three more arms, anywhere up their ribs.
+	for(var/arm in 1 to 3)
+		var/side = ISODD(arm) ? "l" : "r"
+		var/list/shoulder = prey_segments["[side]_arm"]["origin"]
+		var/list/arm_at = segment_point(torso_frame, prey_hips, list(shoulder[1], prey_hips[2] + (prey_neck[2] - prey_hips[2]) * rand(40, 95) / 100))
+		var/list/grown = grow_copy(prey_rig, prey_segments, list("[side]_arm", "[side]_forearm"), prey_torso, arm_at, turn + TORADIANS(pick(-1, 1) * rand(60, 150)), 1.6)
+		add_hand(grown["[side]_forearm"], prey_segments["[side]_forearm"], 1.6, 1)
+	rig.sort_pieces()
+	return TRUE
+
+/**
+ * Grows copies of some of a rig's segments, jointed to each other as the rig has them, and the
+ * first to parent: laid out as the rig stands, turned by turn, with the first one's origin at
+ * attach, and every limb stretched (the torso and head aren't). Returns the new bodies by piece
+ * id; the joints go in last_joints.
+ */
+/datum/limb_physics/proc/grow_copy(datum/limb_rig/sprites/from, list/from_segments, list/part_ids, parent, list/attach, turn, stretch = 1)
+	. = list()
+	last_joints = list()
+	var/list/placed = list()
+	for(var/part_id in part_ids)
+		var/list/segment = from_segments[part_id]
+		var/parent_id = segment["parent"]
+		var/joint_to = .[parent_id] || parent
+		var/list/at = attach
+		if(placed[parent_id])
+			// Where its joint is on its (stretched) parent.
+			var/list/parent_segment = from_segments[parent_id]
+			var/parent_stretch = (parent_id == RIG_CHEST || parent_id == RIG_HEAD) ? 1 : stretch
+			var/list/parent_origin = parent_segment["origin"]
+			var/list/origin = segment["origin"]
+			at = growth_end(placed[parent_id], turn, list("origin" = parent_origin, "end" = origin), parent_stretch, 1)
+		var/length_scale = (part_id == RIG_CHEST || part_id == RIG_HEAD) ? 1 : stretch
+		// The torso stands nearly upright in the host's; everything else bends the wrong way.
+		var/list/band = part_id == RIG_CHEST ? list(-15, 15) : serverblight_joint_band(segment["joint"], facing)
+		var/layer = -2.55 + from.parts[part_id].layer / 100
+		var/body = grow(from, part_id, segment, joint_to, at[1], at[2], turn, length_scale, 1, part_id == RIG_CHEST ? 8 : 30, part_id == RIG_CHEST ? 300 : 100, band[1], band[2], layer, layer + 0.0005)
+		if(!body)
+			return
+		.[part_id] = body
+		placed[part_id] = at
+		last_joints[part_id] = last_growth_joint
+
+/**
+ * Makes a leg walk, rather than seize, while the body's moving: its hip and knee driven round a
+ * stride, starting stride radians into it.
+ */
+/datum/limb_physics/proc/make_leg(hip, knee, stride)
+	for(var/list/spasm as anything in spasms.Copy())
+		if(spasm[1] == hip || spasm[1] == knee)
+			spasms -= list(spasm)
+	if(hip)
+		legs += list(list(hip, stride))
+	if(knee)
+		legs += list(list(knee, stride + PI / 2))
+
+/**
+ * Drives every leg round its stride as fast as the body's going (walk_speed, tiles a second), a
+ * couple of strides a tile, no faster than it can be seen. Standing still, the legs seize with the
+ * rest.
+ */
+/datum/limb_physics/proc/walk_legs()
+	var/moving = walk_speed > 0.5
+	if(moving)
+		walk_phase += min(walk_speed * 0.6, 1.2)
+	for(var/list/leg as anything in legs)
+		if(moving)
+			vcphys_call("joint_set_motor", world_handle, leg[1], 14 * cos(TODEGREES(walk_phase + leg[2])) + rand(-30, 30) / 10, 150)
+		else if(prob(60))
+			vcphys_call("joint_set_motor", world_handle, leg[1], 30 * pick(-1, 1) * rand(50, 150) / 100, 150)
+
+/// Makes a body a hand with one finger: its far end, of a segment stretched this much.
+/datum/limb_physics/proc/add_hand(body, list/segment, length_scale, width_scale)
+	if(!body)
+		return
+	hands += list(list(list(body, segment_offset(segment, length_scale, width_scale))))
+	tips += body
 
 /// A segment's length in pixels, as build() gives its box.
 /datum/limb_physics/proc/segment_length(list/segment)
@@ -148,38 +307,52 @@
 	var/turn = TODEGREES(state[3])
 	return list(state[1] + dx * cos(turn) - dy * sin(turn), state[2] + dx * sin(turn) + dy * cos(turn))
 
+/// From a segment's origin to its end, stretched, in metres, before it's turned.
+/datum/limb_physics/proc/segment_offset(list/segment, length_scale, width_scale)
+	var/list/origin = segment["origin"]
+	var/list/end = segment["end"]
+	return list((end[1] - origin[1]) * width_scale / LIMB_PHYSICS_PPM, (end[2] - origin[2]) * length_scale / LIMB_PHYSICS_PPM)
+
+/// Where the far end of a growth is, grown at (x, y) turned angle.
+/datum/limb_physics/proc/growth_end(list/at, angle, list/segment, length_scale, width_scale)
+	var/list/offset = segment_offset(segment, length_scale, width_scale)
+	var/turn = TODEGREES(angle)
+	return list(at[1] + offset[1] * cos(turn) - offset[2] * sin(turn), at[2] + offset[1] * sin(turn) + offset[2] * cos(turn))
+
 /**
- * Grows a copy of a segment off another body, pinned at (x, y) and hanging from there at angle,
- * drawn as the segment is, stretched. Its joint turns freely unless given limits (degrees), and is
- * driven at motor_speed with up to motor_torque. It never sleeps, so its motor never stalls.
- * Returns the new body's handle.
+ * Grows a copy of one of a rig's segments off a body, pinned at (x, y), its sprite turned angle
+ * and stretched, and drawn as that rig draws it (clothes too). Its joint turns between lower and
+ * upper degrees (freely if they're equal), seizing at up to motor_speed with motor_torque. It
+ * never sleeps, so it never stops. Returns the new body's handle.
  */
-/datum/limb_physics/proc/grow(source, parent, x, y, angle, length_scale, width_scale, motor_speed, motor_torque, lower = 0, upper = 0)
-	var/list/segment = segments[source]
-	var/length = segment_length(segment) * length_scale / LIMB_PHYSICS_PPM
-	var/body = vcphys_call("body_create", world_handle, LIMB_PHYSICS_DYNAMIC, x, y, angle, 0.09, 0.3, 0)
+/datum/limb_physics/proc/grow(datum/limb_rig/sprites/from, part_id, list/segment, parent, x, y, angle, length_scale, width_scale, motor_speed, motor_torque, lower, upper, layer, cloth_layer)
+	var/list/origin = segment["origin"]
+	var/list/end = segment["end"]
+	var/body = vcphys_call("body_create", world_handle, LIMB_PHYSICS_DYNAMIC, x, y, angle, 0.05, 0.2, 0)
 	if(!body)
 		return null
-	vcphys_call("fixture_box", world_handle, body, segment["width"] * width_scale / 2 / LIMB_PHYSICS_PPM, length / 2, 0, -length / 2, 0, 35, 0.7, 0.05, 0)
-	var/joint = vcphys_call("joint_revolute", world_handle, parent, body, x, y, TORADIANS(lower), TORADIANS(upper), 0)
-	if(joint)
-		vcphys_call("joint_set_motor", world_handle, joint, motor_speed, motor_torque)
+	// The box as build() makes it, stretched with the sprite.
+	var/length = segment_length(segment) * length_scale / LIMB_PHYSICS_PPM
+	vcphys_call("fixture_box", world_handle, body, segment["width"] * abs(width_scale) / 2 / LIMB_PHYSICS_PPM, length / 2, ((origin[1] + end[1]) / 2 - origin[1]) * width_scale / LIMB_PHYSICS_PPM, ((origin[2] + end[2]) / 2 - origin[2]) * length_scale / LIMB_PHYSICS_PPM, 0, 12, 0.7, 0.05, 0)
+	last_growth_joint = vcphys_call("joint_revolute", world_handle, parent, body, x, y, TORADIANS(lower), TORADIANS(upper), 0)
+	if(last_growth_joint)
+		vcphys_call("joint_set_motor", world_handle, last_growth_joint, motor_speed, motor_torque)
+		spasms += list(list(last_growth_joint, motor_speed, motor_torque))
 
-	// Hung on the mob, just behind the upper body, or behind everything if its arm is.
-	var/obj/effect/abstract/limb_rig_part/original = rig.parts[source]
-	var/layer = original.layer <= -6 ? -7.5 : -2.5
-	var/obj/effect/abstract/limb_rig_part/skin = rig.new_part(source)
-	skin.appearance = original.appearance
+	// Hung on the mob, like the legs are.
+	var/obj/effect/abstract/limb_rig_part/skin = rig.new_part(part_id)
+	skin.appearance = from.parts[part_id].appearance
 	skin.layer = layer
-	var/obj/effect/abstract/limb_rig_part/cloth
-	if(rig.cloth_parts[source])
-		cloth = rig.new_part(source)
-		cloth.appearance = rig.cloth_parts[source].appearance
-		cloth.layer = layer + 0.05
 	rig.owner.vis_contents += skin
-	if(cloth)
+	var/obj/effect/abstract/limb_rig_part/cloth
+	var/matrix/cloth_map
+	if(from.cloth_parts[part_id])
+		cloth = rig.new_part(part_id)
+		cloth.appearance = from.cloth_parts[part_id].appearance
+		cloth.layer = isnull(cloth_layer) ? layer + 0.05 : cloth_layer
 		rig.owner.vis_contents += cloth
-	growths += list(list(skin, cloth, body, source, length_scale, width_scale))
+		cloth_map = from.get_cloth_map(part_id, facing)
+	growths += list(list(skin, cloth, body, origin, length_scale, width_scale, cloth_map))
 	return body
 
 /// Puts every growth where the simulation has it, as draw() does the body.
@@ -188,13 +361,22 @@
 		var/list/state = states["[growth[3]]"]
 		if(!state)
 			continue
-		var/list/origin = segments[growth[4]]["origin"]
+		var/list/origin = growth[4]
 		var/matrix/segment = rig_joint_matrix(origin[1], origin[2], growth[5], -TODEGREES(state[3]), state[1] * LIMB_PHYSICS_PPM + 16.5, state[2] * LIMB_PHYSICS_PPM, growth[6])
 		animate(growth[1], transform = segment, time = time)
 		if(growth[2])
-			animate(growth[2], transform = rig.get_cloth_map(growth[4], facing) * segment, time = time)
+			animate(growth[2], transform = growth[7] * segment, time = time)
 
-/// Pulls every fingertip away from the torso (and a little up), as hard as they'll stretch.
+/// Every joint that's seizing lurches one way or the other, most ticks.
+/datum/limb_physics/proc/seize()
+	for(var/list/spasm as anything in spasms)
+		if(prob(60))
+			vcphys_call("joint_set_motor", world_handle, spasm[1], spasm[2] * pick(-1, 1) * rand(50, 150) / 100, spasm[3])
+
+/**
+ * Pulls every fingertip: outward, stretching the hands as far as they go, or with someone in
+ * reach (see set_prey()), at them.
+ */
 /datum/limb_physics/proc/pull_tips()
 	var/list/chest = last_states?["[body_by_part[RIG_CHEST]]"]
 	if(!chest)
@@ -203,18 +385,70 @@
 		var/list/state = last_states["[tip]"]
 		if(!state)
 			continue
+		if(!isnull(prey_x))
+			var/dx = prey_x - state[1]
+			var/dy = prey_y + SERVERBLIGHT_PREY_HALF_HEIGHT - state[2]
+			var/distance = max(sqrt(dx ** 2 + dy ** 2), 0.01)
+			vcphys_call("body_force", world_handle, tip, 140 * dx / distance, 140 * dy / distance)
+			continue
 		var/dx = state[1] - chest[1]
 		var/dy = state[2] - chest[2]
 		var/distance = max(sqrt(dx ** 2 + dy ** 2), 0.01)
-		vcphys_call("body_force", world_handle, tip, 40 * dx / distance, 40 * dy / distance + 10)
+		vcphys_call("body_force", world_handle, tip, 60 * dx / distance, 60 * dy / distance + 15)
+
+/**
+ * Tells the hands someone's in reach: their feet at (x, y) metres in the body's frame, or null
+ * when nobody is. The long arms go slack enough to wrap round them while someone is.
+ */
+/datum/limb_physics/proc/set_prey(x, y)
+	var/was_grabbing = !isnull(prey_x)
+	prey_x = x
+	prey_y = y
+	var/grabbing = !isnull(x)
+	if(!grabbing)
+		latched.Cut()
+	if(grabbing == was_grabbing)
+		return
+	var/limit = TORADIANS(grabbing ? 80 : 25)
+	for(var/joint in chain_joints)
+		vcphys_call("joint_set_limits", world_handle, joint, -limit, limit)
+
+/**
+ * How many hands are holding whoever's in reach. A hand takes hold with a fingertip within 0.3
+ * metres of them, and keeps it until it's dragged more than 0.6 metres off.
+ */
+/datum/limb_physics/proc/count_gripping_hands()
+	if(isnull(prey_x) || !last_states)
+		return 0
+	. = 0
+	for(var/hand_index in 1 to length(hands))
+		var/list/hand = hands[hand_index]
+		var/closest = INFINITY
+		for(var/list/finger as anything in hand)
+			var/list/state = last_states["[finger[1]]"]
+			if(!state)
+				continue
+			var/list/offset = finger[2]
+			var/turn = TODEGREES(state[3])
+			var/tip_x = state[1] + offset[1] * cos(turn) - offset[2] * sin(turn)
+			var/tip_y = state[2] + offset[1] * sin(turn) + offset[2] * cos(turn)
+			// How far outside their box the tip is (0 inside it).
+			closest = min(closest, max(abs(tip_x - prey_x) - SERVERBLIGHT_PREY_HALF_WIDTH, abs(tip_y - prey_y - SERVERBLIGHT_PREY_HALF_HEIGHT) - SERVERBLIGHT_PREY_HALF_HEIGHT, 0))
+		var/holding = closest <= (latched["[hand_index]"] ? 0.6 : 0.3)
+		latched["[hand_index]"] = holding
+		if(holding)
+			.++
 
 /// Walls and dense furniture on the tiles around the victim, as they're drawn around it: the body
-/// is simulated on its own tile, a tile being 32 pixels.
+/// is simulated on its own tile, a tile being 32 pixels. Replaces the last lot, as it moves.
 /datum/limb_physics/proc/add_surroundings()
+	for(var/handle in surroundings)
+		vcphys_call("body_destroy", world_handle, handle)
+	surroundings.Cut()
 	var/turf/centre = get_turf(rig.owner)
 	if(!centre)
 		return
-	var/tile = 32 / LIMB_PHYSICS_PPM
+	var/tile = SERVERBLIGHT_TILE_METRES
 	for(var/dx in -1 to 1)
 		for(var/dy in -1 to 1)
 			if(!dx && !dy)
@@ -222,13 +456,19 @@
 			var/turf/spot = locate(centre.x + dx, centre.y + dy, centre.z)
 			if(!spot)
 				continue
+			var/half
 			if(spot.density)
-				add_static_box(dx * tile, (dy + 0.5) * tile, tile / 2, tile / 2)
+				half = tile / 2
+			else
+				for(var/obj/thing in spot)
+					if(thing.density)
+						half = tile * 0.35
+						break
+			if(!half)
 				continue
-			for(var/obj/thing in spot)
-				if(thing.density)
-					add_static_box(dx * tile, (dy + 0.5) * tile, tile * 0.35, tile * 0.35)
-					break
+			var/handle = vcphys_call("body_create", world_handle, LIMB_PHYSICS_STATIC, dx * tile, (dy + 0.5) * tile, 0, 0, 0)
+			if(handle && vcphys_call("fixture_box", world_handle, handle, half, half, 0, 0, 0, 0, 0.8, 0, 0))
+				surroundings += handle
 
 /// Takes away everything Serverblight grew.
 /datum/limb_physics/proc/clear_growths()
@@ -238,3 +478,11 @@
 			qdel(piece)
 	growths.Cut()
 	tips.Cut()
+	spasms.Cut()
+	hands.Cut()
+	chain_joints.Cut()
+	legs.Cut()
+	surroundings.Cut()
+	latched.Cut()
+	prey_x = null
+	prey_y = null

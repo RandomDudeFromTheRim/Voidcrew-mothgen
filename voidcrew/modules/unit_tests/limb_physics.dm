@@ -64,8 +64,9 @@
 	var/matrix/torso = ragdoll.limb_rig.parts["chest"].transform
 	TEST_ASSERT(torso.a == 1 && torso.b == 0 && torso.c == 0 && torso.d == 0 && torso.e == 1 && torso.f == 0, "The torso stayed where the ragdoll left it after physics let go.")
 
-	// Serverblight: arm chains with three fingers each and a second pair of arms (16 growths, 8 of
-	// them pulled on), a mangled body that still doesn't blow up, and all of it gone after.
+	// Serverblight: long arms with six fingers each, a second pair of arms, a hand out of the mouth
+	// and two mirrored heads (28 growths, 17 fingertips on 5 hands), shaking itself apart without
+	// blowing up, hunting without walking tile to tile, taking someone in, and letting it all go.
 	var/mob/living/carbon/human/consistent/victim = allocate(/mob/living/carbon/human/consistent)
 	victim.set_species(/datum/species/experiment)
 	victim.update_limb_rig()
@@ -73,13 +74,43 @@
 	var/datum/limb_physics/blight = victim.limb_rig.physics
 	TEST_ASSERT(blight.blight(), "Serverblight couldn't take a physical body.")
 	TEST_ASSERT(!blight.blight(), "Serverblight took the same body twice.")
-	TEST_ASSERT_EQUAL(length(blight.growths), 16, "Serverblight grew the wrong number of pieces.")
-	TEST_ASSERT_EQUAL(length(blight.tips), 8, "Serverblight has the wrong number of fingertips to pull.")
+	TEST_ASSERT_EQUAL(length(blight.growths), 28, "Serverblight grew the wrong number of pieces.")
+	TEST_ASSERT_EQUAL(length(blight.tips), 17, "Serverblight has the wrong number of fingertips.")
+	TEST_ASSERT_EQUAL(length(blight.hands), 5, "Serverblight has the wrong number of hands.")
 	TEST_ASSERT(HAS_TRAIT(victim, TRAIT_IMMOBILIZED), "Serverblight's victim can still walk.")
+	var/datum/serverblight_chase/chase = new(blight)
+	TEST_ASSERT(!QDELETED(chase) && blight.chase == chase, "Serverblight couldn't start hunting.")
 	var/obj/effect/abstract/limb_rig_part/growth = blight.growths[1][1]
 	for(var/i in 1 to 30)
 		blight.process(0.1)
-	TEST_ASSERT(!QDELETED(blight), "Serverblight's simulation blew up.")
+		chase.process(0.1)
+	TEST_ASSERT(!QDELETED(blight) && !QDELETED(chase), "Serverblight's simulation blew up.")
+	var/mob/living/carbon/human/consistent/prey = allocate(/mob/living/carbon/human/consistent)
+	prey.set_species(/datum/species/human)
+	prey.update_limb_rig()
+	// Slower for every hand on them, and back to normal when they're let go.
+	chase.hold(prey, 2)
+	var/datum/movespeed_modifier/grip = prey.has_movespeed_modifier(/datum/movespeed_modifier/serverblight_grip)
+	TEST_ASSERT(grip?.multiplicative_slowdown > 0, "Serverblight's hands don't slow anyone down.")
+	chase.hold(prey, 4)
+	TEST_ASSERT(grip.multiplicative_slowdown > 2 * 0.8 * 0.99, "More of Serverblight's hands don't slow anyone down more.")
+	chase.hold(prey, 100)
+	TEST_ASSERT(grip.multiplicative_slowdown <= 6, "Serverblight's hands slow people down without limit.")
+	chase.hold(null, 0)
+	TEST_ASSERT(!prey.has_movespeed_modifier(/datum/movespeed_modifier/serverblight_grip), "Serverblight's hands didn't let go.")
+	chase.absorb(prey)
+	TEST_ASSERT_EQUAL(prey.loc, victim, "Serverblight didn't take its prey in.")
+	// Their body (12), two more legs (6) and three more arms (6); their forearms and the new arms
+	// are five more hands.
+	TEST_ASSERT_EQUAL(length(blight.growths), 28 + 24, "Serverblight didn't grow its prey's body on.")
+	TEST_ASSERT_EQUAL(length(blight.hands), 5 + 5, "Serverblight didn't get more hands from its prey.")
+	for(var/i in 1 to 10)
+		blight.process(0.1)
+		chase.process(0.1)
+	TEST_ASSERT(!QDELETED(blight), "Serverblight blew up with someone grown on.")
 	victim.set_limb_physics(FALSE)
-	TEST_ASSERT(!HAS_TRAIT(victim, TRAIT_IMMOBILIZED), "Serverblight's victim stayed held after physics let go.")
+	TEST_ASSERT(QDELETED(chase), "Serverblight kept hunting after physics let go.")
+	TEST_ASSERT(isturf(prey.loc), "Serverblight kept its prey after physics let go.")
+	TEST_ASSERT(!HAS_TRAIT(victim, TRAIT_IMMOBILIZED) && !HAS_TRAIT(prey, TRAIT_IMMOBILIZED), "Serverblight's victims stayed held after physics let go.")
 	TEST_ASSERT(!(growth in victim.vis_contents), "Serverblight's growths stayed on after physics let go.")
+	TEST_ASSERT(victim.set_dir_on_move, "Serverblight's victim can't turn to walk any more.")

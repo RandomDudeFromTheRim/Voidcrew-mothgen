@@ -35,6 +35,7 @@ use box2d_rs::b2_math::B2vec2;
 use box2d_rs::b2_world::{B2world, B2worldPtr};
 use box2d_rs::b2rs_common::UserDataType;
 use box2d_rs::joints::b2_revolute_joint::B2revoluteJointDef;
+use box2d_rs::shapes::b2_circle_shape::B2circleShape;
 use box2d_rs::shapes::b2_polygon_shape::B2polygonShape;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -203,9 +204,11 @@ pub fn world_stats(args: &[String]) -> Reply {
     with_world(handle(args, 0, "world")?, |world| Ok(format!("bodies={} joints={}", world.bodies.len(), world.joints.len())))
 }
 
-/// body_create(world, type, x, y, angle, linear_damping, angular_damping[, can_sleep]) -> body
+/// body_create(world, type, x, y, angle, linear_damping, angular_damping[, can_sleep[, fixed_rotation]])
+/// -> body
 /// type: 0 static, 1 kinematic, 2 dynamic. can_sleep 0 keeps a body simulated even when it's
 /// barely moving (Box2D otherwise stops simulating resting bodies, and a stalled motor won't wake one).
+/// fixed_rotation 1 makes a body that never turns (something that slides about, like a mob).
 pub fn body_create(args: &[String]) -> Reply {
     let id = handle(args, 0, "world")?;
     let body_type = match num(args, 1, "type")? as i32 {
@@ -222,6 +225,9 @@ pub fn body_create(args: &[String]) -> Reply {
     def.angular_damping = num(args, 6, "angular_damping")?.max(0.0);
     if args.len() > 7 {
         def.allow_sleep = num(args, 7, "can_sleep")? != 0.0;
+    }
+    if args.len() > 8 {
+        def.fixed_rotation = num(args, 8, "fixed_rotation")? != 0.0;
     }
     with_world(id, |world| {
         let body = B2world::create_body(world.world.clone(), &def);
@@ -276,6 +282,30 @@ pub fn fixture_box(args: &[String]) -> Reply {
     def.friction = num(args, 8, "friction")?.max(0.0);
     def.restitution = num(args, 9, "restitution")?.clamp(0.0, 1.0);
     def.filter.group_index = num(args, 10, "group")? as i16;
+    with_world(handle(args, 0, "world")?, |world| {
+        let body = body_of(world, body_id)?;
+        B2body::create_fixture(body, &def);
+        Ok("OK".to_string())
+    })
+}
+
+/// fixture_circle(world, body, radius, centre_x, centre_y, density, friction, restitution, group) -> OK
+/// A circle in the body's own frame. Groups work as they do for fixture_box().
+pub fn fixture_circle(args: &[String]) -> Reply {
+    let body_id = handle(args, 1, "body")?;
+    let radius = num(args, 2, "radius")?;
+    if radius <= 0.0 {
+        return Err("circle radius must be positive".into());
+    }
+    let mut shape = B2circleShape::default();
+    shape.base.m_radius = radius;
+    shape.m_p = B2vec2::new(num(args, 3, "centre_x")?, num(args, 4, "centre_y")?);
+    let mut def = B2fixtureDef::<NoData>::default();
+    def.shape = Some(Rc::new(RefCell::new(shape)));
+    def.density = num(args, 5, "density")?.max(0.0);
+    def.friction = num(args, 6, "friction")?.max(0.0);
+    def.restitution = num(args, 7, "restitution")?.clamp(0.0, 1.0);
+    def.filter.group_index = num(args, 8, "group")? as i16;
     with_world(handle(args, 0, "world")?, |world| {
         let body = body_of(world, body_id)?;
         B2body::create_fixture(body, &def);
@@ -364,6 +394,32 @@ fn with_revolute(
             }
             _ => Err(format!("joint {joint_id} isn't revolute")),
         }
+    })
+}
+
+/// body_set_transform(world, body, x, y, angle) -> OK
+/// Puts a body somewhere else at once (a teleport, not a move: nothing in between is hit).
+pub fn body_set_transform(args: &[String]) -> Reply {
+    let body_id = handle(args, 1, "body")?;
+    let position = B2vec2::new(num(args, 2, "x")?, num(args, 3, "y")?);
+    let angle = num(args, 4, "angle")?;
+    with_world(handle(args, 0, "world")?, |world| {
+        body_of(world, body_id)?.borrow_mut().set_transform(position, angle);
+        Ok("OK".to_string())
+    })
+}
+
+/// body_set_velocity(world, body, vx, vy, spin) -> OK
+pub fn body_set_velocity(args: &[String]) -> Reply {
+    let body_id = handle(args, 1, "body")?;
+    let velocity = B2vec2::new(num(args, 2, "vx")?, num(args, 3, "vy")?);
+    let spin = num(args, 4, "spin")?;
+    with_world(handle(args, 0, "world")?, |world| {
+        let body = body_of(world, body_id)?;
+        let mut body = body.borrow_mut();
+        body.set_linear_velocity(velocity);
+        body.set_angular_velocity(spin);
+        Ok("OK".to_string())
     })
 }
 
@@ -458,4 +514,7 @@ export! {
     vcphys_body_angular_impulse => body_angular_impulse,
     vcphys_joint_set_limits => joint_set_limits,
     vcphys_joint_set_motor => joint_set_motor,
+    vcphys_fixture_circle => fixture_circle,
+    vcphys_body_set_transform => body_set_transform,
+    vcphys_body_set_velocity => body_set_velocity,
 }
