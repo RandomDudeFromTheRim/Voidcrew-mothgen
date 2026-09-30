@@ -6,6 +6,7 @@ ADMIN_VERB(spawn_physics_ragdoll, R_DEBUG, "Spawn Physics Ragdoll", "Spawns a te
 		return
 	var/static/list/species_choices = list(
 		"Experiment" = /datum/species/experiment,
+		"Milkie" = /datum/species/experiment/milkie,
 		"Human" = /datum/species/human,
 		"Felinid" = /datum/species/human/felinid,
 		"Lizard" = /datum/species/lizard,

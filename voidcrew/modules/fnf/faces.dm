@@ -77,15 +77,25 @@
 
 // The Experiment's own head.
 
+/datum/limb_rig/sprites
+	/// Which faces in the 64px face icons fit this head ("experiment", "milkie"), or null for none.
+	var/fnf_face_set
+
+/datum/limb_rig/sprites/experiment
+	fnf_face_set = "experiment"
+
+/datum/limb_rig/sprites/experiment/milkie
+	fnf_face_set = "milkie"
+
 /datum/limb_rig/sprites/get_fnf_face_holder()
 	return parts[RIG_HEAD]
 
 /datum/limb_rig/sprites/get_fnf_face_images(expression)
-	if(sprite_icon != 'voidcrew/modules/expie/icons/rig.dmi')
+	if(!fnf_face_set)
 		return list()
 	if(is_face_corrupted())
-		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_experiment_corrupt.dmi', "experiment", expression, -16)
-	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi', "experiment_[expression]")
+		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_experiment_corrupt.dmi', fnf_face_set, expression, -16)
+	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi', "[fnf_face_set]_[expression]")
 	// Its sprites are 64 wide, drawn from 16 pixels left of the piece.
 	face.pixel_w = -16
 	face.layer = FLOAT_LAYER

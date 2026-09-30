@@ -293,15 +293,16 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 	),
 ))
 
-/proc/fnf_summon_opponent(character, turf/spot)
+/// Anyone without a look of their own is played by an Experiment (a Milkie, stand_in, in a Pico mix).
+/proc/fnf_summon_opponent(character, turf/spot, stand_in = /datum/species/experiment)
 	// Week 5's "parents" are Mommy and Daddy together; Daddy comes.
 	if(character == "parents")
 		character = "dad"
 	var/list/look = GLOB.fnf_opponents[character]
 	var/mob/living/carbon/human/npc = new(spot)
 	if(!look)
-		npc.set_species(/datum/species/experiment)
-		npc.fully_replace_character_name(npc.real_name, "Experiment Dearest")
+		npc.set_species(stand_in)
+		npc.fully_replace_character_name(npc.real_name, "[npc.dna.species.name] Dearest")
 		npc.put_in_r_hand(new /obj/item/fnf_microphone(npc))
 		return npc
 

@@ -295,7 +295,7 @@
 	return null
 
 /datum/fnf_battle/proc/summon_opponent(turf/spot)
-	npc = fnf_summon_opponent(song.opponent_character, spot)
+	npc = fnf_summon_opponent(song.opponent_character, spot, song.player_character == "pico" ? /datum/species/experiment/milkie : /datum/species/experiment)
 	npc.setDir(EAST)
 	do_sparks(3, FALSE, npc)
 	npc.visible_message(span_notice("[npc] steps out of nowhere, ready to sing."))

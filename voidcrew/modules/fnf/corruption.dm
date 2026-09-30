@@ -164,7 +164,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 
 /datum/limb_rig/sprites/get_corruption_pieces()
 	. = list()
-	var/hand_set = istype(src, /datum/limb_rig/sprites/humanoid) ? "humanoid" : (sprite_icon == 'voidcrew/modules/expie/icons/rig.dmi' ? "experiment" : null)
+	var/hand_set = istype(src, /datum/limb_rig/sprites/humanoid) ? "humanoid" : fnf_face_set
 	for(var/part_id in parts)
 		var/hands = hand_set && findtext(part_id, "_forearm") ? "hands_[hand_set]_[part_id]" : null
 		. += list(list(parts[part_id], part_id, 64, hands))

@@ -64,3 +64,27 @@
 	TEST_ASSERT(length(torso.overlays) > 1, "A wounded Experiment's torso piece shows no wounds.")
 	expie.death()
 	TEST_ASSERT_NULL(expie.limb_rig, "A dead Experiment kept its limb rig.")
+
+/// Milkies are Experiments on their own sprites: white, short-legged, with faces of their own.
+/datum/unit_test/limb_rig_milkie
+
+/datum/unit_test/limb_rig_milkie/Run()
+	var/mob/living/carbon/human/consistent/milkie = allocate(/mob/living/carbon/human/consistent)
+	milkie.set_species(/datum/species/experiment/milkie)
+	milkie.update_limb_rig()
+	TEST_ASSERT(istype(milkie.limb_rig, /datum/limb_rig/sprites/experiment/milkie), "A Milkie has no Milkie limb rig.")
+	var/datum/limb_rig/sprites/rig = milkie.limb_rig
+	TEST_ASSERT_EQUAL(rig.sprite_icon, 'voidcrew/modules/expie/icons/milkie_rig.dmi', "A Milkie is drawn with the wrong sprites.")
+	var/list/leg = rig.skeleton["east"]["l_leg"]
+	var/list/hips = leg[1]
+	TEST_ASSERT(hips[2] < 20, "A Milkie's legs are as long as an Experiment's.")
+	TEST_ASSERT_EQUAL(milkie.get_bloodtype()?.id, "EXP", "A Milkie does not have an Experiment's blood.")
+	var/list/body_states = icon_states('voidcrew/modules/expie/icons/milkie_bodyparts.dmi')
+	for(var/obj/item/bodypart/limb as anything in milkie.bodyparts)
+		TEST_ASSERT("[limb.limb_id]_[limb.body_zone]" in body_states, "A Milkie's [limb.body_zone] has no sprite.")
+	var/list/face_states = icon_states('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi')
+	var/list/corrupt_states = icon_states('voidcrew/modules/fnf/icons/fnf_faces_experiment_corrupt.dmi')
+	for(var/expression in list("idle", "left", "down", "up", "right", "miss", "hey", "dead"))
+		TEST_ASSERT("milkie_[expression]" in face_states, "A Milkie has no [expression] face.")
+		TEST_ASSERT("milkie_corrupt_[expression]" in corrupt_states, "A Milkie has no corrupted [expression] face.")
+	TEST_ASSERT("hands_milkie_l_forearm" in icon_states('voidcrew/modules/fnf/icons/corruption_64.dmi'), "A Milkie's hands can't be corrupted.")
