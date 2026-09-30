@@ -49,3 +49,5 @@
 #define SERVERBLIGHT_TOP_SPEED 20
 /// How long a killed Serverblight lies dead before it gets back up.
 #define SERVERBLIGHT_DEATH_TIME (1 MINUTES)
+/// With no gravity, how many fires between Serverblight throwing itself off things.
+#define SERVERBLIGHT_PUSHOFF_FIRES 5

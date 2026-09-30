@@ -12,6 +12,9 @@
  * every hand on them every tick brings them closer to being taken: they leave their body, and
  * their body is folded into the mass, bringing more hands.
  *
+ * With no gravity it can't walk: it throws itself off whatever it can reach (walls, furniture,
+ * lattice, people) and drifts in between, so open space is somewhere to get away to.
+ *
  * Every head in it screams, all the time, each in its own voice, distorted.
  *
  * It can be killed like anyone. Damage doesn't slow it (nothing does: it isn't walking), but a hit
@@ -48,6 +51,8 @@
 	var/mob/living/carbon/held
 	/// When each voice screams next, by its place in get_voices(), as text.
 	var/list/next_screams = list()
+	/// The fire it can next throw itself off something, with no gravity.
+	var/next_pushoff = 0
 	/// The timer getting it back up, while it's dead.
 	var/rise_timer
 	/// Whether the mob could already pass through other mobs before this.
@@ -74,6 +79,9 @@
 	host.rotate_on_lying = FALSE
 	host.update_transform()
 	RegisterSignal(host, COMSIG_ATOM_BULLET_ACT, PROC_REF(on_shot))
+	// Drifting is the puck's job too: no space drift on the mob.
+	RegisterSignal(host, COMSIG_MOVABLE_SPACEMOVE, PROC_REF(on_spacemove))
+	QDEL_NULL(host.drift_handler)
 	build_walls()
 	START_PROCESSING(SSlimb_physics, src)
 
@@ -95,7 +103,7 @@
 		host.set_dir_on_move = TRUE
 		host.rotate_on_lying = TRUE
 		host.update_transform()
-		UnregisterSignal(host, COMSIG_ATOM_BULLET_ACT)
+		UnregisterSignal(host, list(COMSIG_ATOM_BULLET_ACT, COMSIG_MOVABLE_SPACEMOVE))
 		if(!had_passmob)
 			host.pass_flags &= ~PASSMOB
 	if(physics?.chase == src)
@@ -150,7 +158,8 @@
 		qdel(src)
 		return PROCESS_KILL
 	place(state[1], state[2])
-	physics.walk_speed = sqrt(state[4] ** 2 + state[5] ** 2)
+	// Nothing to walk on, the legs just seize.
+	physics.walk_speed = host.has_gravity() ? sqrt(state[4] ** 2 + state[5] ** 2) : 0
 	reach()
 
 /// The puck: list(x, y, angle, vx, vy, spin), in tiles. Null if it can't be read.
@@ -240,6 +249,14 @@
 			var/speed = min(SERVERBLIGHT_SPEED, distance * 6)
 			want_x = dx / distance * speed
 			want_y = dy / distance * speed
+	if(!host.has_gravity())
+		// Nothing to walk on: it throws itself off whatever it can reach, now and then, straight
+		// at where it wants to be, and drifts until it next can.
+		if(fires < next_pushoff || !can_push_off())
+			return
+		next_pushoff = fires + SERVERBLIGHT_PUSHOFF_FIRES
+		vcphys_call("body_impulse", world_handle, body, want_x - state[4], want_y - state[5])
+		return
 	// Most of the way to the speed it wants each tick, no harder than about four gees.
 	var/push_x = (want_x - state[4]) * 0.6
 	var/push_y = (want_y - state[5]) * 0.6
@@ -425,3 +442,11 @@
 		. = pick(.)
 	if(!.)
 		. = pick('sound/mobs/humanoids/human/scream/malescream_1.ogg', 'sound/mobs/humanoids/human/scream/femalescream_1.ogg')
+
+/// Whether there's anything in reach to throw itself off: anything solid, or lattice.
+/datum/serverblight_chase/proc/can_push_off()
+	return host.get_spacemove_backup() || (locate(/obj/structure/lattice) in range(1, get_turf(host)))
+
+/datum/serverblight_chase/proc/on_spacemove(atom/movable/source, movement_dir, continuous_move)
+	SIGNAL_HANDLER
+	return COMSIG_MOVABLE_STOP_SPACEMOVE

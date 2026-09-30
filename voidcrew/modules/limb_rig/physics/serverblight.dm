@@ -172,8 +172,8 @@
 
 /**
  * Grows someone's body into this one: their whole rig, standing up out of the torso (leaning a
- * little), with two more legs and three more arms of theirs, all seizing like the rest. Their
- * forearms and the new arms are more hands to hold people with. Their rig can be anyone's;
+ * little), stretched, seizing like the rest, their legs walking with its own. Their forearms are
+ * two more hands to hold people with. Their rig can be anyone's;
  * nothing's drawn for someone without a sprite-built one. Kept track of, so it comes back if the
  * simulation starts over.
  */
@@ -190,9 +190,6 @@
 	var/list/hips = chest_segment["origin"]
 	var/list/neck = chest_segment["end"]
 	var/list/prey_segments = prey_rig.get_physics_segments(facing)
-	var/list/prey_chest = prey_segments[RIG_CHEST]
-	var/list/prey_hips = prey_chest["origin"]
-	var/list/prey_neck = prey_chest["end"]
 
 	// Their body, up out of the torso.
 	var/list/attach = segment_point(chest, hips, list(hips[1], hips[2] + (neck[2] - hips[2]) * rand(30, 60) / 100))
@@ -201,28 +198,12 @@
 	var/prey_torso = made[RIG_CHEST]
 	if(!prey_torso)
 		return FALSE
-	var/list/torso_frame = list(attach[1], attach[2], turn)
 	var/first_growth = length(growths) - length(made) + 1
 	// Their own forearms are hands now, and their legs walk with the rest, out of step.
 	var/stride = rand(0, 628) / 100
 	for(var/side in list("l", "r"))
 		add_hand(made["[side]_forearm"], prey_segments["[side]_forearm"], 1.3, 1)
 		make_leg(last_joints["[side]_thigh"], last_joints["[side]_shin"], stride + (side == "l" ? 0 : PI))
-
-	// Two more legs, splayed out of their hips.
-	for(var/side in list("l", "r"))
-		var/list/thigh = prey_segments["[side]_thigh"]
-		var/list/leg_at = segment_point(torso_frame, prey_hips, thigh["origin"])
-		grow_copy(prey_rig, prey_segments, list("[side]_thigh", "[side]_shin", "[side]_foot"), prey_torso, leg_at, turn + TORADIANS((side == "l" ? 1 : -1) * rand(35, 70)), 1.6)
-		make_leg(last_joints["[side]_thigh"], last_joints["[side]_shin"], rand(0, 628) / 100)
-
-	// Three more arms, anywhere up their ribs.
-	for(var/arm in 1 to 3)
-		var/side = ISODD(arm) ? "l" : "r"
-		var/list/shoulder = prey_segments["[side]_arm"]["origin"]
-		var/list/arm_at = segment_point(torso_frame, prey_hips, list(shoulder[1], prey_hips[2] + (prey_neck[2] - prey_hips[2]) * rand(40, 95) / 100))
-		var/list/grown = grow_copy(prey_rig, prey_segments, list("[side]_arm", "[side]_forearm"), prey_torso, arm_at, turn + TORADIANS(pick(-1, 1) * rand(60, 150)), 1.6)
-		add_hand(grown["[side]_forearm"], prey_segments["[side]_forearm"], 1.6, 1)
 
 	// Glued into everything it's grown into, so it can never get out of it.
 	var/list/new_bodies = list()

@@ -107,10 +107,9 @@
 	TEST_ASSERT(!prey.has_movespeed_modifier(/datum/movespeed_modifier/serverblight_grip), "Serverblight's hands didn't let go.")
 	chase.absorb(prey)
 	TEST_ASSERT_EQUAL(prey.loc, victim, "Serverblight didn't take its prey in.")
-	// Their body (12), two more legs (6) and three more arms (6); their forearms and the new arms
-	// are five more hands.
-	TEST_ASSERT_EQUAL(length(blight.growths), 28 + 24, "Serverblight didn't grow its prey's body on.")
-	TEST_ASSERT_EQUAL(length(blight.hands), 5 + 5, "Serverblight didn't get more hands from its prey.")
+	// Their body (12), their forearms two more hands.
+	TEST_ASSERT_EQUAL(length(blight.growths), 28 + 12, "Serverblight didn't grow its prey's body on.")
+	TEST_ASSERT_EQUAL(length(blight.hands), 5 + 2, "Serverblight didn't get more hands from its prey.")
 	TEST_ASSERT(length(blight.glued), "Serverblight didn't glue its prey into itself.")
 	for(var/i in 1 to 10)
 		blight.process(0.1)
