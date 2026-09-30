@@ -222,13 +222,13 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 		.[9 + channel] = shade * 0.55
 
 /// Blends two colour matrices (3 by 4 or 4 by 5) this far from the first to the second.
-/proc/fnf_blend_colour_matrices(list/from, list/to, amount)
-	from = fnf_full_colour_matrix(from)
-	to = fnf_full_colour_matrix(to)
+/proc/fnf_blend_colour_matrices(list/start_matrix, list/end_matrix, amount)
+	start_matrix = fnf_full_colour_matrix(start_matrix)
+	end_matrix = fnf_full_colour_matrix(end_matrix)
 	amount = clamp(amount, 0, 1)
 	. = new /list(20)
 	for(var/i in 1 to 20)
-		.[i] = from[i] + (to[i] - from[i]) * amount
+		.[i] = start_matrix[i] + (end_matrix[i] - start_matrix[i]) * amount
 
 /// A colour matrix as the full 4 by 5 (rows for red, green, blue, alpha, then the constants).
 /proc/fnf_full_colour_matrix(list/matrix)
