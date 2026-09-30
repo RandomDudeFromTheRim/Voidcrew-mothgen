@@ -87,3 +87,48 @@ fn destroying_a_body_forgets_its_joints() {
     assert_eq!(ok(world_stats, &[&world]), "bodies=1 joints=0");
     ok(world_destroy, &[&world]);
 }
+
+#[test]
+fn collisions_limits_and_motors_can_change() {
+    let world = ok(world_create, &["0", "0"]);
+    // Two boxes in the same negative group, one flung through the other.
+    let a = ok(body_create, &[&world, "2", "0", "0", "0", "0", "0"]);
+    ok(fixture_box, &[&world, &a, "0.2", "0.2", "0", "0", "0", "1", "0.5", "0", "-1"]);
+    let b = ok(body_create, &[&world, "2", "-1", "0", "0", "0", "0"]);
+    ok(fixture_box, &[&world, &b, "0.2", "0.2", "0", "0", "0", "1", "0.5", "0", "-1"]);
+    ok(body_impulse, &[&world, &b, "1", "0"]);
+    ok(world_step, &[&world, "0.016666667", "8", "3", "60"]);
+    let passed: f32 = ok(body_read, &[&world, &b]).split(' ').nth(1).unwrap().parse().unwrap();
+    assert!(passed > 0.3, "the same group collided anyway (b is at {passed})");
+    // Now they should: move b back and fling it again.
+    let world2 = ok(world_create, &["0", "0"]);
+    let a2 = ok(body_create, &[&world2, "2", "0", "0", "0", "0", "0"]);
+    ok(fixture_box, &[&world2, &a2, "0.2", "0.2", "0", "0", "0", "1", "0.5", "0", "-1"]);
+    let b2 = ok(body_create, &[&world2, "2", "-1", "0", "0", "0", "0"]);
+    ok(fixture_box, &[&world2, &b2, "0.2", "0.2", "0", "0", "0", "1", "0.5", "0", "-1"]);
+    // A second, weightless box in group 0 each, and they collide after all.
+    ok(fixture_box, &[&world2, &a2, "0.2", "0.2", "0", "0", "0", "0", "0.5", "0", "0"]);
+    ok(fixture_box, &[&world2, &b2, "0.2", "0.2", "0", "0", "0", "0", "0.5", "0", "0"]);
+    ok(body_impulse, &[&world2, &b2, "1", "0"]);
+    ok(world_step, &[&world2, "0.016666667", "8", "3", "60"]);
+    // With no bounce they carry on together, b still behind a.
+    let b_x: f32 = ok(body_read, &[&world2, &b2]).split(' ').nth(1).unwrap().parse().unwrap();
+    let a_x: f32 = ok(body_read, &[&world2, &a2]).split(' ').nth(1).unwrap().parse().unwrap();
+    assert!(b_x < a_x - 0.3, "ungrouped bodies passed through each other (b at {b_x}, a at {a_x})");
+    // A motor spins a free joint; a limit then holds it.
+    let base = ok(body_create, &[&world2, "0", "5", "0", "0", "0", "0"]);
+    let arm = ok(body_create, &[&world2, "2", "5", "0", "0", "0", "0"]);
+    ok(fixture_box, &[&world2, &arm, "0.3", "0.05", "0.3", "0", "0", "1", "0.5", "0", "-2"]);
+    let joint = ok(joint_revolute, &[&world2, &base, &arm, "5", "0", "0", "0", "0"]);
+    ok(joint_set_motor, &[&world2, &joint, "3", "50"]);
+    ok(world_step, &[&world2, "0.016666667", "8", "3", "30"]);
+    let spun: f32 = ok(body_read, &[&world2, &arm]).split(' ').nth(3).unwrap().parse().unwrap();
+    assert!(spun > 1.0, "the motor didn't turn the joint ({spun} rad)");
+    ok(joint_set_limits, &[&world2, &joint, "-0.1", "0.1"]);
+    ok(world_step, &[&world2, "0.016666667", "8", "3", "60"]);
+    let held: f32 = ok(body_read, &[&world2, &arm]).split(' ').nth(3).unwrap().parse().unwrap();
+    assert!(held.abs() < 0.3, "the new limit didn't hold ({held} rad)");
+    assert!(call(joint_set_motor, &[&world2, "999", "1", "1"]).unwrap_err().contains("no joint"));
+    ok(world_destroy, &[&world]);
+    ok(world_destroy, &[&world2]);
+}

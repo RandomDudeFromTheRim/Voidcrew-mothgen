@@ -7055,6 +7055,7 @@
 #include "voidcrew\modules\limb_rig\limb_rig.dm"
 #include "voidcrew\modules\limb_rig\physics\admin.dm"
 #include "voidcrew\modules\limb_rig\physics\limb_physics.dm"
+#include "voidcrew\modules\limb_rig\physics\serverblight.dm"
 #include "voidcrew\modules\limb_rig\physics\vcphys.dm"
 #include "voidcrew\modules\limb_rig\quirk.dm"
 #include "voidcrew\modules\limb_rig\species_shapes.dm"

@@ -39,6 +39,18 @@
 	var/list/last_states
 	/// Every piece the simulation has put somewhere, to let go of again after.
 	var/list/drawn_pieces = list()
+	/// The segments the world was built from, by piece id, as get_physics_segments() gives them.
+	var/list/segments
+	/// How hard the solver works each step. Serverblight starves it (see serverblight.dm).
+	var/velocity_iterations = LIMB_PHYSICS_VELOCITY_ITERATIONS
+	var/position_iterations = LIMB_PHYSICS_POSITION_ITERATIONS
+	/// Whether Serverblight has this body.
+	var/blighted = FALSE
+	/// What Serverblight grew on it: list(skin piece, clothes piece or null, body handle, the
+	/// segment it's a copy of, length scale, width scale) each.
+	var/list/growths = list()
+	/// The bodies at the ends of Serverblight's growths, pulled outward every fire.
+	var/list/tips = list()
 
 /datum/limb_physics/New(datum/limb_rig/sprites/rig)
 	src.rig = rig
@@ -50,6 +62,8 @@
 
 /datum/limb_physics/Destroy()
 	STOP_PROCESSING(SSlimb_physics, src)
+	if(blighted && !QDELETED(rig?.owner))
+		REMOVE_TRAITS_IN(rig.owner, SERVERBLIGHT_TRAIT)
 	destroy_world()
 	if(rig?.physics == src)
 		rig.physics = null
@@ -70,15 +84,24 @@
 	if(world_handle)
 		vcphys_call("world_destroy", world_handle)
 	world_handle = null
+	clear_growths()
+	blighted = FALSE
+	velocity_iterations = LIMB_PHYSICS_VELOCITY_ITERATIONS
+	position_iterations = LIMB_PHYSICS_POSITION_ITERATIONS
 	body_by_part.Cut()
 	joint_by_part.Cut()
 	origins.Cut()
 
-/// Starts over from the rig's current pose, facing the way the mob faces now.
+/// Starts over from the rig's current pose, facing the way the mob faces now. Serverblight comes
+/// back with it.
 /datum/limb_physics/proc/rebuild()
+	var/was_blighted = blighted
 	destroy_world()
 	if(!build())
 		qdel(src)
+		return
+	if(was_blighted)
+		blight()
 
 /**
  * Makes the world: a floor and walls, and a body for every segment, starting exactly where the
@@ -93,7 +116,7 @@
 	if(!add_static_box(0, -0.5, 4, 0.5) || !add_static_box(-2.9, 2, 0.5, 2.5) || !add_static_box(2.9, 2, 0.5, 2.5))
 		return FALSE
 
-	var/list/segments = rig.get_physics_segments(facing)
+	segments = rig.get_physics_segments(facing)
 	var/list/drawn = rig.get_segment_matrices(rig.held_pose, facing)
 	for(var/part_id in segments)
 		var/list/segment = segments[part_id]
@@ -139,8 +162,10 @@
 	if(QDELETED(rig) || QDELETED(rig.owner))
 		qdel(src)
 		return PROCESS_KILL
+	if(length(tips))
+		pull_tips()
 	// Always the same number of equal steps: the tick's actual length never comes into it.
-	if(!vcphys_call("world_step", world_handle, LIMB_PHYSICS_DT, LIMB_PHYSICS_VELOCITY_ITERATIONS, LIMB_PHYSICS_POSITION_ITERATIONS, LIMB_PHYSICS_STEPS_PER_FIRE))
+	if(!vcphys_call("world_step", world_handle, LIMB_PHYSICS_DT, velocity_iterations, position_iterations, LIMB_PHYSICS_STEPS_PER_FIRE))
 		qdel(src)
 		return PROCESS_KILL
 	steps += LIMB_PHYSICS_STEPS_PER_FIRE
@@ -189,6 +214,8 @@
 	for(var/atom/movable/piece as anything in matrices)
 		animate(piece, transform = matrices[piece], time = time)
 		drawn_pieces[piece] = TRUE
+	if(length(growths))
+		draw_growths(states, time)
 
 /// Shoves a segment: an impulse in newton-seconds, right and up are positive.
 /datum/limb_physics/proc/push(part_id, impulse_x, impulse_y)

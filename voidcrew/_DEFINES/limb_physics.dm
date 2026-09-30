@@ -19,3 +19,5 @@
 #define LIMB_PHYSICS_DYNAMIC 2
 /// How high a human's hand is, where held items are drawn from (as the sprite rig has it).
 #define LIMB_PHYSICS_HUMAN_HAND_Y 12.5
+/// The trait source Serverblight holds its victim still with.
+#define SERVERBLIGHT_TRAIT "serverblight"

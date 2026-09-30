@@ -1,6 +1,7 @@
 /// A physics ragdoll's bones come from the rig's skeleton, every piece of the rig follows them, and
 /// joints bend the right way facing either side. With the physics library present, a ragdoll
-/// steps, stays in one piece, and hands the body back to its animations after.
+/// steps, stays in one piece, and hands the body back to its animations after. Serverblight grows
+/// on it, holds together, and comes off again cleanly.
 /datum/unit_test/limb_physics
 
 /datum/unit_test/limb_physics/Run()
@@ -62,3 +63,23 @@
 	// its own. (animate() with no time sets the transform at once.)
 	var/matrix/torso = ragdoll.limb_rig.parts["chest"].transform
 	TEST_ASSERT(torso.a == 1 && torso.b == 0 && torso.c == 0 && torso.d == 0 && torso.e == 1 && torso.f == 0, "The torso stayed where the ragdoll left it after physics let go.")
+
+	// Serverblight: arm chains with three fingers each and a second pair of arms (16 growths, 8 of
+	// them pulled on), a mangled body that still doesn't blow up, and all of it gone after.
+	var/mob/living/carbon/human/consistent/victim = allocate(/mob/living/carbon/human/consistent)
+	victim.set_species(/datum/species/experiment)
+	victim.update_limb_rig()
+	victim.set_limb_physics(TRUE)
+	var/datum/limb_physics/blight = victim.limb_rig.physics
+	TEST_ASSERT(blight.blight(), "Serverblight couldn't take a physical body.")
+	TEST_ASSERT(!blight.blight(), "Serverblight took the same body twice.")
+	TEST_ASSERT_EQUAL(length(blight.growths), 16, "Serverblight grew the wrong number of pieces.")
+	TEST_ASSERT_EQUAL(length(blight.tips), 8, "Serverblight has the wrong number of fingertips to pull.")
+	TEST_ASSERT(HAS_TRAIT(victim, TRAIT_IMMOBILIZED), "Serverblight's victim can still walk.")
+	var/obj/effect/abstract/limb_rig_part/growth = blight.growths[1][1]
+	for(var/i in 1 to 30)
+		blight.process(0.1)
+	TEST_ASSERT(!QDELETED(blight), "Serverblight's simulation blew up.")
+	victim.set_limb_physics(FALSE)
+	TEST_ASSERT(!HAS_TRAIT(victim, TRAIT_IMMOBILIZED), "Serverblight's victim stayed held after physics let go.")
+	TEST_ASSERT(!(growth in victim.vis_contents), "Serverblight's growths stayed on after physics let go.")

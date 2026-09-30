@@ -30,7 +30,7 @@
 
 use box2d_rs::b2_body::{B2body, B2bodyDef, B2bodyType, BodyPtr};
 use box2d_rs::b2_fixture::B2fixtureDef;
-use box2d_rs::b2_joint::{B2JointDefEnum, B2jointPtr};
+use box2d_rs::b2_joint::{B2JointDefEnum, B2jointPtr, JointAsDerivedMut};
 use box2d_rs::b2_math::B2vec2;
 use box2d_rs::b2_world::{B2world, B2worldPtr};
 use box2d_rs::b2rs_common::UserDataType;
@@ -203,8 +203,9 @@ pub fn world_stats(args: &[String]) -> Reply {
     with_world(handle(args, 0, "world")?, |world| Ok(format!("bodies={} joints={}", world.bodies.len(), world.joints.len())))
 }
 
-/// body_create(world, type, x, y, angle, linear_damping, angular_damping) -> body
-/// type: 0 static, 1 kinematic, 2 dynamic.
+/// body_create(world, type, x, y, angle, linear_damping, angular_damping[, can_sleep]) -> body
+/// type: 0 static, 1 kinematic, 2 dynamic. can_sleep 0 keeps a body simulated even when it's
+/// barely moving (Box2D otherwise stops simulating resting bodies, and a stalled motor won't wake one).
 pub fn body_create(args: &[String]) -> Reply {
     let id = handle(args, 0, "world")?;
     let body_type = match num(args, 1, "type")? as i32 {
@@ -219,6 +220,9 @@ pub fn body_create(args: &[String]) -> Reply {
     def.angle = num(args, 4, "angle")?;
     def.linear_damping = num(args, 5, "linear_damping")?.max(0.0);
     def.angular_damping = num(args, 6, "angular_damping")?.max(0.0);
+    if args.len() > 7 {
+        def.allow_sleep = num(args, 7, "can_sleep")? != 0.0;
+    }
     with_world(id, |world| {
         let body = B2world::create_body(world.world.clone(), &def);
         world.next_handle += 1;
@@ -253,6 +257,9 @@ pub fn body_destroy(args: &[String]) -> Reply {
 /// fixture_box(world, body, half_width, half_height, centre_x, centre_y, angle, density, friction,
 /// restitution, group) -> OK
 /// A box in the body's own frame. Fixtures sharing a negative group never collide with each other.
+/// A body can have more than one: to make a body start colliding with something it was grouped
+/// away from, add a second, weightless box in another group. (Changing a fixture's group in place
+/// isn't offered: box2d-rs panics refiltering a fixture that's touching anything.)
 pub fn fixture_box(args: &[String]) -> Reply {
     let body_id = handle(args, 1, "body")?;
     let (half_width, half_height) = (num(args, 2, "half_width")?, num(args, 3, "half_height")?);
@@ -313,6 +320,50 @@ pub fn joint_destroy(args: &[String]) -> Reply {
         let joint = world.joints.remove(&joint_id).ok_or_else(|| format!("no joint {joint_id}"))?;
         world.world.borrow_mut().destroy_joint(joint);
         Ok("OK".to_string())
+    })
+}
+
+/// joint_set_limits(world, joint, lower, upper) -> OK
+/// New angle limits for a revolute joint, relative to how it sat when made. lower >= upper frees it.
+pub fn joint_set_limits(args: &[String]) -> Reply {
+    let joint_id = handle(args, 1, "joint")?;
+    let (lower, upper) = (num(args, 2, "lower")?, num(args, 3, "upper")?);
+    with_revolute(handle(args, 0, "world")?, joint_id, |revolute| {
+        revolute.enable_limit(lower < upper);
+        if lower < upper {
+            revolute.set_limits(lower, upper);
+        }
+    })
+}
+
+/// joint_set_motor(world, joint, speed, max_torque) -> OK
+/// Drives a revolute joint at a speed (radians a second, counter-clockwise), pushing no harder than
+/// max_torque. A max_torque of 0 turns the motor off.
+pub fn joint_set_motor(args: &[String]) -> Reply {
+    let joint_id = handle(args, 1, "joint")?;
+    let (speed, max_torque) = (num(args, 2, "speed")?, num(args, 3, "max_torque")?.max(0.0));
+    with_revolute(handle(args, 0, "world")?, joint_id, |revolute| {
+        revolute.enable_motor(max_torque > 0.0);
+        revolute.set_motor_speed(speed);
+        revolute.set_max_motor_torque(max_torque);
+    })
+}
+
+fn with_revolute(
+    world_id: u32,
+    joint_id: u32,
+    f: impl FnOnce(&mut box2d_rs::joints::b2_revolute_joint::B2revoluteJoint<NoData>),
+) -> Reply {
+    with_world(world_id, |world| {
+        let joint = world.joints.get(&joint_id).cloned().ok_or_else(|| format!("no joint {joint_id}"))?;
+        let mut joint = joint.borrow_mut();
+        match joint.as_derived_mut() {
+            JointAsDerivedMut::ERevoluteJoint(revolute) => {
+                f(revolute);
+                Ok("OK".to_string())
+            }
+            _ => Err(format!("joint {joint_id} isn't revolute")),
+        }
     })
 }
 
@@ -405,4 +456,6 @@ export! {
     vcphys_body_force => body_force,
     vcphys_body_torque => body_torque,
     vcphys_body_angular_impulse => body_angular_impulse,
+    vcphys_joint_set_limits => joint_set_limits,
+    vcphys_joint_set_motor => joint_set_motor,
 }
