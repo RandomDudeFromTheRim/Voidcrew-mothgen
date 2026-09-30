@@ -195,16 +195,27 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	/// The changes still to come: list(list(ms, role, character), ...), in order.
 	var/list/changes
 	var/next_change = 1
+	/// The song's overlays and flashes: list(list(ms, "overlay"/"flash", image, value), ...), in order.
+	var/list/overlay_events
+	var/next_overlay = 1
 	/// Everyone it's touched, to put right after.
 	var/list/mob/living/carbon/touched = list()
+	/// Over the whole view: the song's overlay, a flash, and the dark that comes down on a miss.
+	var/obj/effect/abstract/fnf_hud/overlay
+	var/obj/effect/abstract/fnf_hud/flash
+	var/obj/effect/abstract/fnf_hud/miss_dark
+	/// The tainted health bar's frame, in Skarlet's songs.
+	var/obj/effect/abstract/fnf_hud/bar_frame
 
 /datum/fnf_corruption/New(datum/fnf_battle/battle)
 	src.battle = battle
 	var/datum/fnf_song/song = battle.song
 	changes = song.character_changes || list()
+	overlay_events = song.overlay_events || list()
 	apply("player", song.legacy_cast["player"])
 	apply("opponent", song.legacy_cast["opponent"])
 	apply("gf", song.legacy_cast["gf"])
+	make_screens()
 
 /datum/fnf_corruption/Destroy()
 	for(var/mob/living/carbon/singer as anything in touched)
@@ -215,6 +226,13 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 		if(HAS_TRAIT_FROM(singer, TRAIT_MOVE_FLOATING, FNF_BATTLE_TRAIT))
 			REMOVE_TRAIT(singer, TRAIT_MOVE_FLOATING, FNF_BATTLE_TRAIT)
 	touched.Cut()
+	for(var/obj/effect/abstract/fnf_hud/screen as anything in list(overlay, flash, miss_dark, bar_frame))
+		battle?.healthbar?.vis_contents -= screen
+		qdel(screen)
+	overlay = null
+	flash = null
+	miss_dark = null
+	bar_frame = null
 	battle = null
 	return ..()
 
@@ -222,9 +240,89 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	while(next_change <= length(changes))
 		var/list/change = changes[next_change]
 		if(change[1] > now)
-			return
+			break
 		next_change++
 		apply(change[2], change[3])
+	while(next_overlay <= length(overlay_events))
+		var/list/event = overlay_events[next_overlay]
+		if(event[1] > now)
+			break
+		next_overlay++
+		show(event[2], event[3], event[4])
+
+/**
+ * What's laid over the whole view, as the mod lays it over its screen: under the arrows, over
+ * everything else, centred where the singers' cameras look. And in Skarlet's songs, her tainted
+ * frame round the health bar.
+ */
+/datum/fnf_corruption/proc/make_screens()
+	var/obj/effect/abstract/fnf_hud/healthbar/bar = battle.healthbar
+	if(!bar)
+		return
+	var/view_x = battle.camera_x - bar.x * world.icon_size
+	var/view_y = battle.camera_y - bar.y * world.icon_size
+	for(var/i in 1 to 3)
+		var/obj/effect/abstract/fnf_hud/screen = new
+		screen.icon = 'voidcrew/modules/fnf/icons/fnf_corruption_overlays.dmi'
+		screen.alpha = 0
+		// A quarter the mod's size, and a little bigger than the singers see: always to the edges.
+		screen.pixel_w = view_x - 160
+		screen.pixel_z = view_y - 90
+		screen.transform = matrix() * 1.4
+		screen.layer = ABOVE_ALL_MOB_LAYER + 0.005 + i * 0.0001
+		bar.vis_contents += screen
+		switch(i)
+			if(1)
+				overlay = screen
+			if(2)
+				flash = screen
+			if(3)
+				miss_dark = screen
+				miss_dark.icon_state = "overlayskarlet"
+	if(battle.song.note_skin == "skarlet")
+		bar_frame = new
+		bar_frame.icon = 'voidcrew/modules/fnf/icons/fnf_healthbar_tainted.dmi'
+		bar_frame.icon_state = "frame"
+		bar_frame.pixel_w = bar.center_x - 72
+		bar_frame.pixel_z = bar.center_y - 16
+		bar_frame.layer = ABOVE_ALL_MOB_LAYER + 0.04
+		bar.vis_contents += bar_frame
+
+/**
+ * The mod's overlay and flash events: an overlay fades in over three quarters of a second (value
+ * 1) or back out (value 0); a flash is up for its value in seconds, then fades out quickly.
+ */
+/datum/fnf_corruption/proc/show(kind, image_name, value)
+	var/static/list/images = icon_states('voidcrew/modules/fnf/icons/fnf_corruption_overlays.dmi')
+	// Missing ones (the mod names a "yourcalls" it doesn't have) are skipped, as the mod skips them.
+	if(!overlay || !(image_name in images))
+		return
+	if(kind == "overlay")
+		if(value)
+			overlay.icon_state = image_name
+			animate(overlay, alpha = 255, time = 7.5, easing = QUAD_EASING)
+		else if(overlay.icon_state == image_name)
+			animate(overlay, alpha = 0, time = 7.5, easing = QUAD_EASING)
+		return
+	flash.icon_state = image_name
+	flash.alpha = 255
+	animate(flash, alpha = 255, time = max(value, 0.1) * 10)
+	animate(alpha = 0, time = 3)
+
+/**
+ * A miss in Skarlet's songs: the dark comes down over everything at once and the music drops out,
+ * then both come back over a second or two.
+ */
+/datum/fnf_corruption/proc/player_missed()
+	if(battle.song.note_skin != "skarlet" || !miss_dark)
+		return
+	animate(miss_dark, alpha = 255, time = 1, easing = QUAD_EASING|EASE_OUT)
+	animate(alpha = 255, time = 10)
+	animate(alpha = 0, time = 10)
+	for(var/channel in list(battle.inst_channel, battle.left_voice_channel))
+		battle.set_channel_volume(channel, 0)
+		for(var/step in 1 to 5)
+			addtimer(CALLBACK(battle, TYPE_PROC_REF(/datum/fnf_battle, set_channel_volume), channel, step / 5), 5 + step * 3, TIMER_DELETE_ME)
 
 /// Makes someone on stage whoever the song says they are now.
 /datum/fnf_corruption/proc/apply(role, character)

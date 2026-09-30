@@ -10,6 +10,16 @@ dialogue_blip, dialogue_music, dialogue_music_scary - Week 6's dialogue (pixelTe
 loss_pico_explode, loss_pico_gutpunch - Pico's Weekend 1 deaths (fnf_loss_sfx-pico-explode, fnf_loss_sfx-pico-gutpunch)
 The RETRY and GIVE UP buttons in icons/fnf_buttons.dmi are lettered in the game's font.
 
+Friday Night Funkin': Corruption+, by Carlito049 (https://gamejolt.com/games/fnfcorruptionplus/793089),
+a fan extension of the Corruption mod by Phantom Fear and Pincer. Used with credit, as Carlito asks.
+Its characters: Kapi by PaperKitty, Skarlet Bunny by Rechi, Carol by bb-panzu. Broken Wires by FellowDesert51.
+icons/fnf_notes_kapi.dmi, icons/fnf_notes_skarlet.dmi - its tainted arrows (NOTE_assetsKapi,
+NOTE_assetsSkarlet, noteSplashesKapi), made small
+icons/fnf_healthbar_tainted.dmi - Skarlet's health bar frame (hpBar)
+icons/fnf_corruption_overlays.dmi - its overlays and flashes (scary, prey, hunter, shadowarcade,
+overlayskarlet and the rest), at a quarter size
+Its songs aren't shipped: tools/fnf/fetch_corruption_plus.py fetches them from GameJolt.
+
 Casualties Unknown, by Orsoniks:
 laststand_drone - the last stand drone (laststanddrone), cut to its first 8 seconds
 The last stand screens in icons/laststand.dmi are the game's laststand1-3.

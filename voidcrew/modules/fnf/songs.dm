@@ -203,6 +203,10 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	var/list/character_changes
 	/// Whether it's one of Corruption+'s (see corruption.dm): its player is one of the mod's characters.
 	var/corruption = FALSE
+	/// Which arrows its notes are drawn with, if not ours: "kapi" or "skarlet", Corruption+'s tainted skins.
+	var/note_skin
+	/// Its "Overlay Event" and "Image Flash" events: list(list(ms, "overlay"/"flash", image, value), ...).
+	var/list/overlay_events
 
 /datum/fnf_song/New(path, id, variation)
 	src.path = path
@@ -285,6 +289,9 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 		bpm = first_song["bpm"]
 	legacy_cast = list("player" = first_song["player1"], "opponent" = first_song["player2"], "gf" = first_song["gfVersion"] || first_song["player3"])
 	character_changes = read_character_changes(first_song)
+	overlay_events = read_overlay_events(first_song)
+	var/static/list/skins = list("NOTE_assetsKapi" = "kapi", "NOTE_assetsSkarlet" = "skarlet")
+	note_skin = skins[first_song["arrowSkin"]]
 	if(fexists("[path]Voices-Player.ogg"))
 		player_voice_file = "[path]Voices-Player.ogg"
 	else
@@ -312,14 +319,7 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
  * Engine keeps them in either, or both), in order: list(list(ms, role, character), ...).
  */
 /datum/fnf_song/proc/read_character_changes(list/song_data)
-	var/list/raw = list()
-	for(var/list/entry in song_data["events"])
-		if(length(entry) >= 2)
-			raw += list(entry)
-	var/list/events_file = fnf_read_json("[path]events.json")
-	for(var/list/entry in events_file?["song"]?["events"])
-		if(length(entry) >= 2)
-			raw += list(entry)
+	var/list/raw = read_raw_events(song_data)
 	var/static/list/roles = list("0" = "player", "bf" = "player", "boyfriend" = "player", "1" = "opponent", "dad" = "opponent", "2" = "gf", "gf" = "gf", "girlfriend" = "gf")
 	var/list/seen = list()
 	. = list()
@@ -336,6 +336,45 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 				continue
 			seen[key] = TRUE
 			. += list(list(entry[1], role, "[event[3]]"))
+	sortTim(., GLOBAL_PROC_REF(cmp_fnf_note))
+
+/// An older-format song's events, as Psych Engine keeps them: list(list(ms, list(list(name, value, value), ...)), ...).
+/datum/fnf_song/proc/read_raw_events(list/song_data)
+	. = list()
+	for(var/list/entry in song_data["events"])
+		if(length(entry) >= 2)
+			. += list(entry)
+	var/list/events_file = fnf_read_json("[path]events.json")
+	for(var/list/entry in events_file?["song"]?["events"])
+		if(length(entry) >= 2)
+			. += list(entry)
+
+/**
+ * An older-format song's overlays (Corruption+'s "Overlay Event": 1 fades an image in, 0 fades it
+ * out) and flashes ("Image Flash": an image up for so many seconds), in order, once each.
+ */
+/datum/fnf_song/proc/read_overlay_events(list/song_data)
+	var/list/seen = list()
+	. = list()
+	for(var/list/entry as anything in read_raw_events(song_data))
+		var/list/events = entry[2]
+		if(!islist(events))
+			continue
+		for(var/list/event in events)
+			if(length(event) < 3)
+				continue
+			var/list/found
+			if(event[1] == "Overlay Event")
+				found = list(entry[1], "overlay", "[event[3]]", text2num("[event[2]]"))
+			else if(event[1] == "Image Flash")
+				found = list(entry[1], "flash", "[event[2]]", text2num("[event[3]]"))
+			if(!found)
+				continue
+			var/key = jointext(found, "-")
+			if(seen[key])
+				continue
+			seen[key] = TRUE
+			. += list(found)
 	sortTim(., GLOBAL_PROC_REF(cmp_fnf_note))
 
 /// The first Voices-<name>.ogg that exists for these singers. Funkin' names variants like

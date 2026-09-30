@@ -99,6 +99,15 @@
 	microphone = null
 	return ..()
 
+/// The arrows this song's notes are drawn with: its own skin (Corruption+'s tainted ones), or ours.
+/datum/fnf_battle/proc/get_note_icon()
+	switch(song.note_skin)
+		if("kapi")
+			return 'voidcrew/modules/fnf/icons/fnf_notes_kapi.dmi'
+		if("skarlet")
+			return 'voidcrew/modules/fnf/icons/fnf_notes_skarlet.dmi'
+	return 'voidcrew/modules/fnf/icons/fnf.dmi'
+
 /// The song position right now, in milliseconds. Negative during the countdown.
 /datum/fnf_battle/proc/get_song_time()
 	return (FNF_NOW - start_time) * 100

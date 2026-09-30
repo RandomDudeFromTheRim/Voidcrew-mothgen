@@ -92,6 +92,7 @@
 	strumline = new(get_turf(singer))
 	for(var/lane in 0 to 3)
 		var/obj/effect/abstract/fnf_hud/strum = new
+		strum.icon = battle.get_note_icon()
 		strum.icon_state = "strum_[lane]"
 		strum.pixel_w = lane_x(lane)
 		strum.pixel_z = FNF_STRUM_Y
@@ -316,7 +317,9 @@
 	var/start_y = FNF_STRUM_Y - until * pixels_per_ms
 	var/overshoot = 250 * pixels_per_ms
 
+	var/note_icon = battle.get_note_icon()
 	note.head = new
+	note.head.icon = note_icon
 	note.head.icon_state = "note_[note.lane]"
 	note.head.pixel_w = lane_x(note.lane)
 	note.head.pixel_z = start_y
@@ -330,12 +333,14 @@
 	// A long note trails a stretched body below its head, capped with a rounded tail.
 	var/length_px = note.length * pixels_per_ms
 	note.body = new
+	note.body.icon = note_icon
 	note.body.icon_state = "hold_[note.lane]"
 	note.body.pixel_w = lane_x(note.lane)
 	note.body.pixel_z = start_y - length_px / 2
 	note.body.transform = matrix(1, 0, 0, 0, length_px / 32, 0)
 	note.body.layer = ABOVE_ALL_MOB_LAYER + 0.02
 	note.tail = new
+	note.tail.icon = note_icon
 	note.tail.icon_state = "holdend_[note.lane]"
 	note.tail.pixel_w = lane_x(note.lane)
 	note.tail.pixel_z = start_y - length_px
@@ -475,6 +480,8 @@
 		busy_until = world.time + 3
 		if(!battle.stage?.note_missed(src, note))
 			singer.fnf_miss(mic_arm, facing, style)
+	if(src == battle.right)
+		battle.corruption?.player_missed()
 	update_score_text()
 
 /// Lets a note that's no longer in play keep drifting up, greyed out, and then go.
@@ -492,6 +499,7 @@
 
 /datum/fnf_side/proc/splash(lane)
 	var/obj/effect/abstract/fnf_hud/splash = new
+	splash.icon = battle.get_note_icon()
 	splash.icon_state = "splash_[lane]"
 	splash.pixel_w = lane_x(lane)
 	splash.pixel_z = FNF_STRUM_Y
