@@ -558,6 +558,15 @@
 	switch(kind)
 		if("noanim")
 			return TRUE
+		if("gf")
+			// Whoever's in her place sings it (Purification's corrupted Boyfriend, taking over), and
+			// whoever usually would just hangs there, twitching.
+			if(!girlfriend || QDELETED(girlfriend))
+				return FALSE
+			girlfriend_busy_until = world.time + max(note.length / 100, 2) + 1.5
+			girlfriend.fnf_sing(note.lane, max(note.length / 100, 2), RIG_R_ARM, SOUTH, girlfriend.fnf_look)
+			side.singer?.fnf_nudge(rand(-2, 2), rand(-1, 1))
+			return TRUE
 		if("ugh")
 			side.act("ugh", 3)
 			return TRUE

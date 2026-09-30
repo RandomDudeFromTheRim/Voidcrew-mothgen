@@ -72,6 +72,9 @@
 	// A song that plays on past its last note (Growl's flashback) runs to the end of its music.
 	if(song.length_ms)
 		end_ms = max(end_ms, song.length_ms)
+	// Without its length, a scripted song at least plays out to a little after its last cue.
+	for(var/list/cue as anything in (song.character_changes || list()) + (song.overlay_events || list()))
+		end_ms = max(end_ms, cue[1] + 3000)
 	inst_channel = SSsounds.reserve_sound_channel(src)
 	left_voice_channel = SSsounds.reserve_sound_channel(src)
 	right_voice_channel = SSsounds.reserve_sound_channel(src)

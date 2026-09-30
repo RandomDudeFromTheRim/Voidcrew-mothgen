@@ -24,14 +24,15 @@
 /**
  * The mod's characters: each a look (see opponents.dm; null for nobody, just the speakers), how
  * corrupted they are, and anything else about them: "eyes" ("red" instead of pink), "wings"
- * ("angel", "demon"), "flying".
+ * ("angel", "demon"), "flying", and "peak": how far it had them before they started fighting it
+ * off (the ones partway free).
  */
 GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	// Pico, corrupted from the start of the arcade; the second and third fight back (orange hair and
 	// a green collar through the dark, then half his face), then it takes him again.
 	"corruptedpico" = list("look" = "pico", "level" = 1),
-	"corruptedpico2" = list("look" = "pico", "level" = 0.85),
-	"corruptedpico3" = list("look" = "pico", "level" = 0.7),
+	"corruptedpico2" = list("look" = "pico", "level" = 0.85, "peak" = 1),
+	"corruptedpico3" = list("look" = "pico", "level" = 0.7, "peak" = 1),
 	"corruptedpico4" = list("look" = "pico", "level" = 1),
 	"corruptedpico5" = list("look" = "pico", "level" = 1),
 	"pico-bait" = list("look" = "pico", "level" = 0),
@@ -48,8 +49,8 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	// Kapi corrupted, hunting: he fights it (a grey ear and his blue coming back), then his eyes go red.
 	"corruptedkapi" = list("look" = "kapi", "level" = 1),
 	"corruptedkapi2" = list("look" = "kapi", "level" = 1),
-	"corruptedkapi3" = list("look" = "kapi", "level" = 0.75),
-	"corruptedkapi35" = list("look" = "kapi", "level" = 0.85),
+	"corruptedkapi3" = list("look" = "kapi", "level" = 0.75, "peak" = 1),
+	"corruptedkapi35" = list("look" = "kapi", "level" = 0.85, "peak" = 1),
 	"corruptedkapi4" = list("look" = "kapi", "level" = 1, "eyes" = "red"),
 	"morabait" = list("look" = "mora", "level" = 0),
 	// Skarlet Bunny, with the corruption at her boots from the start.
@@ -58,7 +59,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"skarlet3" = list("look" = "skarlet", "level" = 0.75),
 	// Marble, behind the speaker, long gone.
 	"corruptedmarble" = list("look" = "marble", "level" = 1),
-	"corruptedmarble2" = list("look" = "marble", "level" = 0.9),
+	"corruptedmarble2" = list("look" = "marble", "level" = 0.9, "peak" = 1),
 	"corruptedmarble3" = list("look" = "marble", "level" = 1),
 	// Carol in the church ruins, then flying, half angel and half demon, then all demon.
 	"carol1" = list("look" = "carol", "level" = 0.05),
@@ -83,6 +84,19 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"nocharacter" = list("look" = null, "hidden" = TRUE),
 ))
 
+/**
+ * How each song's own script drains the player whenever the opponent hits a note: list of list(from
+ * step, to step or null, only while health is over this, how much), in Funkin's units (the bar is 2).
+ */
+GLOBAL_LIST_INIT(fnf_corruption_drains, list(
+	"claws" = list(list(0, null, 0.1, 0.016)),
+	"vile-vice" = list(list(0, null, 0.1, 0.025)),
+	"feral" = list(list(0, null, 0.25, 0.024)),
+	"broken-wires" = list(list(0, 509, 0.1, 0.025), list(509, null, 1, 0.02)),
+	"cursed" = list(list(0, null, 0.1, 0.005)),
+	"purification" = list(list(0, 1408, 0.1, 0.009), list(1408, 2432, 0.1, 0.02)),
+))
+
 // The body.
 
 /mob/living/carbon
@@ -91,12 +105,12 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	var/list/fnf_corruption_state
 
 /// Corrupts this body (see /datum/limb_rig/proc/set_corruption()), rig or no rig yet.
-/mob/living/carbon/proc/fnf_set_corruption(level, eyes)
+/mob/living/carbon/proc/fnf_set_corruption(level, eyes, peak)
 	if(limb_rig)
-		limb_rig.set_corruption(level, eyes)
+		limb_rig.set_corruption(level, eyes, peak)
 		return
 	level = clamp(level, 0, 1)
-	fnf_corruption_state = level ? list(level, max(fnf_corruption_state?[2] || 0, level), eyes || "pink") : null
+	fnf_corruption_state = level ? list(level, max(fnf_corruption_state?[2] || 0, level, peak || 0), eyes || "pink") : null
 
 /datum/limb_rig/New(mob/living/carbon/owner)
 	. = ..()
@@ -117,10 +131,13 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	/// What corruption's drawn on each piece, by piece.
 	var/list/corruption_images
 
-/// Corrupts the body this far (0 to 1), its eyes glowing pink or red once its face is taken.
-/datum/limb_rig/proc/set_corruption(level, eyes = "pink")
+/**
+ * Corrupts the body this far (0 to 1), its eyes glowing pink or red once its face is taken. With a
+ * peak, it's fighting its way back down from there.
+ */
+/datum/limb_rig/proc/set_corruption(level, eyes = "pink", peak)
 	corruption = clamp(level, 0, 1)
-	corruption_peak = corruption ? max(corruption_peak, corruption) : 0
+	corruption_peak = corruption ? max(corruption_peak, corruption, peak || 0) : 0
 	corruption_eyes = eyes || "pink"
 	owner.fnf_corruption_state = corruption ? list(corruption, corruption_peak, corruption_eyes) : null
 	refresh_corruption()
@@ -135,29 +152,43 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 		return
 	corruption_images = list()
 	var/far_side = get_facing() == EAST ? "l" : (get_facing() == WEST ? "r" : null)
-	var/drained = color_matrix_saturation(1 - corruption * 0.7)
+	var/list/drained = color_matrix_saturation(1 - corruption * 0.7)
 	var/list/tainted_clothes
+	var/list/coated_flesh
+	// A taken face sits on a head that's all coat, whatever the splotches are doing.
+	var/face_taken = is_face_corrupted() && !is_face_half_freed()
 	for(var/list/piece_info as anything in get_corruption_pieces())
 		var/atom/movable/piece = piece_info[1]
 		var/part_id = piece_info[2]
-		var/size = piece_info[3]
+		var/kind = piece_info[3]
 		if(!piece)
 			continue
 		var/list/images = list()
-		var/amount = round(get_corruption_of(part_id, far_side) * 8)
-		var/is_cloth = size == 32
-		// Clothes taken (most of the way) go dark violet, their bright trims glowing hot pink, rather than coated.
-		var/tainted = is_cloth && amount >= 6
-		if(amount && !tainted)
-			var/image/coat = image(size == 64 ? 'voidcrew/modules/fnf/icons/corruption_64.dmi' : 'voidcrew/modules/fnf/icons/corruption_32.dmi', "splotch_[amount]")
-			coat.blend_mode = BLEND_INSET_OVERLAY
-			coat.color = FNF_CORRUPTION_COLOUR
-			coat.alpha = 235
-			coat.pixel_w = size == 64 ? -16 : 0
-			coat.layer = FLOAT_LAYER - 0.01
-			images += coat
+		var/taken = get_corruption_of(part_id, far_side)
+		if(part_id == RIG_HEAD && face_taken)
+			taken = 1
+		var/amount = round(taken * 8)
+		switch(kind)
+			if("clothes")
+				// Clothes go over to dark violet as it takes them, their bright trims to hot pink.
+				tainted_clothes = tainted_clothes || get_tainted_clothes_matrix()
+				piece.color = fnf_blend_colour_matrices(drained, tainted_clothes, taken)
+			if("flesh")
+				// A species' own head, hair, tail and wings (drawn as they draw them): into the coat.
+				coated_flesh = coated_flesh || get_coated_flesh_matrix()
+				piece.color = fnf_blend_colour_matrices(drained, coated_flesh, taken)
+			else
+				// The body's own sprite: the coat, baked to each piece's shape, in splotches.
+				piece.color = drained
+				if(amount)
+					var/image/coat = image('voidcrew/modules/fnf/icons/corruption_coats.dmi', "coat_[kind]_[amount]")
+					coat.color = FNF_CORRUPTION_COLOUR
+					coat.alpha = 235
+					coat.pixel_w = -16
+					coat.layer = FLOAT_LAYER - 0.01
+					images += coat
 		// The Experiment's orange tail tip glows hot pink as it's taken.
-		var/tip = part_id == RIG_TAIL ? get_corruption_tail_tip() : null
+		var/tip = part_id == RIG_TAIL && kind != "flesh" ? get_corruption_tail_tip() : null
 		if(tip && amount)
 			var/image/glow = image('voidcrew/modules/fnf/icons/corruption_64.dmi', tip)
 			glow.color = FNF_CORRUPTION_TRIM
@@ -167,21 +198,49 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 			glow.layer = FLOAT_LAYER - 0.004
 			images += glow
 		var/hands = piece_info[4]
-		// Red hands, gloves and all, until the hand's fought free.
+		// Blood red hands, until the hand's fought free.
 		if(hands && corruption >= 0.2 && get_corruption_fought(part_id, far_side) < 0.5)
-			var/image/red = image(is_cloth ? 'voidcrew/modules/fnf/icons/corruption_32.dmi' : 'voidcrew/modules/fnf/icons/corruption_64.dmi', hands)
+			var/image/red = image('voidcrew/modules/fnf/icons/corruption_64.dmi', hands)
 			red.color = FNF_CORRUPTION_HANDS
-			// Blood red whatever's drained the rest, and only on the glove or the hand itself.
+			// Blood red whatever's drained the rest.
 			red.appearance_flags = RESET_COLOR
-			red.blend_mode = BLEND_INSET_OVERLAY
-			red.pixel_w = is_cloth ? 0 : -16
+			red.pixel_w = -16
 			red.layer = FLOAT_LAYER - 0.005
 			images += red
 		piece.add_overlay(images)
-		if(tainted && !tainted_clothes)
-			tainted_clothes = get_tainted_clothes_matrix()
-		piece.color = tainted ? tainted_clothes : drained
 		corruption_images[piece] = images
+
+/// A species' own flesh taken by corruption: its dark violet, keeping just enough shading to read.
+/datum/limb_rig/proc/get_coated_flesh_matrix()
+	var/list/violet = rgb2num(FNF_CORRUPTION_COLOUR)
+	var/list/weights = list(0.3, 0.59, 0.11)
+	. = new /list(12)
+	for(var/channel in 1 to 3)
+		var/shade = violet[channel] / 255
+		for(var/source in 1 to 3)
+			.[(source - 1) * 3 + channel] = shade * weights[source] * 0.9
+		.[9 + channel] = shade * 0.55
+
+/// Blends two colour matrices (3 by 4 or 4 by 5) this far from the first to the second.
+/proc/fnf_blend_colour_matrices(list/from, list/to, amount)
+	from = fnf_full_colour_matrix(from)
+	to = fnf_full_colour_matrix(to)
+	amount = clamp(amount, 0, 1)
+	. = new /list(20)
+	for(var/i in 1 to 20)
+		.[i] = from[i] + (to[i] - from[i]) * amount
+
+/// A colour matrix as the full 4 by 5 (rows for red, green, blue, alpha, then the constants).
+/proc/fnf_full_colour_matrix(list/matrix)
+	if(length(matrix) == 20)
+		return matrix
+	return list(
+		matrix[1], matrix[2], matrix[3], 0,
+		matrix[4], matrix[5], matrix[6], 0,
+		matrix[7], matrix[8], matrix[9], 0,
+		0, 0, 0, 1,
+		matrix[10], matrix[11], matrix[12], 0,
+	)
 
 /**
  * The colour matrix for clothes corruption's taken whole: their main colour turns its dark violet,
@@ -313,25 +372,49 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 /datum/limb_rig/sprites/get_corruption_tail_tip()
 	return fnf_face_set ? "tail_[fnf_face_set]" : null
 
-/// Every piece corruption draws on: list(piece, piece id, its sprites' size, its hand mask or null).
+/**
+ * Every piece corruption draws on: list(piece, piece id, how it's taken, its hand mask or null). How
+ * it's taken is "clothes", "flesh" (drawn by the species itself), or the coat state for a body sprite.
+ */
 /datum/limb_rig/proc/get_corruption_pieces()
 	return list()
 
 /datum/limb_rig/sprites/get_corruption_pieces()
 	. = list()
-	var/hand_set = istype(src, /datum/limb_rig/sprites/humanoid) ? "humanoid" : fnf_face_set
+	var/list/zones = get_rig_piece_zones()
 	for(var/part_id in parts)
-		var/hands = hand_set && findtext(part_id, "_forearm") ? "hands_[hand_set]_[part_id]" : null
-		. += list(list(parts[part_id], part_id, 64, hands))
+		// A humanoid's pieces show a body sprite only where a limb is.
+		if(istype(src, /datum/limb_rig/sprites/humanoid) && !zones[part_id])
+			continue
+		var/hands = findtext(part_id, "_forearm") ? "hands_[get_corruption_sheet()]_[part_id]" : null
+		. += list(list(parts[part_id], part_id, "[get_corruption_sheet()]_[get_corruption_sprite_state(part_id)]", hands))
 	for(var/part_id in cloth_parts)
-		. += list(list(cloth_parts[part_id], part_id, 32, findtext(part_id, "_forearm") ? "hands_cloth" : null))
+		. += list(list(cloth_parts[part_id], part_id, "clothes", null))
 	for(var/side in shoe_parts)
-		. += list(list(shoe_parts[side], "[side]_foot", 32, null))
+		. += list(list(shoe_parts[side], "[side]_foot", "clothes", null))
 
 /datum/limb_rig/sprites/humanoid/get_corruption_pieces()
 	. = ..()
-	. += list(list(wings_part, "wings", 32, null))
-	. += list(list(tail_part, RIG_TAIL, 32, null))
+	// The head's piece carries the species' own head, hair and all: flesh, not clothes.
+	for(var/list/piece_info as anything in .)
+		if(piece_info[1] == cloth_parts[RIG_HEAD])
+			piece_info[3] = "flesh"
+	. += list(list(wings_part, "wings", "flesh", null))
+	. += list(list(tail_part, RIG_TAIL, "flesh", null))
+
+/// Which body sprites the coat's baked for (see icons/corruption_coats.dmi).
+/datum/limb_rig/sprites/proc/get_corruption_sheet()
+	return fnf_face_set || "humanoid"
+
+/// Which of them a piece shows.
+/datum/limb_rig/sprites/proc/get_corruption_sprite_state(part_id)
+	return part_id
+
+/datum/limb_rig/sprites/humanoid/get_corruption_sprite_state(part_id)
+	var/mob/living/carbon/human/human_owner = owner
+	if(part_id == RIG_CHEST && istype(human_owner) && human_owner.physique == FEMALE)
+		return "chest_f"
+	return part_id
 
 /// Which side's far changes with facing: corruption goes with it.
 /datum/limb_rig/refresh_facing()
@@ -355,8 +438,18 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	var/next_overlay = 1
 	/// Everyone it's touched, to put right after.
 	var/list/mob/living/carbon/touched = list()
-	/// Everyone shown the song's screens (see get_screens()), to take them down after.
-	var/list/mob/viewers = list()
+	/// Who each role ("player", "opponent", "gf") is now, as the mod's cast: kept to, in case a
+	/// singer's body is rebuilt, or wasn't ready yet, when they were made it.
+	var/list/current_cast = list()
+	/// When the cast was last checked on.
+	var/next_check = 0
+	/// Health each of the opponent's notes takes, as set by the song's "HealthDrainCustom" (Funkin's
+	/// units, the bar being 2), on top of its own drain (see GLOB.fnf_corruption_drains).
+	var/opponent_drain = 0
+	/// And health each of the player's notes gives back.
+	var/player_bonus = 0
+	/// What the song lays over the stage (see get_layer()), by name.
+	var/list/obj/effect/abstract/fnf_hud/layers = list()
 	/// Who's drawn as a silhouette right now (the "Bad Apple" events), and in what colour.
 	var/list/mob/silhouetted = list()
 	/// Which silhouettes are up: "white" (black figures on white), "black" (white on black),
@@ -385,16 +478,18 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 			REMOVE_TRAIT(singer, TRAIT_MOVE_FLOATING, FNF_BATTLE_TRAIT)
 	touched.Cut()
 	set_apple(null, 0)
-	for(var/mob/viewer as anything in viewers)
-		for(var/category in GLOB.fnf_corruption_screens)
-			viewer.clear_fullscreen(category, FALSE)
-	viewers.Cut()
+	for(var/name in layers)
+		battle?.healthbar?.vis_contents -= layers[name]
+	QDEL_LIST_ASSOC_VAL(layers)
 	battle?.healthbar?.vis_contents -= bar_frame
 	QDEL_NULL(bar_frame)
 	battle = null
 	return ..()
 
 /datum/fnf_corruption/proc/tick(now)
+	if(world.time >= next_check)
+		next_check = world.time + 5
+		keep_cast()
 	while(next_change <= length(changes))
 		var/list/change = changes[next_change]
 		if(change[1] > now)
@@ -422,17 +517,75 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	bar.vis_contents += bar_frame
 
 /**
- * One of the song's screens (see GLOB.fnf_corruption_screens) for everyone listening: laid over
- * each of their own views, sized to it, as the mod lays them over its screen.
+ * One of the things the song lays over the stage, as the mod lays them over its screen: over the
+ * world and under the arrows, centred where the singers' cameras look, and sized to cover their
+ * views (with room for the camera's sway between the singers).
+ * - "overlay", "flash", "dark": one of the mod's overlays (320 by 180), across the whole width of
+ *   the view so no words are cut off; "_top" and "_bottom" carry its edges on above and below.
+ * - "light", "black", "bloom": a flash of colour, the dark, a burst of glow, over everything.
+ * - "backdrop": the stage blacked or whited out behind whoever's on it, for the silhouettes.
  */
-/datum/fnf_corruption/proc/get_screens(category)
-	. = list()
-	var/screen_type = GLOB.fnf_corruption_screens[category]
-	for(var/mob/viewer as anything in battle.listeners)
-		if(!viewer.client)
+/datum/fnf_corruption/proc/get_layer(name)
+	var/obj/effect/abstract/fnf_hud/healthbar/bar = battle.healthbar
+	if(!bar)
+		return null
+	var/obj/effect/abstract/fnf_hud/layer_obj = layers[name]
+	if(!layer_obj)
+		layer_obj = new
+		layer_obj.alpha = 0
+		var/is_fill = (name in list("light", "black", "bloom", "backdrop"))
+		if(is_fill)
+			layer_obj.icon_state = "bar"
+			layer_obj.color = "#000000"
+			layer_obj.layer = ABOVE_ALL_MOB_LAYER + 0.004
+		else
+			layer_obj.icon = 'voidcrew/modules/fnf/icons/fnf_corruption_overlays.dmi'
+			layer_obj.layer = ABOVE_ALL_MOB_LAYER + (findtext(name, "flash") ? 0.007 : (findtext(name, "dark") ? 0.006 : 0.005))
+		if(name == "bloom")
+			layer_obj.color = "#ffffff"
+			layer_obj.blend_mode = BLEND_ADD
+		if(name == "backdrop")
+			// Down among the singers, just under them.
+			layer_obj.vis_flags = NONE
+			SET_PLANE_EXPLICIT(layer_obj, GAME_PLANE, bar)
+			layer_obj.layer = MOB_LAYER - 0.01
+		bar.vis_contents += layer_obj
+		layers[name] = layer_obj
+	fit_layer(layer_obj, name)
+	return layer_obj
+
+/// Sizes and places one of the song's layers (see get_layer()) for the views it's seen in now.
+/datum/fnf_corruption/proc/fit_layer(obj/effect/abstract/fnf_hud/layer_obj, name)
+	var/obj/effect/abstract/fnf_hud/healthbar/bar = battle.healthbar
+	var/view_width = 15 * ICON_SIZE_X
+	var/view_height = 15 * ICON_SIZE_Y
+	for(var/mob/listener as anything in battle.listeners)
+		if(!listener.client)
 			continue
-		viewers |= viewer
-		. += viewer.overlay_fullscreen(category, screen_type)
+		var/list/size = getviewsize(listener.client.view)
+		view_width = max(view_width, size[1] * ICON_SIZE_X)
+		view_height = max(view_height, size[2] * ICON_SIZE_Y)
+	// The cameras sway 24 pixels either way between the singers.
+	view_width += 48
+	view_height += 16
+	var/center_x = battle.camera_x - bar.x * ICON_SIZE_X
+	var/center_y = battle.camera_y - bar.y * ICON_SIZE_Y
+	if(layer_obj.icon_state == "bar" || (name in list("light", "black", "bloom", "backdrop")))
+		layer_obj.pixel_w = center_x - 16
+		layer_obj.pixel_z = center_y - 16
+		layer_obj.transform = matrix((view_width + 64) / ICON_SIZE_X, 0, 0, 0, (view_height + 64) / ICON_SIZE_Y, 0)
+		return
+	layer_obj.pixel_w = center_x - 160
+	layer_obj.pixel_z = center_y - 90
+	var/scale = view_width / 320
+	var/part = findtext(name, "_top") ? "top" : (findtext(name, "_bottom") ? "bottom" : null)
+	if(!part)
+		layer_obj.transform = matrix(scale, 0, 0, 0, scale, 0)
+		return
+	// A pixel of overlap, so no seam.
+	var/strip = max((view_height - 180 * scale) / 2, 0) + 2
+	var/offset = (180 * scale + strip) / 2 - 1
+	layer_obj.transform = matrix(scale, 0, 0, 0, strip / 180, part == "top" ? offset : -offset)
 
 /**
  * The mod's screen events, as it plays them:
@@ -440,10 +593,12 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
  * - "flash": an overlay up for its value in seconds, then quickly gone
  * - "light": the screen flashes a colour (the image), fading over the value in seconds
  * - "black": the screen fades to black over the value in seconds (image "1"), or comes back ("0")
- * - "bloom": a burst of glow, as strong as the value
+ * - "bloom": a glimmer of glow, as strong as the value
  * - "apple": silhouettes (see set_apple()), the image saying which, over the value in seconds
+ * - "blammed": the lights go down and everyone's lit a colour (the value, 1 to 5), or back up (0)
  * - "anim": someone on stage acts something out (the image), the value saying who
  * - "shake": the screen shakes for the value in seconds
+ * - "drain", "health_drain": health taken or given (see drain())
  */
 /datum/fnf_corruption/proc/show(kind, image_name, value)
 	switch(kind)
@@ -452,42 +607,50 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 		if("shake")
 			for(var/mob/listener as anything in battle.listeners)
 				shake_camera(listener, max(round(value * 10), 1), 1)
+		if("drain")
+			drain(value)
+		if("health_drain")
+			opponent_drain = value
+			player_bonus = text2num(image_name) || 0
 		if("overlay", "flash")
 			var/static/list/images = icon_states('voidcrew/modules/fnf/icons/fnf_corruption_overlays.dmi')
 			// Missing ones (the mod names a "yourcalls" it doesn't have) are skipped, as the mod skips them.
 			if(!(image_name in images))
 				return
 			// The overlay itself, and its edges carried on above and below it.
-			var/list/shown = list()
 			for(var/part in list("", "_top", "_bottom"))
-				for(var/atom/movable/screen/fullscreen/fnf/corruption/screen as anything in get_screens("fnf_corruption_[kind][part]"))
-					shown[screen] = "[image_name][part]"
-			for(var/atom/movable/screen/fullscreen/fnf/corruption/screen as anything in shown)
+				var/obj/effect/abstract/fnf_hud/layer_obj = get_layer("[kind][part]")
+				if(!layer_obj)
+					return
 				if(kind == "flash")
-					screen.icon_state = shown[screen]
-					screen.alpha = 255
-					animate(screen, alpha = 255, time = max(value, 0.1) * 10)
+					layer_obj.icon_state = "[image_name][part]"
+					layer_obj.alpha = 255
+					animate(layer_obj, alpha = 255, time = max(value, 0.1) * 10)
 					animate(alpha = 0, time = 3)
 				else if(value)
-					screen.icon_state = shown[screen]
-					animate(screen, alpha = 255, time = 7.5, easing = QUAD_EASING)
-				else if(screen.icon_state == shown[screen])
-					animate(screen, alpha = 0, time = 7.5, easing = QUAD_EASING)
+					layer_obj.icon_state = "[image_name][part]"
+					animate(layer_obj, alpha = 255, time = 7.5, easing = QUAD_EASING)
+				else if(layer_obj.icon_state == "[image_name][part]")
+					animate(layer_obj, alpha = 0, time = 7.5, easing = QUAD_EASING)
 		if("light")
-			for(var/atom/movable/screen/fullscreen/fnf/corruption/fill/screen as anything in get_screens("fnf_corruption_light"))
-				screen.color = image_name
-				screen.alpha = 255
-				animate(screen, alpha = 0, time = max(value, 0.1) * 10)
+			var/obj/effect/abstract/fnf_hud/layer_obj = get_layer("light")
+			if(layer_obj)
+				layer_obj.color = image_name
+				layer_obj.alpha = 255
+				animate(layer_obj, alpha = 0, time = max(value, 0.1) * 10)
 		if("black")
-			for(var/atom/movable/screen/fullscreen/fnf/corruption/fill/screen as anything in get_screens("fnf_corruption_black"))
+			var/obj/effect/abstract/fnf_hud/layer_obj = get_layer("black")
+			if(layer_obj)
 				if(image_name == "1")
-					animate(screen, alpha = 255, time = max(value, 0.1) * 10, easing = QUAD_EASING)
+					animate(layer_obj, alpha = 255, time = max(value, 0.1) * 10, easing = QUAD_EASING)
 				else
-					animate(screen, alpha = 0, time = 0)
+					animate(layer_obj, alpha = 0, time = 0)
 		if("bloom")
-			for(var/atom/movable/screen/fullscreen/fnf/corruption/fill/screen as anything in get_screens("fnf_corruption_bloom"))
-				screen.alpha = clamp(round(value * 45), 0, 120)
-				animate(screen, alpha = 0, time = 8)
+			// The mod's bloom shader only brightens what's bright already: a glimmer, not a flash.
+			var/obj/effect/abstract/fnf_hud/layer_obj = get_layer("bloom")
+			if(layer_obj)
+				layer_obj.alpha = clamp(round(value * 9), 0, 30)
+				animate(layer_obj, alpha = 0, time = 8)
 		if("apple")
 			var/mode = image_name
 			if(mode == "toggle-black")
@@ -497,12 +660,16 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 			else if(mode == "off")
 				mode = null
 			set_apple(mode, value)
+		if("blammed")
+			var/static/list/colours = list("#31a2fd", "#31fd8c", "#f794f7", "#f96d63", "#fba633")
+			set_apple(value ? "blammed" : null, 1, colours[clamp(value, 1, 5)])
 
 /**
  * The mod's "Bad Apple" moments: the stage blacked or whited out behind everyone on it, and them
  * drawn as flat silhouettes against it: black on white, white on black, or each in their own colour.
+ * And its "Blammed Lights": the stage dark, and everyone lit one colour.
  */
-/datum/fnf_corruption/proc/set_apple(mode, seconds)
+/datum/fnf_corruption/proc/set_apple(mode, seconds, light_colour)
 	for(var/mob/living/figure as anything in silhouetted)
 		if(!QDELETED(figure))
 			figure.remove_atom_colour(ADMIN_COLOUR_PRIORITY, silhouetted[figure])
@@ -510,12 +677,13 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	apple = mode
 	if(!battle)
 		return
-	for(var/atom/movable/screen/fullscreen/fnf/corruption/fill/screen as anything in get_screens("fnf_corruption_backdrop"))
+	var/obj/effect/abstract/fnf_hud/backdrop = get_layer("backdrop")
+	if(backdrop)
 		if(mode)
-			screen.color = mode == "white" ? "#ffffff" : "#000000"
-			animate(screen, alpha = 255, time = max(seconds, 0.1) * 10)
+			backdrop.color = mode == "white" ? "#ffffff" : "#000000"
+			animate(backdrop, alpha = 255, time = max(seconds, 0.1) * 10)
 		else
-			animate(screen, alpha = 0, time = max(seconds, 0.1) * 10)
+			animate(backdrop, alpha = 0, time = max(seconds, 0.1) * 10)
 	if(!mode)
 		return
 	// Each in their colour on the health bar (the girlfriend in hers).
@@ -529,13 +697,16 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	for(var/mob/living/figure in figures)
 		if(QDELETED(figure))
 			continue
-		var/list/rgb = rgb2num(figures[figure])
+		var/list/rgb = rgb2num(mode == "blammed" ? light_colour : figures[figure])
 		var/silhouette
 		switch(mode)
 			if("white")
 				silhouette = "#000000"
 			if("black")
 				silhouette = list(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1)
+			if("blammed")
+				// Lit, not flattened: the colour over their own shading.
+				silhouette = light_colour
 			else
 				silhouette = list(0, 0, 0, 0, 0, 0, 0, 0, 0, rgb[1] / 255, rgb[2] / 255, rgb[3] / 255)
 		figure.add_atom_colour(silhouette, ADMIN_COLOUR_PRIORITY)
@@ -554,21 +725,78 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	if(battle.song.note_skin != "skarlet")
 		return
 	for(var/part in list("", "_top", "_bottom"))
-		for(var/atom/movable/screen/fullscreen/fnf/corruption/screen as anything in get_screens("fnf_corruption_dark[part]"))
-			screen.icon_state = "overlayskarlet[part]"
-			animate(screen, alpha = 255, time = 1, easing = QUAD_EASING|EASE_OUT)
-			animate(alpha = 255, time = 10)
-			animate(alpha = 0, time = 10)
+		var/obj/effect/abstract/fnf_hud/layer_obj = get_layer("dark[part]")
+		if(!layer_obj)
+			break
+		layer_obj.icon_state = "overlayskarlet[part]"
+		animate(layer_obj, alpha = 255, time = 1, easing = QUAD_EASING|EASE_OUT)
+		animate(alpha = 255, time = 10)
+		animate(alpha = 0, time = 10)
 	for(var/channel in list(battle.inst_channel, battle.left_voice_channel))
 		battle.set_channel_volume(channel, 0)
 		for(var/step in 1 to 5)
 			addtimer(CALLBACK(battle, TYPE_PROC_REF(/datum/fnf_battle, set_channel_volume), channel, step / 5), 5 + step * 3, TIMER_DELETE_ME)
+
+/**
+ * The opponent hitting a note, in a song whose script drains the player for it (the mod's songs push
+ * back hard): whatever its own script takes, then any drain its events have set.
+ */
+/datum/fnf_corruption/proc/opponent_hit()
+	var/step = battle.get_song_time() / (battle.crochet / 4)
+	for(var/list/rule as anything in GLOB.fnf_corruption_drains[battle.song.id])
+		if(step < rule[1] || (rule[2] && step >= rule[2]))
+			continue
+		if(battle.health > rule[3] * FNF_HEALTH_MAX / 2)
+			battle.adjust_health(-rule[4] * FNF_HEALTH_MAX / 2, battle.right)
+		break
+	if(opponent_drain && battle.health > 0.1 * FNF_HEALTH_MAX / 2)
+		battle.adjust_health(-opponent_drain * FNF_HEALTH_MAX / 2, battle.right)
+
+/// The player hitting a note: any extra health the song's events give for it.
+/datum/fnf_corruption/proc/player_hit()
+	if(player_bonus)
+		battle.adjust_health(-player_bonus * FNF_HEALTH_MAX / 2, battle.right)
+
+/// The mod's "Drain" event: takes 0.02 more than its value (a negative value gives health back), unless that would finish the player.
+/datum/fnf_corruption/proc/drain(value)
+	var/damage = (0.02 + value) * FNF_HEALTH_MAX / 2
+	if(battle.health > damage)
+		battle.adjust_health(-damage, battle.right)
+
+/// Makes sure everyone on stage looks as corrupted as their role says, whatever happened to their body.
+/datum/fnf_corruption/proc/keep_cast()
+	for(var/role in current_cast)
+		var/list/cast = current_cast[role]
+		// Nobody behind the speakers: she's just hidden (see apply()).
+		if(role == "gf" && !cast["look"])
+			continue
+		var/mob/living/carbon/singer = get_singer(role)
+		if(!istype(singer) || QDELETED(singer) || !singer.limb_rig)
+			continue
+		var/datum/limb_rig/rig = singer.limb_rig
+		var/level = cast["level"] || 0
+		if(rig.corruption != level || rig.corruption_eyes != (cast["eyes"] || "pink") || rig.corruption_peak < (cast["peak"] || 0))
+			corrupt(singer, cast)
+		else if(level && !rig.corruption_images)
+			rig.refresh_corruption()
+			rig.refresh_fnf_face()
+
+/// Who's in a role on stage now.
+/datum/fnf_corruption/proc/get_singer(role)
+	switch(role)
+		if("player")
+			return battle.right?.singer
+		if("opponent")
+			return battle.left?.singer
+		if("gf")
+			return battle.stage?.girlfriend
 
 /// Makes someone on stage whoever the song says they are now.
 /datum/fnf_corruption/proc/apply(role, character)
 	var/list/cast = GLOB.fnf_corruption_cast[character]
 	if(!cast)
 		return
+	current_cast[role] = cast
 	switch(role)
 		if("player")
 			corrupt(battle.right?.singer, cast)
@@ -594,7 +822,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 		return
 	touched |= singer
 	singer.alpha = cast["hidden"] ? 0 : initial(singer.alpha)
-	singer.fnf_set_corruption(cast["level"] || 0, cast["eyes"])
+	singer.fnf_set_corruption(cast["level"] || 0, cast["eyes"], cast["peak"])
 	// Only the song's own characters grow wings; a player stays as they are.
 	if(singer == battle.npc || singer == battle.stage?.girlfriend)
 		fnf_set_wings(singer, cast["wings"])
@@ -618,89 +846,3 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 		var/obj/item/organ/wings/given = new wanted_type
 		ADD_TRAIT(given, TRAIT_NODROP, FNF_BATTLE_TRAIT)
 		given.Insert(singer, special = TRUE)
-
-// The song's screens: laid over each listener's own view, under the arrows and over the world.
-
-/// Every screen a corruption song puts up, by fullscreen category.
-GLOBAL_LIST_INIT(fnf_corruption_screens, list(
-	"fnf_corruption_backdrop" = /atom/movable/screen/fullscreen/fnf/corruption/fill/backdrop,
-	"fnf_corruption_overlay" = /atom/movable/screen/fullscreen/fnf/corruption,
-	"fnf_corruption_overlay_top" = /atom/movable/screen/fullscreen/fnf/corruption/top,
-	"fnf_corruption_overlay_bottom" = /atom/movable/screen/fullscreen/fnf/corruption/bottom,
-	"fnf_corruption_flash" = /atom/movable/screen/fullscreen/fnf/corruption,
-	"fnf_corruption_flash_top" = /atom/movable/screen/fullscreen/fnf/corruption/top,
-	"fnf_corruption_flash_bottom" = /atom/movable/screen/fullscreen/fnf/corruption/bottom,
-	"fnf_corruption_dark" = /atom/movable/screen/fullscreen/fnf/corruption,
-	"fnf_corruption_dark_top" = /atom/movable/screen/fullscreen/fnf/corruption/top,
-	"fnf_corruption_dark_bottom" = /atom/movable/screen/fullscreen/fnf/corruption/bottom,
-	"fnf_corruption_light" = /atom/movable/screen/fullscreen/fnf/corruption/fill,
-	"fnf_corruption_black" = /atom/movable/screen/fullscreen/fnf/corruption/fill,
-	"fnf_corruption_bloom" = /atom/movable/screen/fullscreen/fnf/corruption/fill/bloom,
-))
-
-/**
- * One of the mod's overlays (320 by 180), fitted to the whole width of the view: every word of it
- * shows, whatever shape the view is. The top and bottom pieces fill whatever's left above and
- * below with the overlay's own edges, drawn out.
- */
-/atom/movable/screen/fullscreen/fnf/corruption
-	icon = 'voidcrew/modules/fnf/icons/fnf_corruption_overlays.dmi'
-	icon_state = ""
-	color = null
-	alpha = 0
-	plane = ABOVE_LIGHTING_PLANE
-	layer = ABOVE_ALL_MOB_LAYER + 0.005
-	appearance_flags = PIXEL_SCALE
-	// Centred on the view.
-	screen_loc = "CENTER:-144,CENTER:-74"
-	/// "top" or "bottom" for the pieces above and below, null for the overlay itself.
-	var/part
-	/// The view it's fitted to, in pixels.
-	var/view_width
-	var/view_height
-
-/atom/movable/screen/fullscreen/fnf/corruption/update_for_view(client_view)
-	view = client_view
-	var/list/size = getviewsize(client_view)
-	view_width = size[1] * ICON_SIZE_X
-	view_height = size[2] * ICON_SIZE_Y
-	fit()
-
-/atom/movable/screen/fullscreen/fnf/corruption/proc/fit()
-	if(!view_width)
-		return
-	var/scale = min(view_width / 320, view_height / 180)
-	if(!part)
-		transform = matrix(scale, 0, 0, 0, scale, 0)
-		return
-	// A pixel of overlap, so no seam.
-	var/strip = max((view_height - 180 * scale) / 2, 0) + 2
-	var/offset = (180 * scale + strip) / 2 - 1
-	transform = matrix(scale, 0, 0, 0, strip / 180, part == "top" ? offset : -offset)
-
-/atom/movable/screen/fullscreen/fnf/corruption/top
-	part = "top"
-
-/atom/movable/screen/fullscreen/fnf/corruption/bottom
-	part = "bottom"
-
-/// A flash of colour, or the dark, over the whole view.
-/atom/movable/screen/fullscreen/fnf/corruption/fill
-	icon = 'voidcrew/modules/fnf/icons/fnf.dmi'
-	icon_state = "bar"
-	color = "#000000"
-	layer = ABOVE_ALL_MOB_LAYER + 0.004
-	screen_loc = "WEST,SOUTH to EAST,NORTH"
-
-/atom/movable/screen/fullscreen/fnf/corruption/fill/fit()
-	return
-
-/// A burst of glow: white, added onto everything under it.
-/atom/movable/screen/fullscreen/fnf/corruption/fill/bloom
-	color = "#ffffff"
-	blend_mode = BLEND_ADD
-
-/// Blacks or whites out the stage behind whoever's on it, for the silhouettes (see set_apple()).
-/atom/movable/screen/fullscreen/fnf/corruption/fill/backdrop
-	plane = GAME_PLANE
-	layer = MOB_LAYER - 0.01

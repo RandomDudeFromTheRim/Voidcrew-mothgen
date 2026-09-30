@@ -421,6 +421,13 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 				found = list(entry[1], "apple", "toggle-black", text2num("[event[2]]") || 0.1)
 			else if(event[1] == "iconcoloredapplebyflain")
 				found = list(entry[1], "apple", "toggle-colour", text2num("[event[2]]") || 0.1)
+			else if(event[1] == "Blammed Lights")
+				found = list(entry[1], "blammed", "", text2num("[event[2]]") || 0)
+			// Health: taken (or given back) at once, or taken with each of the opponent's notes from now on.
+			else if(event[1] == "Drain")
+				found = list(entry[1], "drain", "", text2num("[event[2]]") || 0)
+			else if(event[1] == "HealthDrainCustom")
+				found = list(entry[1], "health_drain", "[text2num("[event[3]]") || 0]", text2num("[event[2]]") || 0)
 			if(!found)
 				continue
 			var/key = jointext(found, "-")
@@ -554,9 +561,15 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 			var/kind = length(raw) >= 4 ? raw[4] : null
 			if(istext(kind) && (findtext(kind, "hurt") || findtext(kind, "mine")))
 				continue
+			if(kind == "No Animation")
+				kind = "noanim"
 			var/hold = length(raw) >= 3 ? raw[3] : 0
-			var/list/entry = list(time, lane % 4, isnum(hold) ? max(hold, 0) : 0, istext(kind) ? kind : null)
 			var/players_note = fixed_lanes ? lane < 4 : (players_turn ? lane < 4 : lane >= 4)
+			// A section the one in the girlfriend's place sings (Psych Engine's gfSection): the
+			// player plays it, but she's the one singing.
+			if(players_note && section["gfSection"] && !istext(kind))
+				kind = "gf"
+			var/list/entry = list(time, lane % 4, isnum(hold) ? max(hold, 0) : 0, istext(kind) ? kind : null)
 			if(players_note)
 				player += list(entry)
 			else

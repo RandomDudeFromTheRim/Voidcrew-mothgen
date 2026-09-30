@@ -110,6 +110,10 @@
 	rig.set_corruption(1, "red")
 	TEST_ASSERT(length(rig.corruption_images), "Corruption drew nothing on the body.")
 	TEST_ASSERT(rig.is_face_corrupted(), "Full corruption didn't take the face.")
+	var/list/coats = icon_states('voidcrew/modules/fnf/icons/corruption_coats.dmi')
+	for(var/coat in list("coat_humanoid_chest_8", "coat_humanoid_chest_f_1", "coat_experiment_tail_4", "coat_milkie_head_8"))
+		TEST_ASSERT(coat in coats, "Corruption's coat isn't baked for [coat].")
+	TEST_ASSERT_EQUAL(length(fnf_blend_colour_matrices(color_matrix_saturation(0.5), list(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0), 0.5)), 20, "Colour matrices don't blend.")
 	// Fighting it off frees the head first, while the far side stays taken.
 	rig.set_corruption(0.7)
 	TEST_ASSERT(rig.get_corruption_of("head", "l") < rig.get_corruption_of("l_arm", "l"), "Fighting corruption off didn't free the head before the far side.")
