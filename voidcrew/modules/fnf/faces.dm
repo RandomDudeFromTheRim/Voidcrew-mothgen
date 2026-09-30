@@ -93,12 +93,16 @@
 /datum/limb_rig/sprites/get_fnf_face_images(expression)
 	if(!fnf_face_set)
 		return list()
-	if(is_face_corrupted())
+	var/half_freed = is_face_half_freed()
+	if(is_face_corrupted() && !half_freed)
 		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_experiment_corrupt.dmi', fnf_face_set, expression, -16)
-	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi', "[fnf_face_set]_[expression]")
+	// Half fought free: its own eye in a patch of its own fur, over the coat.
+	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi', "[fnf_face_set][half_freed ? "_window" : ""]_[expression]")
 	// Its sprites are 64 wide, drawn from 16 pixels left of the piece.
 	face.pixel_w = -16
 	face.layer = FLOAT_LAYER
+	if(half_freed)
+		return list(face) + get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_experiment_corrupt.dmi', fnf_face_set, expression, -16)
 	return list(face)
 
 // Everyone else's heads, as tg draws them.
@@ -111,17 +115,21 @@
 	var/face_set = get_fnf_face_set(head?.limb_id)
 	if(!face_set)
 		return list()
-	if(is_face_corrupted())
+	var/half_freed = is_face_half_freed()
+	if(is_face_corrupted() && !half_freed)
 		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_corrupt.dmi', face_set, expression, 0)
-	var/image/cover = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set]_cover")
+	// Half fought free: a patch of skin round the near eye, their own eye in it, over the coat.
+	var/image/cover = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set]_[half_freed ? "windowcover" : "cover"]")
 	cover.layer = FLOAT_LAYER
 	// The head's own shade, tinted as the head is (a head drawn in its own colours isn't).
 	if(head.should_draw_greyscale && head.draw_color)
 		cover.color = head.draw_color
 	// Only people's faces come in other eyes.
 	var/eyes = face_set == "human" && owner.fnf_face_eyes ? "_[owner.fnf_face_eyes]" : ""
-	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set][eyes]_[expression]")
+	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set][eyes][half_freed ? "_window" : ""]_[expression]")
 	face.layer = FLOAT_LAYER
+	if(half_freed)
+		return list(cover, face) + get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_corrupt.dmi', face_set, expression, 0)
 	return list(cover, face)
 
 /// Which faces fit a head, by its limb id: null for a head that can't pull one.
@@ -139,16 +147,23 @@
 			return "skeleton"
 	return "human"
 
-/// Whether corruption has taken the face (see corruption.dm).
+/// Whether corruption has the face (see corruption.dm), all of it or its grin.
 /datum/limb_rig/proc/is_face_corrupted()
-	return corruption && get_corruption_of(RIG_HEAD, null) >= FNF_CORRUPTION_FACE
+	if(!corruption || get_corruption_spread(RIG_HEAD, null, corruption_peak) < FNF_CORRUPTION_FACE)
+		return FALSE
+	return get_corruption_fought(RIG_HEAD, null) < FNF_CORRUPTION_FACE_FREED
+
+/// Whether the face is half fought free: its own near eye back in a clean patch, the grin still glowing.
+/datum/limb_rig/proc/is_face_half_freed()
+	return is_face_corrupted() && get_corruption_fought(RIG_HEAD, null) >= FNF_CORRUPTION_FACE_HALF
 
 /**
  * A corrupted face: glowing, so drawn in its own colours whatever's drained the rest, and lit in
  * the dark.
  */
 /datum/limb_rig/proc/get_corrupted_face_images(face_icon, face_set, expression, offset)
-	var/state = "[face_set]_[corruption_eyes == "red" ? "corruptred" : "corrupt"]_[expression == "blink" ? "idle" : expression]"
+	var/half = is_face_half_freed() ? "half" : ""
+	var/state = "[face_set]_[corruption_eyes == "red" ? "corruptred" : "corrupt"][half]_[expression == "blink" ? "idle" : expression]"
 	var/image/face = image(face_icon, state)
 	face.pixel_w = offset
 	face.layer = FLOAT_LAYER

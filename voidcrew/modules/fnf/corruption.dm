@@ -14,6 +14,11 @@
  * from the crowd, the tail), then the hands go red, then the near limbs, the body and the head,
  * each piece taken over in growing dark violet splotches while every colour drains. Once the
  * head's gone, the face glows hot pink: "( • )" eyes turned on their side and a candy-corn grin.
+ * Clothes it's taken go dark violet, and their bright trims glow hot pink.
+ *
+ * Fighting it off doesn't run that backwards. Like the mod's Pico and Kapi breaking free for a
+ * while, the head comes back first (their hair, then half their face: the near eye), and the near
+ * hand with it, while the body comes back only slowly and the far side stays taken.
  */
 
 /**
@@ -83,6 +88,8 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 /datum/limb_rig
 	/// How far corruption has taken this body, 0 to 1.
 	var/corruption = 0
+	/// The furthest it's got since the body was last clean: anything less is being fought off.
+	var/corruption_peak = 0
 	/// The colour its corrupted eyes glow: "pink", or "red".
 	var/corruption_eyes = "pink"
 	/// What corruption's drawn on each piece, by piece.
@@ -91,6 +98,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 /// Corrupts the body this far (0 to 1), its eyes glowing pink or red once its face is taken.
 /datum/limb_rig/proc/set_corruption(level, eyes = "pink")
 	corruption = clamp(level, 0, 1)
+	corruption_peak = corruption ? max(corruption_peak, corruption) : 0
 	corruption_eyes = eyes || "pink"
 	refresh_corruption()
 	refresh_fnf_face()
@@ -105,6 +113,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	corruption_images = list()
 	var/far_side = get_facing() == EAST ? "l" : (get_facing() == WEST ? "r" : null)
 	var/drained = color_matrix_saturation(1 - corruption * 0.7)
+	var/list/tainted_clothes
 	for(var/list/piece_info as anything in get_corruption_pieces())
 		var/atom/movable/piece = piece_info[1]
 		var/part_id = piece_info[2]
@@ -113,7 +122,10 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 			continue
 		var/list/images = list()
 		var/amount = round(get_corruption_of(part_id, far_side) * 8)
-		if(amount)
+		var/is_cloth = size == 32
+		// Clothes taken (most of the way) go dark violet, their bright trims glowing hot pink, rather than coated.
+		var/tainted = is_cloth && amount >= 6
+		if(amount && !tainted)
 			var/image/coat = image(size == 64 ? 'voidcrew/modules/fnf/icons/corruption_64.dmi' : 'voidcrew/modules/fnf/icons/corruption_32.dmi', "splotch_[amount]")
 			coat.blend_mode = BLEND_INSET_OVERLAY
 			coat.color = FNF_CORRUPTION_COLOUR
@@ -121,22 +133,102 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 			coat.pixel_w = size == 64 ? -16 : 0
 			coat.layer = FLOAT_LAYER - 0.01
 			images += coat
+		// The Experiment's orange tail tip glows hot pink as it's taken.
+		var/tip = part_id == RIG_TAIL ? get_corruption_tail_tip() : null
+		if(tip && amount)
+			var/image/glow = image('voidcrew/modules/fnf/icons/corruption_64.dmi', tip)
+			glow.color = FNF_CORRUPTION_TRIM
+			glow.alpha = amount * 32 - 1
+			glow.appearance_flags = RESET_COLOR
+			glow.pixel_w = -16
+			glow.layer = FLOAT_LAYER - 0.004
+			images += glow
 		var/hands = piece_info[4]
-		if(hands && corruption >= 0.2)
-			var/image/red = image('voidcrew/modules/fnf/icons/corruption_64.dmi', hands)
+		// Red hands, gloves and all, until the hand's fought free.
+		if(hands && corruption >= 0.2 && get_corruption_fought(part_id, far_side) < 0.5)
+			var/image/red = image(is_cloth ? 'voidcrew/modules/fnf/icons/corruption_32.dmi' : 'voidcrew/modules/fnf/icons/corruption_64.dmi', hands)
 			red.color = FNF_CORRUPTION_HANDS
-			red.pixel_w = -16
+			// Blood red whatever's drained the rest, and only on the glove or the hand itself.
+			red.appearance_flags = RESET_COLOR
+			red.blend_mode = BLEND_INSET_OVERLAY
+			red.pixel_w = is_cloth ? 0 : -16
 			red.layer = FLOAT_LAYER - 0.005
 			images += red
 		piece.add_overlay(images)
-		piece.color = drained
+		if(tainted && !tainted_clothes)
+			tainted_clothes = get_tainted_clothes_matrix()
+		piece.color = tainted ? tainted_clothes : drained
 		corruption_images[piece] = images
 
 /**
+ * The colour matrix for clothes corruption's taken whole: their main colour turns its dark violet,
+ * anything darker goes on down to black, and anything brighter (trims, stripes, buttons, highlights)
+ * climbs to hot pink.
+ */
+/datum/limb_rig/proc/get_tainted_clothes_matrix()
+	var/list/main = rgb2num(get_main_clothes_colour())
+	var/main_brightness = (main[1] * 0.3 + main[2] * 0.59 + main[3] * 0.11) / 255
+	var/list/violet = rgb2num(FNF_CORRUPTION_CLOTHES_COLOUR)
+	var/list/trim = rgb2num(FNF_CORRUPTION_TRIM)
+	var/list/weights = list(0.3, 0.59, 0.11)
+	. = new /list(12)
+	for(var/channel in 1 to 3)
+		// How fast this channel climbs from violet to pink with brightness.
+		var/climb = (trim[channel] - violet[channel]) / 255 / FNF_CORRUPTION_TRIM_RISE
+		for(var/source in 1 to 3)
+			.[(source - 1) * 3 + channel] = climb * weights[source]
+		.[9 + channel] = violet[channel] / 255 - climb * main_brightness
+
+/// What colour the owner's clothes mostly are: their outer suit's, or else their jumpsuit's.
+/datum/limb_rig/proc/get_main_clothes_colour()
+	var/mob/living/carbon/human/wearer = owner
+	if(istype(wearer))
+		for(var/obj/item/worn in list(wearer.wear_suit, wearer.w_uniform))
+			var/list/colours = worn.greyscale_colors ? splittext(worn.greyscale_colors, "#") : null
+			if(length(colours) > 1 && length(colours[2]) == 6)
+				return "#[colours[2]]"
+			if(istext(worn.color))
+				return worn.color
+	return "#737373"
+
+/**
  * How far corruption has taken one piece of the body, 0 to 1: the far side first, then the near
- * limbs, the body, and the head last.
+ * limbs, the body, and the head last. Whatever's been fought off since its peak is taken back out.
  */
 /datum/limb_rig/proc/get_corruption_of(part_id, far_side)
+	return get_corruption_spread(part_id, far_side, corruption_peak) * (1 - get_corruption_fought(part_id, far_side))
+
+/**
+ * How much of one piece has been fought free, 0 to 1, going by how far the body's come back from
+ * its peak: the head first, the near hand and the body next, the far side last.
+ */
+/datum/limb_rig/proc/get_corruption_fought(part_id, far_side)
+	var/fought = corruption_peak - corruption
+	if(fought <= 0)
+		return 0
+	var/delay
+	switch(part_id)
+		if(RIG_HEAD)
+			delay = 0
+		if(RIG_CHEST)
+			delay = 0.2
+		if(RIG_TAIL, "wings")
+			delay = 0.3
+		else
+			var/side = copytext(part_id, 1, 2)
+			var/is_arm = findtext(part_id, "arm")
+			if(!far_side)
+				delay = 0.2
+			else if(side == far_side)
+				delay = is_arm ? 0.4 : 0.35
+			else if(findtext(part_id, "forearm"))
+				delay = 0.03
+			else
+				delay = is_arm ? 0.2 : 0.25
+	return clamp((fought - delay) / FNF_CORRUPTION_FIGHT, 0, 1)
+
+/// How far corruption at this level spreads over one piece, 0 to 1.
+/datum/limb_rig/proc/get_corruption_spread(part_id, far_side, level)
 	var/start
 	switch(part_id)
 		if(RIG_CHEST)
@@ -156,7 +248,14 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 				start = is_arm ? 0 : 0.05
 			else
 				start = is_arm ? 0.35 : 0.25
-	return clamp((corruption - start) / FNF_CORRUPTION_SPAN, 0, 1)
+	return clamp((level - start) / FNF_CORRUPTION_SPAN, 0, 1)
+
+/// The mask of the tail's own bright tip, to glow once it's taken, if it has one.
+/datum/limb_rig/proc/get_corruption_tail_tip()
+	return null
+
+/datum/limb_rig/sprites/get_corruption_tail_tip()
+	return fnf_face_set ? "tail_[fnf_face_set]" : null
 
 /// Every piece corruption draws on: list(piece, piece id, its sprites' size, its hand mask or null).
 /datum/limb_rig/proc/get_corruption_pieces()
@@ -169,7 +268,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 		var/hands = hand_set && findtext(part_id, "_forearm") ? "hands_[hand_set]_[part_id]" : null
 		. += list(list(parts[part_id], part_id, 64, hands))
 	for(var/part_id in cloth_parts)
-		. += list(list(cloth_parts[part_id], part_id, 32, null))
+		. += list(list(cloth_parts[part_id], part_id, 32, findtext(part_id, "_forearm") ? "hands_cloth" : null))
 	for(var/side in shoe_parts)
 		. += list(list(shoe_parts[side], "[side]_foot", 32, null))
 
@@ -195,7 +294,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	/// The changes still to come: list(list(ms, role, character), ...), in order.
 	var/list/changes
 	var/next_change = 1
-	/// The song's overlays and flashes: list(list(ms, "overlay"/"flash", image, value), ...), in order.
+	/// The song's overlays, flashes, animations and shakes (see /datum/fnf_song/var/overlay_events), in order.
 	var/list/overlay_events
 	var/next_overlay = 1
 	/// Everyone it's touched, to put right after.
@@ -293,6 +392,13 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
  * 1) or back out (value 0); a flash is up for its value in seconds, then fades out quickly.
  */
 /datum/fnf_corruption/proc/show(kind, image_name, value)
+	if(kind == "anim")
+		act_out(image_name, value)
+		return
+	if(kind == "shake")
+		for(var/mob/listener as anything in battle.listeners)
+			shake_camera(listener, max(round(value * 10), 1), 1)
+		return
 	var/static/list/images = icon_states('voidcrew/modules/fnf/icons/fnf_corruption_overlays.dmi')
 	// Missing ones (the mod names a "yourcalls" it doesn't have) are skipped, as the mod skips them.
 	if(!overlay || !(image_name in images))
@@ -308,6 +414,17 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	flash.alpha = 255
 	animate(flash, alpha = 255, time = max(value, 0.1) * 10)
 	animate(alpha = 0, time = 3)
+
+/// Someone acting out one of the mod's animations. Only the scream has a move here.
+/datum/fnf_corruption/proc/act_out(animation, who)
+	if(animation != "scream")
+		return
+	var/static/list/players = list("bf", "boyfriend", "0")
+	var/static/list/opponents = list("dad", "1")
+	if(who in players)
+		battle.right?.scream()
+	else if(who in opponents)
+		battle.left?.scream()
 
 /**
  * A miss in Skarlet's songs: the dark comes down over everything at once and the music drops out,

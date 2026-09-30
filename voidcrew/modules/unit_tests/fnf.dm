@@ -68,6 +68,9 @@
 			TEST_ASSERT("[face_set]_[expression]" in states, "The [face_set] faces have no [expression] face.")
 	for(var/face_set in list("human", "lizard", "moth", "ethereal", "skeleton"))
 		TEST_ASSERT("[face_set]_cover" in states, "The [face_set] faces don't cover the head's own eyes.")
+		TEST_ASSERT("[face_set]_windowcover" in states, "The [face_set] faces have no patch for a half-freed eye.")
+		for(var/expression in expressions)
+			TEST_ASSERT("[face_set]_window_[expression]" in states, "The [face_set] faces have no half-freed [expression] eye.")
 	var/list/experiment_states = icon_states('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi')
 	for(var/expression in expressions)
 		TEST_ASSERT("experiment_[expression]" in experiment_states, "The Experiment has no [expression] face.")
@@ -106,6 +109,13 @@
 	rig.set_corruption(1, "red")
 	TEST_ASSERT(length(rig.corruption_images), "Corruption drew nothing on the body.")
 	TEST_ASSERT(rig.is_face_corrupted(), "Full corruption didn't take the face.")
+	// Fighting it off frees the head first, while the far side stays taken.
+	rig.set_corruption(0.7)
+	TEST_ASSERT(rig.get_corruption_of("head", "l") < rig.get_corruption_of("l_arm", "l"), "Fighting corruption off didn't free the head before the far side.")
+	TEST_ASSERT_EQUAL(rig.get_corruption_of("l_arm", "l"), 1, "Fighting corruption off freed the far arm early.")
+	TEST_ASSERT(rig.is_face_half_freed(), "Fighting corruption off didn't give half the face back.")
+	rig.set_corruption(0.5)
+	TEST_ASSERT(!rig.is_face_corrupted(), "Fighting corruption well off didn't give the whole face back.")
 	rig.set_corruption(0)
 	TEST_ASSERT_NULL(rig.corruption_images, "Corruption stayed drawn on the body after it was cleared.")
 
@@ -118,5 +128,11 @@
 		list(3000, list(list("Play Animation", "meow", "Dad"))),
 	)))
 	TEST_ASSERT_EQUAL(length(changes), 3, "A chart's character changes weren't read once each.")
+	var/list/acted = song.read_overlay_events(list("events" = list(
+		list(95620, list(list("Play Animation", "scream", "BF"), list("Screen Shake", "0.3, 0.005", "0.3, 0.005"))),
+	)))
+	TEST_ASSERT_EQUAL(length(acted), 2, "A chart's animation and shake events weren't read.")
+	var/list/scream = acted[1]
+	TEST_ASSERT(scream[2] == "anim" && scream[3] == "scream" && scream[4] == "bf", "A chart's scream wasn't read as the player's.")
 	var/list/first = changes[1]
 	TEST_ASSERT(first[1] == 1000 && first[2] == "opponent" && first[3] == "kapi", "A chart's character changes are out of order, or their roles are wrong.")

@@ -205,7 +205,8 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	var/corruption = FALSE
 	/// Which arrows its notes are drawn with, if not ours: "kapi" or "skarlet", Corruption+'s tainted skins.
 	var/note_skin
-	/// Its "Overlay Event" and "Image Flash" events: list(list(ms, "overlay"/"flash", image, value), ...).
+	/// Its "Overlay Event", "Image Flash", "Play Animation" and "Screen Shake" events:
+	/// list(list(ms, "overlay"/"flash"/"anim"/"shake", image or animation, value or who), ...).
 	var/list/overlay_events
 
 /datum/fnf_song/New(path, id, variation)
@@ -368,6 +369,11 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 				found = list(entry[1], "overlay", "[event[3]]", text2num("[event[2]]"))
 			else if(event[1] == "Image Flash")
 				found = list(entry[1], "flash", "[event[2]]", text2num("[event[3]]"))
+			// Someone acting something out (corrupted Pico's scream), and the screen shaking with it.
+			else if(event[1] == "Play Animation")
+				found = list(entry[1], "anim", "[event[2]]", lowertext("[event[3]]"))
+			else if(event[1] == "Screen Shake")
+				found = list(entry[1], "shake", "", text2num(splittext("[event[2]]", ",")[1]))
 			if(!found)
 				continue
 			var/key = jointext(found, "-")

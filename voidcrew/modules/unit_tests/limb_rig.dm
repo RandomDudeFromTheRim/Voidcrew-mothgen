@@ -87,4 +87,6 @@
 	for(var/expression in list("idle", "left", "down", "up", "right", "miss", "hey", "dead"))
 		TEST_ASSERT("milkie_[expression]" in face_states, "A Milkie has no [expression] face.")
 		TEST_ASSERT("milkie_corrupt_[expression]" in corrupt_states, "A Milkie has no corrupted [expression] face.")
+		TEST_ASSERT("milkie_corrupthalf_[expression]" in corrupt_states, "A Milkie has no half-freed [expression] grin.")
+		TEST_ASSERT("milkie_window_[expression]" in face_states, "A Milkie has no half-freed [expression] eye.")
 	TEST_ASSERT("hands_milkie_l_forearm" in icon_states('voidcrew/modules/fnf/icons/corruption_64.dmi'), "A Milkie's hands can't be corrupted.")

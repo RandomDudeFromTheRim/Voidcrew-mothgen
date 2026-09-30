@@ -49,3 +49,16 @@
 #define FNF_CORRUPTION_SPAN 0.35
 /// How far a head's taken over before its face is the corruption's.
 #define FNF_CORRUPTION_FACE 0.75
+/// How far below its peak corruption has to fall for a piece to be fought wholly free.
+#define FNF_CORRUPTION_FIGHT 0.4
+/// How much of a taken head has to be fought free for its near eye to come back, the grin staying.
+#define FNF_CORRUPTION_FACE_HALF 0.45
+/// And for the whole face to.
+#define FNF_CORRUPTION_FACE_FREED 0.9
+/// What the main colour of clothes corruption's taken turns: its violet, with next to no green, so
+/// their shading sinks to indigo rather than teal.
+#define FNF_CORRUPTION_CLOTHES_COLOUR "#2c0640"
+/// What the bright trims of clothes corruption's taken glow.
+#define FNF_CORRUPTION_TRIM "#ff289e"
+/// How much brighter than the clothes' main colour a trim has to be to glow fully.
+#define FNF_CORRUPTION_TRIM_RISE 0.3

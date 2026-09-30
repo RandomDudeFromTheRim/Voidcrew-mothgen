@@ -527,6 +527,10 @@
 	busy_until = world.time + 8
 	singer?.fnf_hey(mic_arm, facing, style)
 
+/datum/fnf_side/proc/scream()
+	busy_until = world.time + 8
+	singer?.fnf_scream(mic_arm, facing, style)
+
 /// Acts out a one-off move (see fnf_pose()), and keeps the beat from interrupting it.
 /datum/fnf_side/proc/act(kind, hold = 3)
 	busy_until = world.time + hold + 2

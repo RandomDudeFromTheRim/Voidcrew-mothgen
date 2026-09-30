@@ -124,6 +124,16 @@
 			.[free_arm] = list("swing" = 30, "raise" = 20, "elbow" = 100)
 			.[RIG_L_LEG] = list("swing" = 15, "knee" = 25)
 			.[RIG_R_LEG] = list("swing" = 15, "knee" = 25)
+		if("scream")
+			// Screaming in agony: rearing back, head thrown back and to the side, the free hand
+			// clamped to it and the mic arm up across the face.
+			.[RIG_CHEST] = list("bend" = -14, "breath" = 0.05)
+			.[RIG_HEAD] = list("nod" = -22, "tilt" = 14)
+			.[free_arm] = list("swing" = 130, "raise" = 25, "hand_y" = 29)
+			.[mic_arm] = list("swing" = 95, "raise" = 10, "elbow" = 75)
+			.[RIG_L_LEG] = list("swing" = 10, "knee" = 25)
+			.[RIG_R_LEG] = list("swing" = 10, "knee" = 25)
+			.[RIG_TAIL] = list("lift" = -35)
 		if("kick")
 			// Punting something up off the foot.
 			.[RIG_CHEST] = list("bend" = -12)
@@ -308,6 +318,25 @@
 		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
 	), settle_after = FALSE)
 	limb_rig.set_fnf_face("hey", 5.6)
+
+/// Screaming in agony (Corruption+'s corrupted Pico, fighting it): snaps into it and shakes.
+/mob/living/proc/fnf_scream(mic_arm, facing, style)
+	fnf_nudge(0, 2)
+	emote("scream")
+
+/mob/living/carbon/fnf_scream(mic_arm, facing, style)
+	. = ..()
+	if(!limb_rig)
+		return
+	setDir(facing)
+	var/list/scream = fnf_pose("scream", mic_arm, facing, style)
+	var/list/frames = list(list(fnf_scale_pose(scream, 1.15), 0.5, CUBIC_EASING|EASE_OUT))
+	// Shaking with it.
+	for(var/i in 1 to 4)
+		frames += list(list(fnf_nudge_pose(scream, RIG_HEAD, "tilt", i % 2 ? -8 : 8), 0.8))
+	frames += list(list(fnf_pose("rest", mic_arm, facing, style), 3, SINE_EASING))
+	limb_rig.play(frames, settle_after = FALSE)
+	limb_rig.set_fnf_face("miss", 4)
 
 /// A one-off move (see fnf_pose()): snaps into it, holds it for hold deciseconds, and goes back.
 /mob/living/proc/fnf_act(kind, mic_arm, facing, style, hold = 3)
