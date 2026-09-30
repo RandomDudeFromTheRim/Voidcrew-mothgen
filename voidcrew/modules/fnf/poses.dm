@@ -248,6 +248,9 @@
 		held -= 0.6
 	keyframes += list(list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING))
 	limb_rig.play(keyframes, settle_after = FALSE)
+	// The face for the note, held as long as the note is.
+	var/static/list/faces = list("left", "down", "up", "right")
+	limb_rig.set_fnf_face(faces[lane + 1], 1.5 + beat * 0.6)
 
 /// The between-notes bop, one beat long.
 /mob/living/proc/fnf_bop(beat_time, mic_arm, facing, style)
@@ -256,6 +259,8 @@
 /mob/living/carbon/fnf_bop(beat_time, mic_arm, facing, style)
 	if(!limb_rig)
 		return ..()
+	if(!limb_rig.is_pulling_fnf_face())
+		limb_rig.set_fnf_face("idle")
 	limb_rig.play(list(
 		list(fnf_pose("bop", mic_arm, facing, style), beat_time * 0.25, CUBIC_EASING|EASE_OUT),
 		list(fnf_pose("rest", mic_arm, facing, style), beat_time * 0.75, SINE_EASING),
@@ -285,6 +290,7 @@
 		list(flinch, 0.7, SINE_EASING),
 		list(fnf_pose("rest", mic_arm, facing, style), 1.5, SINE_EASING),
 	), settle_after = FALSE)
+	limb_rig.set_fnf_face("miss", 1.9)
 
 /mob/living/proc/fnf_hey(mic_arm, facing, style)
 	fnf_nudge(0, 4)
@@ -301,6 +307,7 @@
 		list(hey, 5),
 		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
 	), settle_after = FALSE)
+	limb_rig.set_fnf_face("hey", 5.6)
 
 /// A one-off move (see fnf_pose()): snaps into it, holds it for hold deciseconds, and goes back.
 /mob/living/proc/fnf_act(kind, mic_arm, facing, style, hold = 3)
@@ -319,6 +326,8 @@
 		list(pose, hold, SINE_EASING),
 		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
 	), settle_after = FALSE)
+	// Taking a hit winces; throwing one, or anything else, is effort.
+	limb_rig.set_fnf_face(findtext(kind, "hit") ? "miss" : "down", 0.5 + hold)
 
 /// A backup dancer's move for one beat: into one side of the dance, then easing off it.
 /mob/living/proc/fnf_dance(beat_time, left)
@@ -340,6 +349,9 @@
 	if(!knocked_out)
 		return
 	visible_message(span_danger("[src] got blue-balled!"))
+	if(iscarbon(src))
+		var/mob/living/carbon/loser = src
+		loser.limb_rig?.set_fnf_face("dead")
 	// A player's game over has them on the floor already; anyone else just drops.
 	if(!client)
 		Knockdown(3 SECONDS)
@@ -349,6 +361,7 @@
 	return
 
 /mob/living/carbon/fnf_rest()
+	limb_rig?.clear_fnf_face()
 	limb_rig?.settle()
 
 /// Adds to one angle of a pose in place, making the entry if it isn't there.

@@ -55,3 +55,32 @@
 	TEST_ASSERT_EQUAL(jointext(weeks, ","), "tutorial,week1,week7,weekend1,sserafim", "Weeks are not in Funkin's order.")
 	TEST_ASSERT_EQUAL(fnf_srt_time("00:01:02,500"), 62500, "A SubRip time was read wrong.")
 	TEST_ASSERT_NULL(fnf_srt_time("not a time"), "A broken SubRip time was read as a time.")
+
+/// Every head that pulls faces has every face, and the head's own eye cover; a singer's face goes
+/// on with a note, back to idle after, and off when the battle's over.
+/datum/unit_test/fnf_faces
+
+/datum/unit_test/fnf_faces/Run()
+	var/list/states = icon_states('voidcrew/modules/fnf/icons/fnf_faces.dmi')
+	var/list/expressions = list("idle", "left", "down", "up", "right", "miss", "hey", "dead")
+	for(var/face_set in list("human", "human_white", "human_demon", "lizard", "moth", "ethereal", "skeleton"))
+		for(var/expression in expressions)
+			TEST_ASSERT("[face_set]_[expression]" in states, "The [face_set] faces have no [expression] face.")
+	for(var/face_set in list("human", "lizard", "moth", "ethereal", "skeleton"))
+		TEST_ASSERT("[face_set]_cover" in states, "The [face_set] faces don't cover the head's own eyes.")
+	var/list/experiment_states = icon_states('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi')
+	for(var/expression in expressions)
+		TEST_ASSERT("experiment_[expression]" in experiment_states, "The Experiment has no [expression] face.")
+	TEST_ASSERT_NULL(get_fnf_face_set("plasmaman"), "Plasmamen pull faces.")
+
+	var/mob/living/carbon/human/consistent/singer = allocate(/mob/living/carbon/human/consistent)
+	singer.update_limb_rig()
+	var/datum/limb_rig/sprites/humanoid/rig = singer.limb_rig
+	TEST_ASSERT(istype(rig), "A human has no humanoid rig to pull faces with.")
+	singer.fnf_sing(2, 3, "r_arm", EAST, null)
+	TEST_ASSERT_EQUAL(rig.fnf_face, "up", "Singing an up note didn't pull the up face.")
+	TEST_ASSERT(rig.is_pulling_fnf_face(), "The up face isn't held for the note.")
+	TEST_ASSERT_EQUAL(length(rig.fnf_face_images), 2, "The face isn't drawn over the head.")
+	singer.fnf_rest()
+	TEST_ASSERT_NULL(rig.fnf_face, "The face stayed on after the battle.")
+	TEST_ASSERT_NULL(rig.fnf_face_images, "The face is still drawn after the battle.")

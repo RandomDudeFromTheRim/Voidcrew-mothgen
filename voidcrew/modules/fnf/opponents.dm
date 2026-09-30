@@ -16,9 +16,12 @@
  * - "mutant_colour", "ethereal_colour": for lizards and ethereals
  * - "gun": TRUE to hold a gun as well as the mic, or the prop gun's type
  * - "size": how big they're drawn, for the ones who tower over (or come up short of) Boyfriend
+ * - "face_eyes": the eyes their face has in a battle (see faces.dm), if not solid black: "white" for
+ *   the ones Funkin' draws with white eyes, "demon" for Daddy and Mommy Dearest's red glare
  */
 GLOBAL_LIST_INIT(fnf_opponents, list(
 	"dad" = list(
+		"face_eyes" = "demon",
 		"name" = "Daddy Dearest",
 		"species" = /datum/species/human,
 		"size" = 1.35,
@@ -32,6 +35,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		),
 	),
 	"mom" = list(
+		"face_eyes" = "demon",
 		"name" = "Mommy Mearest",
 		"species" = /datum/species/human,
 		"size" = 1.3,
@@ -46,6 +50,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		),
 	),
 	"pico" = list(
+		"face_eyes" = "white",
 		"name" = "Pico",
 		"species" = /datum/species/human,
 		"tone" = "caucasian1",
@@ -60,6 +65,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		),
 	),
 	"darnell" = list(
+		"face_eyes" = "white",
 		// Red-brown skin, a huge purple flat-top, purple hoodie, near-black grey-green trousers, and
 		// big white sneakers with orange flames.
 		"name" = "Darnell",
@@ -75,6 +81,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		),
 	),
 	"nene" = list(
+		"face_eyes" = "white",
 		"name" = "Nene",
 		"species" = /datum/species/human,
 		"female" = TRUE,
@@ -184,6 +191,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 		),
 	),
 	"otis" = list(
+		"face_eyes" = "white",
 		// Darnell's mate, up on the speaker in the Pico mix of Stress with his rifle: pale, messy black
 		// hair, a purple-indigo jacket, grey trousers, orange and white sneakers.
 		"name" = "Otis",
@@ -251,6 +259,7 @@ GLOBAL_LIST_INIT(fnf_opponents, list(
 
 	if(look["size"])
 		npc.update_transform(look["size"])
+	npc.fnf_face_eyes = look["face_eyes"]
 	if(!npc.dna.species.limb_rig_shape?["always"])
 		npc.add_quirk(/datum/quirk/overanimated)
 	// Everyone faces east, so the right hand is the one the crowd sees. Gunners keep the gun there
