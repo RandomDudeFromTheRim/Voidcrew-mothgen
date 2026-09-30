@@ -208,6 +208,9 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	/// Its "Overlay Event", "Image Flash", "Play Animation" and "Screen Shake" events:
 	/// list(list(ms, "overlay"/"flash"/"anim"/"shake", image or animation, value or who), ...).
 	var/list/overlay_events
+	/// Its own game over, if it has one (gameover.json, from the Corruption+ fetcher): list of
+	/// list("from" = ms, "death" = file, "loop" = file, "end" = file), each from its time on.
+	var/list/game_over_sounds
 
 /datum/fnf_song/New(path, id, variation)
 	src.path = path
@@ -290,6 +293,8 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 		bpm = first_song["bpm"]
 	legacy_cast = list("player" = first_song["player1"], "opponent" = first_song["player2"], "gf" = first_song["gfVersion"] || first_song["player3"])
 	character_changes = read_character_changes(first_song)
+	if(fexists("[path]gameover.json"))
+		game_over_sounds = json_decode(file2text("[path]gameover.json"))
 	overlay_events = read_overlay_events(first_song)
 	var/static/list/skins = list("NOTE_assetsKapi" = "kapi", "NOTE_assetsSkarlet" = "skarlet")
 	note_skin = skins[first_song["arrowSkin"]]
@@ -314,6 +319,19 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	if(!player_voice_file && fexists("[path]Voices.ogg"))
 		player_voice_file = "[path]Voices.ogg"
 	valid = TRUE
+
+/// The song's own game over sounds for dying at this point in it: list("death", "loop", "end" = file), or null.
+/datum/fnf_song/proc/get_game_over_sounds(ms)
+	var/list/chosen
+	for(var/list/sounds in game_over_sounds)
+		if(!isnum(sounds["from"]) || sounds["from"] <= ms)
+			chosen = sounds
+	if(!chosen)
+		return null
+	. = list()
+	for(var/part in list("death", "loop", "end"))
+		if(istext(chosen[part]) && fexists("[path][chosen[part]]"))
+			.[part] = file("[path][chosen[part]]")
 
 /**
  * An older-format song's "Change Character" events, from its chart and its events.json (Psych

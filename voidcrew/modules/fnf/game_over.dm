@@ -67,14 +67,18 @@
 	/// goes in and the blood comes out. In pixels from the middle of the body, as props are placed.
 	var/neck_x = 0
 	var/neck_y = 0
+	/// The song's own game over (Corruption+'s): list("death", "loop", "end" = file), or null for Funkin's.
+	var/list/own_sounds
 
 /**
  * * kill_kind - the kind of the note whose miss ended it, if it had one
  * * forced_death - how to die, for a preview: "shot", "knife", "explode" or "gutpunch"
+ * * died_at - where in the song it ended, in milliseconds, for a song whose game over changes partway
  */
-/datum/fnf_game_over/New(mob/living/singer, datum/fnf_song/song, difficulty, can_retry, facing, kill_kind, forced_death)
+/datum/fnf_game_over/New(mob/living/singer, datum/fnf_song/song, difficulty, can_retry, facing, kill_kind, forced_death, died_at = 0)
 	src.singer = singer
 	src.song = song
+	own_sounds = song?.get_game_over_sounds(died_at)
 	src.difficulty = difficulty
 	src.can_retry = can_retry
 	src.facing = facing
@@ -113,13 +117,13 @@
 				addtimer(CALLBACK(src, PROC_REF(fall)), 8, TIMER_DELETE_ME)
 				addtimer(CALLBACK(src, PROC_REF(show_buttons)), 14, TIMER_DELETE_ME)
 			else
-				SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/loss_pico.ogg", volume = 60))
+				SEND_SOUND(singer, sound(own_sounds?["death"] || "voidcrew/modules/fnf/sound/loss_pico.ogg", volume = 60))
 				addtimer(CALLBACK(src, PROC_REF(throw_knife)), 3, TIMER_DELETE_ME)
 				addtimer(CALLBACK(src, PROC_REF(fall)), 13, TIMER_DELETE_ME)
 				addtimer(CALLBACK(src, PROC_REF(show_buttons)), 20, TIMER_DELETE_ME)
 		return
 
-	SEND_SOUND(singer, sound("voidcrew/modules/fnf/sound/loss.ogg", volume = 60))
+	SEND_SOUND(singer, sound(own_sounds?["death"] || "voidcrew/modules/fnf/sound/loss.ogg", volume = 60))
 	if(expie)
 		// 160 by 96, standing on the middle of its bottom edge, drawn twice size with its feet
 		// kept on the singer's tile.
@@ -375,7 +379,7 @@
 /datum/fnf_game_over/proc/show_buttons()
 	if(retrying)
 		return
-	var/music_file = death == "shot" ? "voidcrew/modules/fnf/sound/gameover_loop.ogg" : "voidcrew/modules/fnf/sound/gameover_loop_pico.ogg"
+	var/music_file = own_sounds?["loop"] || (death == "shot" ? "voidcrew/modules/fnf/sound/gameover_loop.ogg" : "voidcrew/modules/fnf/sound/gameover_loop_pico.ogg")
 	SEND_SOUND(singer, sound(music_file, repeat = TRUE, channel = music_channel, volume = 45))
 	if(can_retry)
 		retry_button = add_screen("fnf_retry", /atom/movable/screen/fullscreen/fnf/button/retry)
@@ -400,7 +404,7 @@
 	if(death == "shot")
 		last_stand()
 		return
-	SEND_SOUND(singer, sound(death == "shot" ? "voidcrew/modules/fnf/sound/gameover_retry.ogg" : "voidcrew/modules/fnf/sound/gameover_retry_pico.ogg", volume = 60))
+	SEND_SOUND(singer, sound(own_sounds?["end"] || (death == "shot" ? "voidcrew/modules/fnf/sound/gameover_retry.ogg" : "voidcrew/modules/fnf/sound/gameover_retry_pico.ogg"), volume = 60))
 	// The body goes back into the dark with everything else, to be set up again.
 	if(figure)
 		animate(figure, alpha = 0, time = 12)

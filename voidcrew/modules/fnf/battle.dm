@@ -414,7 +414,7 @@
 	// The game over goes up before anyone lets go of anything, so the loser's mic stays in their hand.
 	if(loser?.singer && !QDELETED(loser.singer))
 		if(loser == knocked_out && loser.singer.client)
-			new /datum/fnf_game_over(loser.singer, song, difficulty, loser == right && left.singer == npc, loser.facing, last_miss_kind)
+			new /datum/fnf_game_over(loser.singer, song, difficulty, loser == right && left.singer == npc, loser.facing, last_miss_kind, null, get_song_time())
 		loser.singer.fnf_lose(loser == knocked_out)
 	for(var/datum/fnf_side/side as anything in sides)
 		side.unlock()

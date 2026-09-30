@@ -18,7 +18,7 @@ NOTE_assetsSkarlet, noteSplashesKapi), made small
 icons/fnf_healthbar_tainted.dmi - Skarlet's health bar frame (hpBar)
 icons/fnf_corruption_overlays.dmi - its overlays and flashes (scary, prey, hunter, shadowarcade,
 overlayskarlet and the rest), at a quarter size
-Its songs aren't shipped: tools/fnf/fetch_corruption_plus.py fetches them from GameJolt.
+Its songs and their game overs (Kapi's, bloodlust and null) aren't shipped: tools/fnf/fetch_corruption_plus.py fetches them from GameJolt.
 
 Casualties Unknown, by Orsoniks:
 laststand_drone - the last stand drone (laststanddrone), cut to its first 8 seconds

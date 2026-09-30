@@ -18,13 +18,21 @@ The download is about 430 MB (the whole mod), of which the songs are about 90 MB
     python3 tools/fnf/fetch_corruption_plus.py
     python3 tools/fnf/fetch_corruption_plus.py --from path/to/early-access-demo-plus.zip
     python3 tools/fnf/fetch_corruption_plus.py --from path/to/unpacked/mod/folder
+
+An installed copy of the mod works as --from too (the game's folder, or its mods folder).
+
+Each song's own game over comes along: its death sound, the music that loops and the sting on
+retrying, as its gameoverjuice.lua picks them, in the song's folder as gameover-*.ogg with a
+gameover.json saying which to play from when.
 """
 
 import json
 import pathlib
+import re
 import shutil
 import sys
 import tempfile
+import time
 import urllib.request
 import zipfile
 
@@ -42,8 +50,16 @@ def api(path, data=None):
         data=json.dumps(data).encode() if data is not None else None,
         headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
     )
-    with urllib.request.urlopen(request, timeout=60) as reply:
-        return json.load(reply)["payload"]
+    # GameJolt can be slow to answer: give it a few goes.
+    for attempt in range(1, 5):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as reply:
+                return json.load(reply)["payload"]
+        except (TimeoutError, OSError) as error:
+            if attempt == 4:
+                sys.exit(f"GameJolt didn't answer ({error}). Download the mod from its page and use --from.")
+            print(f"GameJolt didn't answer ({error}), trying again...")
+            time.sleep(attempt * 5)
 
 
 def download(to):
@@ -80,6 +96,42 @@ def find_mod(folder):
     return best
 
 
+def game_overs(mod, song, bpm):
+    """The song's game over, as its gameoverjuice.lua sets it: list of (from ms, {"death", "loop",
+    "end": file}), latest last. A "curStep >= N" test switches sets partway through."""
+    script = mod / "data" / song / "gameoverjuice.lua"
+    if not script.exists():
+        return []
+    text = script.read_text(encoding="utf-8", errors="replace")
+    def picks(chunk):
+        found = {}
+        for key, name in re.findall(r"'(deathSoundName|loopSoundName|endSoundName)'\s*,\s*'([^']+)'", chunk):
+            found[{"deathSoundName": "death", "loopSoundName": "loop", "endSoundName": "end"}[key]] = name
+        return found
+    switch = re.search(r"curStep\s*>=\s*(\d+)\s*then(.*?)^\s*else\s*$(.*?)^\s*end\s*$", text, re.S | re.M)
+    if switch:
+        step_ms = 60000 / bpm / 4
+        return [(0, picks(switch.group(3))), (round(int(switch.group(1)) * step_ms), picks(switch.group(2)))]
+    return [(0, picks(text))]
+
+
+def copy_game_over(mod, song, dest, bpm):
+    sets = []
+    for start, names in game_overs(mod, song, bpm):
+        files = {}
+        for part, name in names.items():
+            source = mod / ("sounds" if part == "death" else "music") / f"{name}.ogg"
+            if not source.exists():
+                continue
+            file = "gameover-" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + ".ogg"
+            shutil.copy2(source, dest / file)
+            files[part] = file
+        if files:
+            sets.append({"from": start, **files})
+    if sets:
+        (dest / "gameover.json").write_text(json.dumps(sets))
+
+
 def main():
     args = sys.argv[1:]
     source = None
@@ -114,6 +166,14 @@ def main():
                     shutil.copy2(chart, dest / chart.name)
                 for sound in audio.glob("*.ogg"):
                     shutil.copy2(sound, dest / sound.name)
+                bpm = 100
+                for chart in charts.glob("*.json"):
+                    try:
+                        bpm = json.loads(chart.read_text(encoding="utf-8-sig"))["song"]["bpm"]
+                        break
+                    except (ValueError, KeyError, TypeError):
+                        continue
+                copy_game_over(mod, song, dest, bpm)
                 print(f"  {song}")
             (WEEKS / f"corruption-{number}.json").write_text(json.dumps({"name": week.get("storyName") or week_file.stem, "songs": ids}))
         print(f"Done: {SONGS}")
