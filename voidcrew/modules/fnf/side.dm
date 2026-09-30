@@ -579,6 +579,9 @@
 
 /// The singer's vocals drop out on a miss and come back on the next hit.
 /datum/fnf_side/proc/set_voice(on)
+	// One recording for both: cutting it out on a miss would silence the other singer too.
+	if(!on && battle.song.shared_voices)
+		return
 	voice_muted = !on
 	battle.set_channel_volume(voice_channel, on ? 1 : 0)
 

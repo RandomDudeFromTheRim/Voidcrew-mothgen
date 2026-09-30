@@ -69,6 +69,9 @@
 	for(var/list/note as anything in chart["player"] + chart["opponent"])
 		end_ms = max(end_ms, note[1] + note[3])
 	end_ms += 1500
+	// A song that plays on past its last note (Growl's flashback) runs to the end of its music.
+	if(song.length_ms)
+		end_ms = max(end_ms, song.length_ms)
 	inst_channel = SSsounds.reserve_sound_channel(src)
 	left_voice_channel = SSsounds.reserve_sound_channel(src)
 	right_voice_channel = SSsounds.reserve_sound_channel(src)

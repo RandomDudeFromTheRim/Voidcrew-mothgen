@@ -71,6 +71,7 @@
 		TEST_ASSERT("[face_set]_windowcover" in states, "The [face_set] faces have no patch for a half-freed eye.")
 		for(var/expression in expressions)
 			TEST_ASSERT("[face_set]_window_[expression]" in states, "The [face_set] faces have no half-freed [expression] eye.")
+			TEST_ASSERT("[face_set]_mouth_[expression]" in states, "The [face_set] faces have no [expression] mouth for covered eyes.")
 	var/list/experiment_states = icon_states('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi')
 	for(var/expression in expressions)
 		TEST_ASSERT("experiment_[expression]" in experiment_states, "The Experiment has no [expression] face.")
@@ -134,5 +135,13 @@
 	TEST_ASSERT_EQUAL(length(acted), 2, "A chart's animation and shake events weren't read.")
 	var/list/scream = acted[1]
 	TEST_ASSERT(scream[2] == "anim" && scream[3] == "scream" && scream[4] == "bf", "A chart's scream wasn't read as the player's.")
+	var/list/screens = song.read_overlay_events(list("events" = list(
+		list(1000, list(list("Lightr", "0.5", ""), list("badapplelol", "a", "1"), list("flashBom", "1", "2"))),
+	)))
+	TEST_ASSERT_EQUAL(length(screens), 3, "A chart's flash, silhouette and glow events weren't read.")
+	var/list/flash = screens[1]
+	TEST_ASSERT(flash[2] == "light" && flash[3] == "#960030", "A chart's crimson flash wasn't read as one.")
+	var/list/overlay_states = icon_states('voidcrew/modules/fnf/icons/fnf_corruption_overlays.dmi')
+	TEST_ASSERT(("scary_top" in overlay_states) && ("scary_bottom" in overlay_states), "The overlays have no edges to fill a taller view with.")
 	var/list/first = changes[1]
 	TEST_ASSERT(first[1] == 1000 && first[2] == "opponent" && first[3] == "kapi", "A chart's character changes are out of order, or their roles are wrong.")

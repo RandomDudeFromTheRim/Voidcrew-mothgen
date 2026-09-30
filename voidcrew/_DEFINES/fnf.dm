@@ -60,5 +60,7 @@
 #define FNF_CORRUPTION_CLOTHES_COLOUR "#2c0640"
 /// What the bright trims of clothes corruption's taken glow.
 #define FNF_CORRUPTION_TRIM "#ff289e"
+/// The darkest clothes' main colour is taken to be, so dark clothes stay dark (brightness, 0 to 1).
+#define FNF_CORRUPTION_DARKEST_MAIN 0.4
 /// How much brighter than the clothes' main colour a trim has to be to glow fully.
 #define FNF_CORRUPTION_TRIM_RISE 0.3

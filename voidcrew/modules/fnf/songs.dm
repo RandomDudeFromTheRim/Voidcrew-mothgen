@@ -205,12 +205,17 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	var/corruption = FALSE
 	/// Which arrows its notes are drawn with, if not ours: "kapi" or "skarlet", Corruption+'s tainted skins.
 	var/note_skin
-	/// Its "Overlay Event", "Image Flash", "Play Animation" and "Screen Shake" events:
-	/// list(list(ms, "overlay"/"flash"/"anim"/"shake", image or animation, value or who), ...).
+	/// Its screen and stage events ("Overlay Event", "Image Flash", "Play Animation", "Screen Shake",
+	/// its flashes, glow and silhouettes): list(list(ms, kind, what, value), ...) (see /datum/fnf_corruption/proc/show()).
 	var/list/overlay_events
 	/// Its own game over, if it has one (gameover.json, from the Corruption+ fetcher): list of
 	/// list("from" = ms, "death" = file, "loop" = file, "end" = file), each from its time on.
 	var/list/game_over_sounds
+	/// Whether both singers' vocals are in the one track (the player's), so a miss can't cut them out.
+	var/shared_voices = FALSE
+	/// How long its music runs, in milliseconds, if known (info.json, from the Corruption+ fetcher),
+	/// so a song with no notes left (a cutscene to finish on) plays out.
+	var/length_ms = 0
 
 /datum/fnf_song/New(path, id, variation)
 	src.path = path
@@ -253,6 +258,8 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 		player_voice_file = "[path]Voices[suffix].ogg"
 	if(!player_voice_file && fexists("[path]Voices.ogg"))
 		player_voice_file = "[path]Voices.ogg"
+		// Both singers in one recording, as older mods ship them.
+		shared_voices = !opponent_voice_file
 	// The metadata says which are difficulties: charts also hold extra tracks under their own names
 	// (Stress's "picospeaker", the speaker's shots), which aren't songs to sing.
 	var/list/notes = chart["notes"]
@@ -295,6 +302,10 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	character_changes = read_character_changes(first_song)
 	if(fexists("[path]gameover.json"))
 		game_over_sounds = json_decode(file2text("[path]gameover.json"))
+	if(fexists("[path]info.json"))
+		var/list/info = json_decode(file2text("[path]info.json"))
+		if(isnum(info?["length_ms"]))
+			length_ms = info["length_ms"]
 	overlay_events = read_overlay_events(first_song)
 	var/static/list/skins = list("NOTE_assetsKapi" = "kapi", "NOTE_assetsSkarlet" = "skarlet")
 	note_skin = skins[first_song["arrowSkin"]]
@@ -318,6 +329,8 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 		opponent_voice_file = find_voice(null, first_song["player2"])
 	if(!player_voice_file && fexists("[path]Voices.ogg"))
 		player_voice_file = "[path]Voices.ogg"
+		// Both singers in one recording, as older mods ship them.
+		shared_voices = !opponent_voice_file
 	valid = TRUE
 
 /// The song's own game over sounds for dying at this point in it: list("death", "loop", "end" = file), or null.
@@ -392,6 +405,22 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 				found = list(entry[1], "anim", "[event[2]]", lowertext("[event[3]]"))
 			else if(event[1] == "Screen Shake")
 				found = list(entry[1], "shake", "", text2num(splittext("[event[2]]", ",")[1]))
+			// Flashes: white, crimson, black, each fading over its value in seconds.
+			else if(event[1] == "Light" || event[1] == "Lightr" || event[1] == "Lightb")
+				var/static/list/lights = list("Light" = "#ffffff", "Lightr" = "#960030", "Lightb" = "#000000")
+				found = list(entry[1], "light", lights[event[1]], text2num("[event[2]]") || 0.5)
+			else if(event[1] == "BlackScreenEvent")
+				found = list(entry[1], "black", "[event[2]]", text2num("[event[3]]") || 0.5)
+			// Its bloom shader: a burst of glow, as strong as its second value.
+			else if(event[1] == "flashBom")
+				found = list(entry[1], "bloom", "", text2num("[event[3]]") || 1)
+			// Silhouettes: black on white ("a" on, "b" off), white on black, or in colour on black (toggles).
+			else if(event[1] == "badapplelol")
+				found = list(entry[1], "apple", lowertext("[event[2]]") == "a" ? "white" : "off", text2num("[event[3]]") || 0.5)
+			else if(event[1] == "invertedapplebyflain")
+				found = list(entry[1], "apple", "toggle-black", text2num("[event[2]]") || 0.1)
+			else if(event[1] == "iconcoloredapplebyflain")
+				found = list(entry[1], "apple", "toggle-colour", text2num("[event[2]]") || 0.1)
 			if(!found)
 				continue
 			var/key = jointext(found, "-")

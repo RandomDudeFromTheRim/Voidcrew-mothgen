@@ -445,7 +445,12 @@
 		if("dad", "opponent")
 			side = battle.left
 		if("gf", "girlfriend")
-			cheer()
+			// Corruption+'s Purification has her dodging Carol's attacks.
+			if(anim == "dodge" && girlfriend && !QDELETED(girlfriend))
+				girlfriend_busy_until = world.time + 5
+				girlfriend.fnf_act("dodge_high", RIG_R_ARM, SOUTH, null, 3)
+			else
+				cheer()
 			return
 	if(!side)
 		return
@@ -469,6 +474,20 @@
 			side.act("taunt", 5)
 		if("knifeToss")
 			knife_toss()
+		// Corruption+: corrupted Pico screaming, fighting it; Kapi's meow; being lost in a flashback.
+		if("scream")
+			side.scream()
+		if("meow")
+			side.act("meow", 6)
+		if("confused1", "confused2")
+			side.act("confused", 6)
+		if("taunt", "cocky")
+			side.act("taunt", 5)
+		if("hey!")
+			side.hey()
+		// Carol's harp, which nobody here has.
+		if("strings")
+			return
 		else
 			side.hey()
 

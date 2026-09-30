@@ -49,7 +49,7 @@
  *   "shoot", and Blazin's fight: "punch_high", "punch_low", "block", "dodge_high", "dodge_low",
  *   "hit_high", "hit_low", "prep", "uppercut", "uppercut_hit", "taunt". And "aim", the gun
  *   levelled straight out ("aim_both" for two), and the backup dancers' "dance_left" and
- *   "dance_right".
+ *   "dance_right". And Corruption+'s "scream", Kapi's "meow", and "confused".
  * * mic_arm - the arm with the mic in it, RIG_L_ARM or RIG_R_ARM
  * * facing - which way the singer faces, WEST or EAST, to tell which arrow points at the rival
  * * style - a character's own way of moving on top (see fnf_apply_style), or null
@@ -134,6 +134,19 @@
 			.[RIG_L_LEG] = list("swing" = 10, "knee" = 25)
 			.[RIG_R_LEG] = list("swing" = 10, "knee" = 25)
 			.[RIG_TAIL] = list("lift" = -35)
+		if("meow")
+			// Meow! Both paws curled up by the face, head cocked, tail up and swishing.
+			.[RIG_CHEST] = list("bend" = 6, "breath" = 0.03)
+			.[RIG_HEAD] = list("nod" = -8, "tilt" = 12)
+			.[free_arm] = list("swing" = 60, "raise" = 15, "elbow" = 110)
+			.[mic_arm] = list("swing" = 55, "raise" = 15, "elbow" = 115)
+			.[RIG_TAIL] = list("lift" = 30, "wag" = 18)
+		if("confused")
+			// Huh? Scratching the head, head cocked the other way.
+			.[RIG_CHEST] = list("bend" = -4)
+			.[RIG_HEAD] = list("nod" = 6, "tilt" = -16)
+			.[free_arm] = list("swing" = 125, "raise" = 20, "hand_y" = 30)
+			.[RIG_TAIL] = list("lift" = -10)
 		if("kick")
 			// Punting something up off the foot.
 			.[RIG_CHEST] = list("bend" = -12)
@@ -355,8 +368,10 @@
 		list(pose, hold, SINE_EASING),
 		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
 	), settle_after = FALSE)
-	// Taking a hit winces; throwing one, or anything else, is effort.
-	limb_rig.set_fnf_face(findtext(kind, "hit") ? "miss" : "down", 0.5 + hold)
+	// Taking a hit winces; throwing one, or anything else, is effort. A meow's a grin, and confusion's
+	// a look to the side.
+	var/static/list/faces = list("meow" = "hey", "confused" = "left")
+	limb_rig.set_fnf_face(faces[kind] || (findtext(kind, "hit") ? "miss" : "down"), 0.5 + hold)
 
 /// A backup dancer's move for one beat: into one side of the dance, then easing off it.
 /mob/living/proc/fnf_dance(beat_time, left)

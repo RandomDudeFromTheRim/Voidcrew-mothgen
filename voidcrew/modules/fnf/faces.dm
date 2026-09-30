@@ -66,6 +66,7 @@
 /datum/limb_rig/proc/get_fnf_face_images(expression)
 	return list()
 
+
 /// Whether the face can be seen at all: there's a head, and nothing hides it.
 /datum/limb_rig/proc/can_show_fnf_face()
 	if(!owner.get_bodypart(BODY_ZONE_HEAD))
@@ -116,16 +117,23 @@
 	if(!face_set)
 		return list()
 	var/half_freed = is_face_half_freed()
-	if(is_face_corrupted() && !half_freed)
-		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_corrupt.dmi', face_set, expression, 0)
+	// Sunglasses, a visor or a mask over the eyes: the face is drawn over everything on the head, so
+	// it keeps to the mouth, or the corruption's grin.
+	var/eyes_covered = !!owner.is_eyes_covered()
+	if(is_face_corrupted() && (!half_freed || eyes_covered))
+		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_corrupt.dmi', face_set, expression, 0, eyes_covered)
+	// Only people's faces come in other eyes.
+	var/eyes = face_set == "human" && owner.fnf_face_eyes ? "_[owner.fnf_face_eyes]" : ""
+	if(eyes_covered)
+		var/image/mouth = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set][eyes]_mouth_[expression]")
+		mouth.layer = FLOAT_LAYER
+		return list(mouth)
 	// Half fought free: a patch of skin round the near eye, their own eye in it, over the coat.
 	var/image/cover = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set]_[half_freed ? "windowcover" : "cover"]")
 	cover.layer = FLOAT_LAYER
 	// The head's own shade, tinted as the head is (a head drawn in its own colours isn't).
 	if(head.should_draw_greyscale && head.draw_color)
 		cover.color = head.draw_color
-	// Only people's faces come in other eyes.
-	var/eyes = face_set == "human" && owner.fnf_face_eyes ? "_[owner.fnf_face_eyes]" : ""
 	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set][eyes][half_freed ? "_window" : ""]_[expression]")
 	face.layer = FLOAT_LAYER
 	if(half_freed)
@@ -159,10 +167,10 @@
 
 /**
  * A corrupted face: glowing, so drawn in its own colours whatever's drained the rest, and lit in
- * the dark.
+ * the dark. Just the grin when half fought free, or with grin_only (the eyes covered).
  */
-/datum/limb_rig/proc/get_corrupted_face_images(face_icon, face_set, expression, offset)
-	var/half = is_face_half_freed() ? "half" : ""
+/datum/limb_rig/proc/get_corrupted_face_images(face_icon, face_set, expression, offset, grin_only = FALSE)
+	var/half = grin_only || is_face_half_freed() ? "half" : ""
 	var/state = "[face_set]_[corruption_eyes == "red" ? "corruptred" : "corrupt"][half]_[expression == "blink" ? "idle" : expression]"
 	var/image/face = image(face_icon, state)
 	face.pixel_w = offset

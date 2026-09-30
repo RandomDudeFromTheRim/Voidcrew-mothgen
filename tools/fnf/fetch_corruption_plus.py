@@ -23,7 +23,8 @@ An installed copy of the mod works as --from too (the game's folder, or its mods
 
 Each song's own game over comes along: its death sound, the music that loops and the sting on
 retrying, as its gameoverjuice.lua picks them, in the song's folder as gameover-*.ogg with a
-gameover.json saying which to play from when.
+gameover.json saying which to play from when. And how long each runs (info.json), since some play
+on past their last note.
 """
 
 import json
@@ -94,6 +95,18 @@ def find_mod(folder):
     if not best:
         sys.exit(f"No Psych Engine mod with songs found in {folder}.")
     return best
+
+
+def ogg_length_ms(path):
+    """How long an Ogg Vorbis file runs: its last page's sample position over its sample rate."""
+    data = path.read_bytes()
+    marker = data.find(b"\x01vorbis")
+    last = data.rfind(b"OggS")
+    if marker < 0 or last < 0:
+        return 0
+    rate = int.from_bytes(data[marker + 12:marker + 16], "little")
+    samples = int.from_bytes(data[last + 6:last + 14], "little")
+    return round(samples / rate * 1000) if rate else 0
 
 
 def game_overs(mod, song, bpm):
@@ -174,6 +187,8 @@ def main():
                     except (ValueError, KeyError, TypeError):
                         continue
                 copy_game_over(mod, song, dest, bpm)
+                # How long it runs, so a song that plays on past its last note isn't cut short.
+                (dest / "info.json").write_text(json.dumps({"length_ms": ogg_length_ms(audio / "Inst.ogg")}))
                 print(f"  {song}")
             (WEEKS / f"corruption-{number}.json").write_text(json.dumps({"name": week.get("storyName") or week_file.stem, "songs": ids}))
         print(f"Done: {SONGS}")
