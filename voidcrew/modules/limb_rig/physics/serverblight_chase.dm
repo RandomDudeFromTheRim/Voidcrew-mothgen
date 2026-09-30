@@ -11,6 +11,13 @@
  * Each hand that has hold of them slows them down more, until they tear loose or get away, and
  * every hand on them every tick brings them closer to being taken: they leave their body, and
  * their body is folded into the mass, bringing more hands.
+ *
+ * Every head in it screams, all the time, each in its own voice, distorted.
+ *
+ * It can be killed like anyone. Damage doesn't slow it (nothing does: it isn't walking), but a hit
+ * jerks the body, and a gun that kicks, or a shot that would knock someone down, shoves it back.
+ * Dead, it falls in a heap for SERVERBLIGHT_DEATH_TIME, then gets back up, whole. Something it
+ * can't get back up from (no head, say) ends it.
  */
 /datum/serverblight_chase
 	/// The ragdoll this is moving about.
@@ -39,6 +46,10 @@
 	var/list/absorbed = list()
 	/// Whoever its hands are slowing down, if anyone.
 	var/mob/living/carbon/held
+	/// When each voice screams next, by its place in get_voices(), as text.
+	var/list/next_screams = list()
+	/// The timer getting it back up, while it's dead.
+	var/rise_timer
 	/// Whether the mob could already pass through other mobs before this.
 	var/had_passmob
 
@@ -59,11 +70,16 @@
 	host.pass_flags |= PASSMOB
 	// Sliding every which way without turning round (turning would start the ragdoll over).
 	host.set_dir_on_move = FALSE
+	// Falling over is physics' job: the mob itself stays upright.
+	host.rotate_on_lying = FALSE
+	host.update_transform()
+	RegisterSignal(host, COMSIG_ATOM_BULLET_ACT, PROC_REF(on_shot))
 	build_walls()
 	START_PROCESSING(SSlimb_physics, src)
 
 /datum/serverblight_chase/Destroy()
 	STOP_PROCESSING(SSlimb_physics, src)
+	deltimer(rise_timer)
 	hold(null, 0)
 	if(world_handle)
 		vcphys_call("world_destroy", world_handle)
@@ -77,6 +93,9 @@
 	if(!QDELETED(host))
 		host.remove_offsets(SERVERBLIGHT_TRAIT, animate = FALSE)
 		host.set_dir_on_move = TRUE
+		host.rotate_on_lying = TRUE
+		host.update_transform()
+		UnregisterSignal(host, COMSIG_ATOM_BULLET_ACT)
 		if(!had_passmob)
 			host.pass_flags &= ~PASSMOB
 	if(physics?.chase == src)
@@ -92,6 +111,15 @@
 	if(QDELETED(host) || QDELETED(physics))
 		qdel(src)
 		return PROCESS_KILL
+	if(host.stat == DEAD)
+		if(!physics.dormant)
+			die()
+		return
+	// Back up early (someone revived it).
+	if(physics.dormant)
+		rise()
+		return
+	scream()
 	// Shut in something, or buckled: wait it out.
 	if(!isturf(host.loc) || host.buckled)
 		return
@@ -324,3 +352,76 @@
 /// Serverblight's hands on someone: slower for each one.
 /datum/movespeed_modifier/serverblight_grip
 	variable = TRUE
+
+/// Everyone screaming in it: its own head twice (it has more than one), then everyone it's taken.
+/datum/serverblight_chase/proc/get_voices()
+	return list(host, host) + absorbed
+
+/// Every voice screams again when it's done, each a little apart: pitched down and doubled out of
+/// tune, a quarter of them backwards.
+/datum/serverblight_chase/proc/scream()
+	var/list/voices = get_voices()
+	for(var/index in 1 to length(voices))
+		if(world.time < (next_screams["[index]"] || 0))
+			continue
+		next_screams["[index]"] = world.time + rand(8, 22)
+		var/scream = get_serverblight_scream(voices[index])
+		var/pitch = rand(55, 85) / 100 * (prob(25) ? -1 : 1)
+		playsound(host, scream, 55, FALSE, 4, frequency = pitch)
+		playsound(host, scream, 40, FALSE, 4, frequency = pitch * 1.06)
+
+/// Dead: slack, silent, and still for a while.
+/datum/serverblight_chase/proc/die()
+	physics.go_dormant()
+	hold(null, 0)
+	prey = null
+	path = null
+	grip = 0
+	next_screams.Cut()
+	vcphys_call("body_set_velocity", world_handle, body, 0, 0, 0)
+	host.visible_message(span_danger("[host] comes apart and lies still."))
+	rise_timer = addtimer(CALLBACK(src, PROC_REF(rise)), SERVERBLIGHT_DEATH_TIME, TIMER_STOPPABLE|TIMER_UNIQUE)
+
+/// Gets back up, whole (limbs aside: without a head, it stays down), and starts over.
+/datum/serverblight_chase/proc/rise()
+	deltimer(rise_timer)
+	rise_timer = null
+	if(QDELETED(host) || QDELETED(physics))
+		return
+	if(host.stat == DEAD)
+		host.revive(HEAL_DAMAGE|HEAL_ORGANS|HEAL_REFRESH_ORGANS|HEAL_WOUNDS|HEAL_BLOOD|HEAL_TEMP, force_grab_ghost = TRUE)
+	if(host.stat == DEAD)
+		host.visible_message(span_notice("[host] twitches once, and doesn't get up."))
+		qdel(physics)
+		return
+	physics.rebuild()
+	if(QDELETED(physics))
+		return
+	host.visible_message(span_danger("[host] pulls itself back up, every joint the wrong way."))
+	playsound(host, 'sound/effects/wounds/crack2.ogg', 100, TRUE)
+
+/**
+ * Shot: the hit jerks the body. It only moves it if the gun kicks, or the shot would knock someone
+ * down: then it's shoved back, harder the more it kicks.
+ */
+/datum/serverblight_chase/proc/on_shot(mob/living/source, obj/projectile/shot, def_zone, piercing_hit, blocked)
+	SIGNAL_HANDLER
+	if(!istype(shot) || QDELETED(physics))
+		return
+	var/dx = sin(shot.angle)
+	var/dy = cos(shot.angle)
+	physics.push(RIG_CHEST, dx * shot.damage * 0.6, abs(dy) * shot.damage * 0.3)
+	var/obj/item/gun/gun = shot.fired_from
+	var/shove = (istype(gun) ? max(gun.recoil, 0) : 0) + (shot.knockdown ? 2 : 0)
+	if(shove)
+		vcphys_call("body_impulse", world_handle, body, dx * shove * 1.5, dy * shove * 1.5)
+
+/// The scream a body makes, as its species screams, or a person's for anything that doesn't.
+/proc/get_serverblight_scream(mob/living/carbon/voice)
+	var/mob/living/carbon/human/human = voice
+	if(istype(human))
+		. = human.dna?.species?.get_scream_sound(human)
+	if(islist(.))
+		. = pick(.)
+	if(!.)
+		. = pick('sound/mobs/humanoids/human/scream/malescream_1.ogg', 'sound/mobs/humanoids/human/scream/femalescream_1.ogg')

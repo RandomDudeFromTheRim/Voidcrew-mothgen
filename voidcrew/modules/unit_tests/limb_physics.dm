@@ -85,6 +85,13 @@
 		blight.process(0.1)
 		chase.process(0.1)
 	TEST_ASSERT(!QDELETED(blight) && !QDELETED(chase), "Serverblight's simulation blew up.")
+	// Killed, it lies slack; brought back, it's whole again.
+	victim.death()
+	chase.process(0.1)
+	TEST_ASSERT(blight.dormant, "Serverblight kept going after it died.")
+	chase.rise()
+	TEST_ASSERT(victim.stat != DEAD, "Serverblight didn't get back up.")
+	TEST_ASSERT(!blight.dormant && blight.blighted && length(blight.growths) == 28, "Serverblight got back up without its body.")
 	var/mob/living/carbon/human/consistent/prey = allocate(/mob/living/carbon/human/consistent)
 	prey.set_species(/datum/species/human)
 	prey.update_limb_rig()

@@ -98,9 +98,9 @@
 	var/list/neck = chest_segment["end"]
 	var/anchor = vcphys_call("body_create", world_handle, LIMB_PHYSICS_STATIC, 0, 0, 0, 0, 0)
 	var/list/neck_at = segment_point(chest, hips, neck)
-	var/pin = anchor && vcphys_call("joint_revolute", world_handle, anchor, body_by_part[RIG_CHEST], neck_at[1], neck_at[2], TORADIANS(-18), TORADIANS(18), 0)
-	if(pin)
-		spasms += list(list(pin, 6, 600))
+	neck_pin = anchor && vcphys_call("joint_revolute", world_handle, anchor, body_by_part[RIG_CHEST], neck_at[1], neck_at[2], TORADIANS(-18), TORADIANS(18), 0)
+	if(neck_pin)
+		spasms += list(list(neck_pin, 6, 600))
 
 	// The arms go on past the hands into long stiff limbs, ending in six long fingers.
 	for(var/side in list("l", "r"))
@@ -367,6 +367,23 @@
 			vcphys_call("joint_set_motor", world_handle, leg[1], 14 * cos(TODEGREES(walk_phase + leg[2])) + rand(-30, 30) / 10, 150)
 		else if(prob(60))
 			vcphys_call("joint_set_motor", world_handle, leg[1], 30 * pick(-1, 1) * rand(50, 150) / 100, 150)
+
+/**
+ * Dead: everything goes slack. Every motor stops, the neck comes off its pin, and the whole mass
+ * falls in a heap, still glued together. It's all put back by starting over (rebuild()).
+ */
+/datum/limb_physics/proc/go_dormant()
+	if(dormant)
+		return
+	dormant = TRUE
+	set_prey(null, null)
+	for(var/list/spasm as anything in spasms)
+		vcphys_call("joint_set_motor", world_handle, spasm[1], 0, 0)
+	for(var/list/leg as anything in legs)
+		vcphys_call("joint_set_motor", world_handle, leg[1], 0, 0)
+	if(neck_pin)
+		vcphys_call("joint_destroy", world_handle, neck_pin)
+		neck_pin = null
 
 /// Makes a body a hand with one finger: its far end, of a segment stretched this much.
 /datum/limb_physics/proc/add_hand(body, list/segment, length_scale, width_scale)

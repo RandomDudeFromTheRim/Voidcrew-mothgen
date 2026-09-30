@@ -47,3 +47,5 @@
 #define SERVERBLIGHT_PUSHBACK_REACH 0.9
 /// The fastest any piece of a Serverblighted body is let go, in metres a second.
 #define SERVERBLIGHT_TOP_SPEED 20
+/// How long a killed Serverblight lies dead before it gets back up.
+#define SERVERBLIGHT_DEATH_TIME (1 MINUTES)

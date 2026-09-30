@@ -67,6 +67,10 @@
 	var/list/merged = list()
 	/// Serverblight's walls and furniture from around it, as it goes.
 	var/list/surroundings = list()
+	/// Whether Serverblight's body is dead, lying slack until it gets up.
+	var/dormant = FALSE
+	/// The joint Serverblight hangs the body up by.
+	var/neck_pin
 	/// Pieces Serverblight has glued together: list(body handle, body handle) each.
 	var/list/glued = list()
 	/// Serverblight's walking leg joints: list(joint handle, where in the stride it starts) each.
@@ -118,6 +122,8 @@
 	world_handle = null
 	clear_growths()
 	blighted = FALSE
+	dormant = FALSE
+	neck_pin = null
 	velocity_iterations = LIMB_PHYSICS_VELOCITY_ITERATIONS
 	position_iterations = LIMB_PHYSICS_POSITION_ITERATIONS
 	body_by_part.Cut()
@@ -199,7 +205,7 @@
 	if(QDELETED(rig) || QDELETED(rig.owner))
 		qdel(src)
 		return PROCESS_KILL
-	if(blighted)
+	if(blighted && !dormant)
 		seize()
 		walk_legs()
 		pull_tips()
