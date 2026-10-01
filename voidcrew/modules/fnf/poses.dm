@@ -308,7 +308,7 @@
 	if(!limb_rig.is_pulling_fnf_face())
 		limb_rig.set_fnf_face("idle")
 	// A traced idle plays right through, then starts again on the next beat after.
-	var/list/idle = fnf_traced_keyframes(style, "idle", facing)
+	var/list/idle = fnf_traced_keyframes(style, "idle", facing) || fnf_traced_sway(style, facing)
 	if(idle)
 		if(world.time < fnf_idle_until)
 			return
@@ -548,6 +548,26 @@
 /mob/living/carbon/proc/fnf_hide_mic(style)
 	var/static/list/micless = list("cpico", "kapi", "gf", "gf_flying", "marble")
 	limb_rig?.set_hidden_held((style in micless) ? list(/obj/item/fnf_microphone) : null)
+
+/**
+ * For someone traced without an idle of their own (flying corrupted Girlfriend), a slow, slight sway
+ * about the first pose of their alt idle: leaning in and back, the head and arms drifting with it.
+ */
+/proc/fnf_traced_sway(style, facing)
+	var/list/alt = fnf_traced_keyframes(style, "idle-alt", facing)
+	if(!alt)
+		return null
+	var/list/first = alt[1]
+	var/list/base = first[1]
+	. = list()
+	for(var/way in list(1, -1))
+		var/list/swayed = fnf_nudge_pose(base, RIG_CHEST, "bend", 3 * way)
+		swayed = fnf_nudge_pose(swayed, RIG_HEAD, "nod", -2 * way)
+		for(var/arm in list(RIG_L_ARM, RIG_R_ARM))
+			if(swayed[arm])
+				swayed = fnf_nudge_pose(swayed, arm, "upper", 4 * way)
+				swayed = fnf_nudge_pose(swayed, arm, "lower", 4 * way)
+		. += list(list(swayed, 8, SINE_EASING))
 
 /// How long some keyframes take altogether, in deciseconds.
 /proc/fnf_keyframes_time(list/keyframes)
