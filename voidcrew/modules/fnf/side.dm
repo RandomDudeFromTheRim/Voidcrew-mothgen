@@ -434,6 +434,8 @@
 	// Some notes are a move rather than a line ("ugh!", a punch, a gunshot): the stage acts those out.
 	if(!battle.stage?.note_hit(src, note))
 		singer?.fnf_sing(note.lane, hold_time, mic_arm, facing, style)
+		// Kapi's pad lights up where he steps.
+		battle.stage?.step_on_pad(singer, note.lane)
 	if(!hold_left)
 		live -= note
 		qdel(note)

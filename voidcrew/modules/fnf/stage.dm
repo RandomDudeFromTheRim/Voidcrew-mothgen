@@ -162,9 +162,9 @@
 
 /datum/fnf_stage/proc/bop(beat_time)
 	if(girlfriend && !QDELETED(girlfriend) && world.time >= girlfriend_busy_until)
-		// Corrupted Marble doesn't dance: she glares at the player.
+		// Corrupted Marble doesn't dance: she glares at the enemy.
 		if(girlfriend.fnf_look == "marble")
-			girlfriend.fnf_stare(beat_time, battle.right?.facing == WEST ? EAST : WEST)
+			girlfriend.fnf_stare(beat_time, get_enemy_side(girlfriend))
 		else
 			girlfriend.setDir(SOUTH)
 			girlfriend.fnf_bop(beat_time, RIG_R_ARM, SOUTH, null)

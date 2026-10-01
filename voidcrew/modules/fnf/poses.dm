@@ -229,11 +229,11 @@
 			.[RIG_HEAD] = list("tilt" = -12 * way, "nod" = 6)
 			.[way > 0 ? RIG_L_LEG : RIG_R_LEG] = list("swing" = 20, "knee" = 25)
 		if("stare")
-			// Corrupted Marble behind the speaker: glaring down at the player, head cocked, the near
-			// arm reached up and out at them (clear of her face), claws spread, the other hand back on
-			// the speaker behind her.
-			.[RIG_R_ARM] = list("swing" = 110, "raise" = 20, "elbow" = 40)
-			.[RIG_L_ARM] = list("swing" = -35, "raise" = 10, "elbow" = 20)
+			// Corrupted Marble behind the speaker: glaring at the enemy, head cocked, the near arm (the
+			// free one) reached up and out at them, clear of her face, claws spread, the other hand
+			// back on the speaker behind her.
+			.[free_arm] = list("swing" = 110, "raise" = 20, "elbow" = 40)
+			.[mic_arm] = list("swing" = -35, "raise" = 10, "elbow" = 20)
 			.[RIG_CHEST] = list("bend" = 4)
 			.[RIG_HEAD] = list("nod" = 8, "tilt" = 10)
 			.[RIG_TAIL] = list("lift" = -10, "wag" = 10)
@@ -378,13 +378,15 @@
 	setDir(facing)
 	if(!limb_rig.is_pulling_fnf_face())
 		limb_rig.set_fnf_face("idle")
-	var/list/pose = fnf_pose("stare", RIG_L_ARM, facing, null)
+	// The near arm's the one reaching out: the far one goes back to the speaker.
+	var/near_arm = facing == WEST ? RIG_L_ARM : RIG_R_ARM
+	var/list/pose = fnf_pose("stare", near_arm == RIG_L_ARM ? RIG_R_ARM : RIG_L_ARM, facing, null)
 	if(!prob(30))
 		limb_rig.play(list(list(pose, beat_time, SINE_EASING)), settle_after = FALSE)
 		return
 	var/list/twitch = fnf_nudge_pose(pose, RIG_HEAD, "tilt", pick(-16, 14))
 	twitch = fnf_nudge_pose(twitch, RIG_HEAD, "nod", pick(-8, 6))
-	twitch = fnf_nudge_pose(twitch, RIG_R_ARM, "elbow", 30)
+	twitch = fnf_nudge_pose(twitch, near_arm, "elbow", 30)
 	limb_rig.play(list(
 		list(twitch, 0.4),
 		list(twitch, 0.6),

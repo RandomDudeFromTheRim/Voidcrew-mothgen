@@ -9,7 +9,7 @@ thunder1-2, train_passes - Week 2's lightning and Week 3's train (thunder_1-2, t
 dialogue_blip, dialogue_music, dialogue_music_scary - Week 6's dialogue (pixelText, Lunchbox, LunchboxScary)
 loss_pico_explode, loss_pico_gutpunch - Pico's Weekend 1 deaths (fnf_loss_sfx-pico-explode, fnf_loss_sfx-pico-gutpunch)
 The RETRY and GIVE UP buttons in icons/fnf_buttons.dmi are lettered in the game's font.
-icons/fnf_props.dmi - Nene's A-Bot (abotSystem, stereoBG), made small
+icons/fnf_speakers.dmi - Nene's A-Bot (abotSystem, stereoBG, aBotViz), made small
 
 Friday Night Funkin': Corruption+, by Carlito049 (https://gamejolt.com/games/fnfcorruptionplus/793089),
 a fan extension of the Corruption mod by Phantom Fear and Pincer. Used with credit, as Carlito asks.
@@ -17,8 +17,9 @@ Its characters: Kapi by PaperKitty, Skarlet Bunny by Rechi, Carol by bb-panzu. B
 icons/fnf_notes_kapi.dmi, icons/fnf_notes_skarlet.dmi - its tainted arrows (NOTE_assetsKapi,
 NOTE_assetsSkarlet, noteSplashesKapi), made small
 icons/fnf_healthbar_tainted.dmi - Skarlet's health bar frame (hpBar)
-icons/fnf_props.dmi - the speakers and the corrupted ones (speakers, EVILspeakers), Kapi's dance pads
-and Marble's speaker (from kapi, corruptedkapi), made small
+icons/fnf_speakers.dmi - the speakers and the corrupted ones (speakers, EVILspeakers), made small
+icons/fnf_props.dmi - Marble's speaker (from speakers), made small, and Kapi's dance pads, drawn after
+his sprites (kapi, corruptedkapi)
 icons/fnf_corruption_overlays.dmi - its overlays and flashes (scary, prey, hunter, shadowarcade,
 overlayskarlet and the rest), at a quarter size
 Its songs and their game overs (Kapi's, bloodlust and null) aren't shipped: tools/fnf/fetch_corruption_plus.py fetches them from GameJolt.
