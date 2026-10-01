@@ -21,6 +21,8 @@
 	var/mob/living/carbon/human/carried
 	/// Until when the girlfriend's busy (shooting), and shouldn't bop.
 	var/girlfriend_busy_until = 0
+	/// Which way whoever's in the girlfriend's place faces: the front, or round at someone.
+	var/girlfriend_facing = SOUTH
 	/// Week 4's backup dancers.
 	var/list/mob/living/carbon/human/henchmen = list()
 	/// Stress's tankmen: every one made so far, and the ones free to run in again.
@@ -166,8 +168,8 @@
 		if(girlfriend.fnf_look == "marble")
 			girlfriend.fnf_stare(beat_time, get_enemy_side(girlfriend))
 		else
-			girlfriend.setDir(SOUTH)
-			girlfriend.fnf_bop(beat_time, RIG_R_ARM, SOUTH, null)
+			girlfriend.setDir(girlfriend_facing)
+			girlfriend.fnf_bop(beat_time, girlfriend_facing == SOUTH ? RIG_R_ARM : girlfriend.fnf_mic_arm(girlfriend_facing), girlfriend_facing, null)
 	seat?.thump()
 	for(var/mob/living/carbon/human/henchman as anything in henchmen)
 		henchman.fnf_dance(beat_time, battle.last_beat % 2)
@@ -575,7 +577,8 @@
 			if(!girlfriend || QDELETED(girlfriend))
 				return FALSE
 			girlfriend_busy_until = world.time + max(note.length / 100, 2) + 1.5
-			girlfriend.fnf_sing(note.lane, max(note.length / 100, 2), RIG_R_ARM, SOUTH, girlfriend.fnf_look)
+			girlfriend.setDir(girlfriend_facing)
+			girlfriend.fnf_sing(note.lane, max(note.length / 100, 2), girlfriend_facing == SOUTH ? RIG_R_ARM : girlfriend.fnf_mic_arm(girlfriend_facing), girlfriend_facing, girlfriend.fnf_look)
 			side.singer?.fnf_nudge(rand(-2, 2), rand(-1, 1))
 			return TRUE
 		if("ugh")

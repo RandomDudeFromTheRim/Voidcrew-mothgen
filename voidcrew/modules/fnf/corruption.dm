@@ -27,7 +27,8 @@
  * ("angel", "demon"), "flying", "peak": how far it had them before they started fighting it off
  * (the ones partway free), "face": "manic" for a desperate grin, sweating, between notes, and
  * "bar": their colour on the health bar, "seat": what they're sat on in the girlfriend's place (see
- * /datum/fnf_stage/proc/set_seat()), and "prop": what they have by them (see set_singer_prop()).
+ * /datum/fnf_stage/proc/set_seat()), "prop": what they have by them (see set_singer_prop()), and
+ * "facing": "enemy" for someone in the girlfriend's place turned to face the opponent, not the front.
  */
 GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	// Pico, corrupted from the start of the arcade; the second and third fight back (orange hair and
@@ -55,10 +56,11 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"corruptedkapi35" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85, "peak" = 1, "prop" = "dance_pad_corrupt"),
 	"corruptedkapi4" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1, "eyes" = "red", "prop" = "dance_pad_corrupt"),
 	"morabait" = list("bar" = "#1f1a2f", "look" = "mora", "level" = 0),
-	// Skarlet Bunny, with the corruption at her boots from the start.
+	// Skarlet Bunny, with the corruption at her boots from the start, then in patches all over, then
+	// nearly all of her, though her face is still her own.
 	"skarlet1" = list("bar" = "#ff006e", "look" = "skarlet", "level" = 0.1),
 	"skarlet2" = list("bar" = "#ff006e", "look" = "skarlet", "level" = 0.35),
-	"skarlet3" = list("bar" = "#1a152a", "look" = "skarlet", "level" = 0.75),
+	"skarlet3" = list("bar" = "#1a152a", "look" = "skarlet", "level" = 0.62),
 	// Marble, behind the speaker, long gone.
 	"corruptedmarble" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1, "prop" = "speaker_small"),
 	"corruptedmarble2" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 0.9, "peak" = 1, "prop" = "speaker_small"),
@@ -78,7 +80,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"EVILspeakersGF" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 1, "seat" = "speakers_evil"),
 	"EVILspeakersBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1, "seat" = "speakers_evil"),
 	"EVILspeakersBFbait" = list("bar" = "#31b0d1", "look" = "bf", "level" = 0, "seat" = "speakers"),
-	"GFPcorruptedBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1, "seat" = "speakers_evil"),
+	"GFPcorruptedBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1, "facing" = "enemy"),
 	"corruptedbf2" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1),
 	// Nobody: just the speakers, or an empty stage.
 	"speakers" = list("bar" = "#3d3d65", "look" = null, "seat" = "speakers"),
@@ -460,6 +462,8 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	/// Which silhouettes are up: "white" (black figures on white), "black" (white on black),
 	/// "colour" (each in their colour, on black), or null.
 	var/apple
+	/// Words the song puts on screen (see show_subtitle()).
+	var/obj/effect/abstract/fnf_hud/text/subtitle
 	/// How much of the stage each listener's map window really shows, in pixels, by listener's ref:
 	/// list(width, height). A zoomed-in map in a small window shows less than its whole view.
 	var/list/visible_sizes = list()
@@ -490,6 +494,8 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	for(var/name in layers)
 		battle?.healthbar?.vis_contents -= layers[name]
 	QDEL_LIST_ASSOC_VAL(layers)
+	battle?.healthbar?.vis_contents -= subtitle
+	QDEL_NULL(subtitle)
 	battle = null
 	return ..()
 
@@ -615,8 +621,10 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 		return
 	layer_obj.pixel_w = center_x - 160
 	layer_obj.pixel_z = center_y - 90
-	// All of it in the smallest window, a little in from its edges.
-	var/scale = min((seen_width - 16) / 320, (seen_height - 16) / 180)
+	// Right across the smallest window, edge to edge (with the zoom on a singer's screen taken into
+	// account, its words fit): its edges carry on above and below to the top and bottom.
+	// The cameras lean 24 pixels either way, so it reaches that much further.
+	var/scale = (seen_width + 48) / 320
 	var/part = findtext(name, "_top") ? "top" : (findtext(name, "_bottom") ? "bottom" : null)
 	if(!part)
 		layer_obj.transform = matrix(scale, 0, 0, 0, scale, 0)
@@ -692,6 +700,20 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 			else if(mode == "off")
 				mode = null
 			set_apple(mode, value)
+		if("subtitle")
+			show_subtitle(image_name, value)
+		if("alt_idle")
+			// Purification's Girlfriend, once Boyfriend's swooped in to take over: the corruption eases
+			// off her a little, and her eyes go blank.
+			var/list/cast = current_cast["player"]
+			if(image_name != "bf" || !cast || value != "-alt")
+				return
+			var/list/eased = cast.Copy()
+			eased["peak"] = max(cast["peak"] || 0, cast["level"] || 0)
+			eased["level"] = max((cast["level"] || 0) - 0.06, 0)
+			eased["face"] = "blank"
+			current_cast["player"] = eased
+			corrupt(get_singer("player"), eased)
 		if("blammed")
 			var/static/list/colours = list("#31a2fd", "#31fd8c", "#f794f7", "#f96d63", "#fba633")
 			set_apple(value ? "blammed" : null, 1, colours[clamp(value, 1, 5)])
@@ -709,6 +731,7 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	apple = mode
 	if(!battle)
 		return
+	battle.healthbar?.set_portrait_tints(null, null)
 	var/obj/effect/abstract/fnf_hud/backdrop = get_layer("backdrop")
 	if(backdrop)
 		if(mode)
@@ -726,6 +749,8 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 		figures[battle.right.singer] = "#5de83a"
 	if(battle.stage?.girlfriend)
 		figures[battle.stage.girlfriend] = "#a5004d"
+	var/left_tint
+	var/right_tint
 	for(var/mob/living/figure in figures)
 		if(QDELETED(figure))
 			continue
@@ -743,6 +768,27 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 				silhouette = list(0, 0, 0, 0, 0, 0, 0, 0, 0, rgb[1] / 255, rgb[2] / 255, rgb[3] / 255)
 		figure.add_atom_colour(silhouette, ADMIN_COLOUR_PRIORITY)
 		silhouetted[figure] = silhouette
+		// Their heads on the health bar go with them.
+		if(figure == battle.left?.singer)
+			left_tint = silhouette
+		else if(figure == battle.right?.singer)
+			right_tint = silhouette
+	battle.healthbar?.set_portrait_tints(left_tint, right_tint)
+
+/// Words on screen under the stage, in a colour (or none, to clear them).
+/datum/fnf_corruption/proc/show_subtitle(text, colour)
+	var/obj/effect/abstract/fnf_hud/healthbar/bar = battle.healthbar
+	if(!bar)
+		return
+	if(!subtitle)
+		subtitle = new
+		subtitle.maptext_width = 256
+		subtitle.maptext_x = -112
+		subtitle.layer = ABOVE_ALL_MOB_LAYER + 0.05
+		subtitle.pixel_w = bar.center_x - 16
+		subtitle.pixel_z = bar.center_y - FNF_STRUM_Y - 44 - 30
+		bar.vis_contents += subtitle
+	subtitle.maptext = text ? MAPTEXT("<span style='text-align:center;font-size:8pt;color:[colour];-dm-text-outline:1px #000000'><b>[html_encode(text)]</b></span>") : null
 
 /// Someone acting out one of the mod's animations, the way the stage acts out Funkin's own.
 /datum/fnf_corruption/proc/act_out(animation, who)
@@ -771,9 +817,20 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 
 /**
  * The opponent hitting a note, in a song whose script drains the player for it (the mod's songs push
- * back hard): whatever its own script takes, then any drain its events have set.
+ * back hard): whatever its own script takes, then any drain its events have set. Funkin' counts
+ * every step's piece of a held note as a note of its own, so a held one drains on all the way
+ * through (length in milliseconds).
  */
-/datum/fnf_corruption/proc/opponent_hit()
+/datum/fnf_corruption/proc/opponent_hit(length = 0)
+	opponent_piece()
+	var/step_ms = battle.crochet / 4
+	for(var/piece in 1 to floor(length / step_ms))
+		addtimer(CALLBACK(src, PROC_REF(opponent_piece)), piece * step_ms / 100, TIMER_DELETE_ME)
+
+/// One piece of an opponent's note (see opponent_hit()).
+/datum/fnf_corruption/proc/opponent_piece()
+	if(!battle || battle.state != FNF_STATE_PLAYING)
+		return
 	var/step = battle.get_song_time() / (battle.crochet / 4)
 	for(var/list/rule as anything in GLOB.fnf_corruption_drains[battle.song.id])
 		if(step < rule[1] || (rule[2] && step >= rule[2]))
@@ -784,10 +841,20 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	if(opponent_drain && battle.health > 0.1 * FNF_HEALTH_MAX / 2)
 		battle.adjust_health(-opponent_drain * FNF_HEALTH_MAX / 2, battle.right)
 
-/// The player hitting a note: any extra health the song's events give for it.
-/datum/fnf_corruption/proc/player_hit()
-	if(player_bonus)
-		battle.adjust_health(-player_bonus * FNF_HEALTH_MAX / 2, battle.right)
+/// The player hitting a note: any extra health the song's events take for it, held pieces and all.
+/datum/fnf_corruption/proc/player_hit(length = 0)
+	if(!player_bonus)
+		return
+	player_piece()
+	var/step_ms = battle.crochet / 4
+	for(var/piece in 1 to floor(length / step_ms))
+		addtimer(CALLBACK(src, PROC_REF(player_piece)), piece * step_ms / 100, TIMER_DELETE_ME)
+
+/// One piece of the player's note (see player_hit()).
+/datum/fnf_corruption/proc/player_piece()
+	if(!battle || battle.state != FNF_STATE_PLAYING || !player_bonus)
+		return
+	battle.adjust_health(-player_bonus * FNF_HEALTH_MAX / 2, battle.right)
 
 /// The mod's "Drain" event: takes 0.02 more than its value (a negative value gives health back), unless that would finish the player.
 /datum/fnf_corruption/proc/drain(value)
@@ -850,7 +917,7 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 				if(stage.girlfriend)
 					stage.girlfriend.alpha = 0
 				// Just the speakers, if anything.
-				stage.set_seat(cast["seat"])
+				stage.set_seat(get_seat(cast))
 				return
 			if(!stage.girlfriend || stage.girlfriend.fnf_look != cast["look"])
 				QDEL_NULL(stage.girlfriend)
@@ -858,13 +925,26 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 			if(stage.girlfriend)
 				stage.girlfriend.alpha = 255
 				corrupt(stage.girlfriend, cast)
-			stage.set_seat(cast["seat"])
+				stage.girlfriend_facing = cast["facing"] == "enemy" ? stage.get_enemy_side(stage.girlfriend) : SOUTH
+				stage.girlfriend.setDir(stage.girlfriend_facing)
+			stage.set_seat(get_seat(cast))
+
+/// What someone in the girlfriend's place is sat on. Kapi's arcade has no speakers to sit on.
+/datum/fnf_corruption/proc/get_seat(list/cast)
+	if(battle.song.note_skin == "kapi")
+		return null
+	return cast["seat"]
 
 /datum/fnf_corruption/proc/corrupt(mob/living/carbon/singer, list/cast)
 	if(!istype(singer))
 		return
 	touched |= singer
 	singer.alpha = cast["hidden"] ? 0 : initial(singer.alpha)
+	battle.healthbar?.show_portrait(singer, !cast["hidden"])
+	// With the player gone (the end of Purification), the camera's all on the opponent.
+	if(cast["hidden"] && singer == battle.right?.singer)
+		battle.camera_focus = -battle.stage?.gap_px / 48 || -1
+		battle.pan_cameras()
 	singer.fnf_face_mood = cast["face"]
 	// Kapi's dance pad, Marble's speaker.
 	battle.stage?.set_singer_prop(singer, cast["prop"])

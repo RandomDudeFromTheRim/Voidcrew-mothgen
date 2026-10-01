@@ -169,6 +169,10 @@
 	tail_part.layer = parts[RIG_TAIL].layer + 0.1
 	sort_pieces()
 
+// A species' own head, and its face, are drawn on the head's cloth piece.
+/datum/limb_rig/sprites/humanoid/get_face_anchor()
+	return cloth_parts[RIG_HEAD]
+
 /datum/limb_rig/sprites/humanoid/get_pose_matrices(list/pose, facing)
 	. = ..()
 	.[wings_part] = .[cloth_parts[RIG_CHEST]] * .[pivot]

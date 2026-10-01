@@ -392,6 +392,7 @@
 	var/matrix/torso = segment_matrices[RIG_CHEST]
 	if(torso && parts[RIG_TAIL])
 		.[parts[RIG_TAIL]] = rig_tail_matrix(bones[RIG_TAIL], null, facing) * torso
+	add_face_matrix(.)
 
 /datum/limb_rig/sprites/humanoid/get_physics_matrices(list/segment_matrices, facing)
 	. = ..()

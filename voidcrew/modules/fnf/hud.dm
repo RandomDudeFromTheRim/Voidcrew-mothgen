@@ -38,6 +38,9 @@
 	var/obj/effect/abstract/fnf_hud/shaped_right
 	/// The health it was last shown at.
 	var/shown_health = FNF_HEALTH_MAX / 2
+	/// Colours the heads are drawn in for now (silhouettes, while the song blacks the stage out),
+	/// list(left, right), each a colour or colour matrix; null for their own.
+	var/list/portrait_tints
 
 /obj/effect/abstract/fnf_hud/healthbar/Initialize(mapload, center_x, center_y, mob/living/left_mob, mob/living/right_mob)
 	. = ..()
@@ -109,6 +112,17 @@
 	vis_contents += shaped
 	return shaped
 
+/// Draws the heads in other colours for now (see portrait_tints), or (with nothing) their own.
+/obj/effect/abstract/fnf_hud/healthbar/proc/set_portrait_tints(left_tint, right_tint)
+	portrait_tints = (left_tint || right_tint) ? list(left_tint, right_tint) : null
+	update(shown_health, instant = TRUE)
+
+/// Hides a singer's head, or shows it again.
+/obj/effect/abstract/fnf_hud/healthbar/proc/show_portrait(mob/living/singer, shown)
+	for(var/obj/effect/abstract/fnf_hud/portrait/portrait as anything in list(left_portrait, right_portrait))
+		if(portrait?.singer == singer)
+			portrait.alpha = shown ? 255 : 0
+
 /// Colours the bar: the opponent's side and the challenger's.
 /obj/effect/abstract/fnf_hud/healthbar/proc/set_colours(left_colour, right_colour)
 	if(left_colour)
@@ -135,8 +149,8 @@
 		var/side_offset = portrait == left_portrait ? -13 : 13
 		animate(portrait, pixel_w = center_x - 16 + split + side_offset, pixel_z = center_y - 16, time = time)
 	// Whoever's losing badly goes pale.
-	left_portrait?.color = health > 80 ? "#8888ff" : null
-	right_portrait?.color = health < 20 ? "#8888ff" : null
+	left_portrait?.color = portrait_tints?[1] || (health > 80 ? "#8888ff" : null)
+	right_portrait?.color = portrait_tints?[2] || (health < 20 ? "#8888ff" : null)
 
 /// Both portraits bob to the beat.
 /obj/effect/abstract/fnf_hud/healthbar/proc/bop()
@@ -243,7 +257,7 @@
 	return list(neck[1], neck[2] + 4, 1.6)
 
 /datum/limb_rig/sprites/get_head_pieces()
-	return list(parts[RIG_HEAD], cloth_parts[RIG_HEAD])
+	return list(parts[RIG_HEAD], cloth_parts[RIG_HEAD], face_part)
 
 /datum/limb_rig/sprites/get_portrait_head(facing)
 	var/list/bones = skeleton[dir2text(facing)]

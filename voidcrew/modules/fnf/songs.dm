@@ -429,6 +429,12 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 				found = list(entry[1], "drain", "", text2num("[event[2]]") || 0)
 			else if(event[1] == "HealthDrainCustom")
 				found = list(entry[1], "health_drain", "[text2num("[event[3]]") || 0]", text2num("[event[2]]") || 0)
+			// Words on screen (Purification's "That's the you I want to see..."), as far as they've got, in a colour.
+			else if(event[1] == "Set_Subtitle")
+				found = list(entry[1], "subtitle", splittext("[event[2]]", ":")[1], "#[event[3] || "FFFFFF"]")
+			// Someone idling another way (Purification's Girlfriend, once Boyfriend's taken over): "-alt", or "" back.
+			else if(event[1] == "Alt Idle Animation")
+				found = list(entry[1], "alt_idle", lowertext("[event[2]]"), "[event[3]]")
 			if(!found)
 				continue
 			var/key = jointext(found, "-")

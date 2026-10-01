@@ -57,6 +57,9 @@
 	var/list/damage_marks = list()
 	/// The body sprite on each piece, by piece id.
 	var/list/sprite_images = list()
+	/// A piece over the head for anything drawn on the face (a rhythm battle's faces), moving with the
+	/// head but not coloured with it: nothing that tints the head's piece reaches it.
+	var/obj/effect/abstract/limb_rig_part/face_part
 	/// How much colour the body sprites keep, 0 to 1 (see set_sprite_saturation()).
 	var/sprite_saturation = 1
 
@@ -80,6 +83,8 @@
 	hang_on_owner(pivot)
 	for(var/part_id in list(RIG_CHEST, RIG_HEAD, "l_arm", "l_forearm", "r_arm", "r_forearm"))
 		add_piece(part_id, pivot)
+	face_part = new_part(RIG_HEAD)
+	pivot.vis_contents += face_part
 	// The pivot draws as one flat group over the legs, so the tail hangs off the mob instead:
 	// it has to go under the legs, or over everything seen from behind.
 	add_piece(RIG_TAIL, null)
@@ -130,6 +135,7 @@
 /datum/limb_rig/sprites/Destroy()
 	QDEL_LIST_ASSOC_VAL(cloth_parts)
 	QDEL_LIST_ASSOC_VAL(shoe_parts)
+	QDEL_NULL(face_part)
 	sprite_images = null
 	return ..()
 
@@ -235,6 +241,7 @@
 		cloth_parts[part_id].layer = parts[part_id].layer + 0.1
 	for(var/side in shoe_parts)
 		shoe_parts[side].layer = parts["[side]_foot"].layer + 0.2
+	face_part.layer = parts[RIG_HEAD].layer + 0.15
 	sort_pieces()
 
 /**
@@ -274,6 +281,16 @@
 	. += posed_x
 	. += posed_y
 	. += turn
+
+/// The piece the face is drawn to fit, whose every move face_part copies.
+/datum/limb_rig/sprites/proc/get_face_anchor()
+	return parts[RIG_HEAD]
+
+/// Puts face_part wherever its anchor is in a set of matrices.
+/datum/limb_rig/sprites/proc/add_face_matrix(list/matrices)
+	var/matrix/anchor = matrices[get_face_anchor()]
+	if(anchor && face_part)
+		matrices[face_part] = anchor
 
 /// Maps a human-shaped piece of clothing onto this body's piece at rest.
 /datum/limb_rig/sprites/proc/get_cloth_map(part_id, facing)
@@ -344,6 +361,7 @@
 			if(i == 3)
 				.[shoe_parts[side]] = get_cloth_map(part_id, facing) * segment_matrix
 
+	// (The face goes wherever the piece it's drawn for does: see get_face_anchor().)
 	// The upper body hangs off the hips.
 	var/matrix/torso = rig_pose_matrix(RIG_CHEST, chest_entry, facing, 1, bones[RIG_CHEST])
 	torso.Translate(0, lift)
@@ -385,6 +403,7 @@
 		// Held items are drawn for a human hand; move that hand to this wrist.
 		var/list/human_hand = get_rig_joint(side == "l" ? RIG_L_ARM : RIG_R_ARM, facing)
 		.[item_parts[side]] = rig_joint_matrix(human_hand[1], HUMAN_HAND_Y, item_scale, chain[5], chain[3], chain[4], item_scale)
+	add_face_matrix(.)
 
 #undef HUMAN_HIPS_Y
 #undef HUMAN_ELBOW_Y

@@ -110,9 +110,11 @@
 	rig.set_corruption(1, "red")
 	TEST_ASSERT(length(rig.corruption_images), "Corruption drew nothing on the body.")
 	TEST_ASSERT(rig.is_face_corrupted(), "Full corruption didn't take the face.")
-	// The glowing face draws apart from the head, or the colour on the head would go over it too.
-	for(var/image/face as anything in rig.get_fnf_face_images("idle"))
-		TEST_ASSERT(face.appearance_flags & KEEP_APART, "A corrupted face is drawn as part of the head, under its colour.")
+	// The glowing face has a piece of its own, or the colour on the head would go over it too.
+	var/atom/movable/face_holder = rig.get_fnf_face_holder()
+	TEST_ASSERT(face_holder, "There's nothing for the face to be drawn on.")
+	TEST_ASSERT_NULL(face_holder.color, "Corruption coloured the face along with the head.")
+	TEST_ASSERT_EQUAL(length(fnf_tint_then_colour("#808080", list(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0))), 20, "A tint and a colour matrix don't make one matrix.")
 	var/datum/limb_rig/sprites/sprite_rig = rig
 	if(istype(sprite_rig))
 		TEST_ASSERT(sprite_rig.sprite_saturation < 1, "Corruption didn't drain the body's own sprites.")

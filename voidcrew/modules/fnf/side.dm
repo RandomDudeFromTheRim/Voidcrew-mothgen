@@ -420,9 +420,9 @@
 		show_rating(rating)
 	// Corruption+'s songs drain the player as the opponent sings, and some pay the player back.
 	if(src == battle.left)
-		battle.corruption?.opponent_hit()
+		battle.corruption?.opponent_hit(note.length)
 	else
-		battle.corruption?.player_hit()
+		battle.corruption?.player_hit(note.length)
 
 	QDEL_NULL(note.head)
 	var/hold_left = note.length > 0 ? max(note.time + note.length - now, 0) : 0

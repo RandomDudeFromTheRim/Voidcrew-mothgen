@@ -92,7 +92,7 @@
 	fnf_face_set = "milkie"
 
 /datum/limb_rig/sprites/get_fnf_face_holder()
-	return parts[RIG_HEAD]
+	return face_part
 
 /datum/limb_rig/sprites/get_fnf_face_images(expression)
 	if(!fnf_face_set)
@@ -106,15 +106,10 @@
 	face.pixel_w = -16
 	face.layer = FLOAT_LAYER + 0.05
 	if(half_freed)
-		// The patch fought clean keeps its own colours, whatever the rest is.
-		face.appearance_flags = RESET_COLOR|KEEP_APART
 		return list(face) + get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_experiment_corrupt.dmi', fnf_face_set, expression, -16)
 	return list(face)
 
 // Everyone else's heads, as tg draws them.
-
-/datum/limb_rig/sprites/humanoid/get_fnf_face_holder()
-	return cloth_parts[RIG_HEAD]
 
 /datum/limb_rig/sprites/humanoid/get_fnf_face_images(expression)
 	var/obj/item/bodypart/head/head = owner.get_bodypart(BODY_ZONE_HEAD)
@@ -140,17 +135,29 @@
 	// Half fought free: a patch of skin round the near eye, their own eye in it, over the coat.
 	var/image/cover = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set]_[half_freed ? "windowcover" : "cover"]")
 	cover.layer = FLOAT_LAYER
-	// The head's own shade, tinted as the head is (a head drawn in its own colours isn't).
-	if(head.should_draw_greyscale && head.draw_color)
-		cover.color = head.draw_color
+	// The head's own shade, tinted as the head is (a head drawn in its own colours isn't), and
+	// coloured as its piece is (by corruption, coating it).
+	var/obj/effect/abstract/limb_rig_part/head_piece = cloth_parts[RIG_HEAD]
+	cover.color = fnf_tint_then_colour(head.should_draw_greyscale ? head.draw_color : null, head_piece?.color)
 	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set][eyes][half_freed ? "_window" : ""]_[expression]")
 	face.layer = FLOAT_LAYER
 	if(half_freed)
-		// The patch fought clean keeps its own colours, whatever the rest is.
-		cover.appearance_flags = RESET_COLOR|KEEP_APART
-		face.appearance_flags = RESET_COLOR|KEEP_APART
 		return list(cover, face) + get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_corrupt.dmi', face_set, expression, 0)
 	return list(cover, face)
+
+/// A colour to tint by, then a colour or colour matrix over that, as one colour matrix (or either alone).
+/proc/fnf_tint_then_colour(tint, colour)
+	if(!colour)
+		return tint
+	if(!tint)
+		return colour
+	var/list/over = islist(colour) ? fnf_full_colour_matrix(colour) : list(rgb2num(colour)[1] / 255, 0, 0, 0, 0, rgb2num(colour)[2] / 255, 0, 0, 0, 0, rgb2num(colour)[3] / 255, 0, 0, 0, 0, 1, 0, 0, 0, 0)
+	var/list/scale = rgb2num(tint)
+	. = over.Copy()
+	// Each input channel's row of the matrix, scaled by how much of that channel the tint lets through.
+	for(var/channel in 1 to 3)
+		for(var/out in 1 to 4)
+			.[(channel - 1) * 4 + out] = over[(channel - 1) * 4 + out] * scale[channel] / 255
 
 /// Which faces fit a head, by its limb id: null for a head that can't pull one.
 /proc/get_fnf_face_set(limb_id)
@@ -183,13 +190,14 @@
  */
 /datum/limb_rig/proc/get_corrupted_face_images(face_icon, face_set, expression, offset, grin_only = FALSE)
 	var/half = grin_only || is_face_half_freed() ? "half" : ""
-	var/state = "[face_set]_[corruption_eyes == "red" ? "corruptred" : "corrupt"][half]_[expression == "blink" ? "idle" : expression]"
+	var/tag = corruption_eyes == "red" ? "corruptred" : "corrupt"
+	// Eyes gone blank, the pupils out of them (Purification's Girlfriend, with Boyfriend taking over).
+	if(!half && owner.fnf_face_mood == "blank")
+		tag = "corruptblank"
+	var/state = "[face_set]_[tag][half]_[expression == "blink" ? "idle" : expression]"
 	var/image/face = image(face_icon, state)
 	face.pixel_w = offset
 	face.layer = FLOAT_LAYER + 0.06
-	// Drawn apart from the piece: a piece draws as one, so the colour on it (corruption's, on a head
-	// that isn't drawn from sprites of its own) would go over the glow too, whatever its own flags say.
-	face.appearance_flags = RESET_COLOR|KEEP_APART
-	var/mutable_appearance/glow = emissive_appearance(face_icon, state, owner, FLOAT_LAYER + 0.06, appearance_flags = RESET_COLOR|KEEP_APART)
+	var/mutable_appearance/glow = emissive_appearance(face_icon, state, owner, FLOAT_LAYER + 0.06, appearance_flags = RESET_COLOR)
 	glow.pixel_w = offset
 	return list(face, glow)
