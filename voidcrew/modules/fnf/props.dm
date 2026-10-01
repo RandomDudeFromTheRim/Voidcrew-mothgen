@@ -4,7 +4,8 @@
  * Nene's A-Bot, three tiles wide (icons/fnf_speakers.dmi); Kapi's arcade dance pad, lighting up where
  * he steps, and the little speaker Marble leans on (icons/fnf_props.dmi).
  *
- * Whoever's up on one is raised to stand on it, or to sit on its edge with their legs hanging over.
+ * Whoever's up on one is raised to stand on it, squat on top (Pico and Otis, shooting from it), or
+ * sit on its edge with their legs hanging over.
  */
 /obj/effect/abstract/fnf_prop
 	name = ""
@@ -67,23 +68,27 @@
 	animate(panel, alpha = 255, time = 0)
 	animate(alpha = 0, time = 4, easing = QUAD_EASING|EASE_IN)
 
-/// Puts someone up on it, sitting on its edge or standing on top, or (with null) gets them down.
-/obj/effect/abstract/fnf_prop/proc/set_rider(mob/living/new_rider, seated = FALSE)
+/**
+ * Puts someone up on it, or (with null) gets them down: "sit" on its edge, "crouch" on top, or
+ * (with no way given) stand on top.
+ */
+/obj/effect/abstract/fnf_prop/proc/set_rider(mob/living/new_rider, way)
 	if(rider && !QDELETED(rider))
-		rider.pixel_z -= raised
+		rider.remove_offsets(FNF_BATTLE_TRAIT, animate = FALSE)
 		if(iscarbon(rider))
 			var/mob/living/carbon/carbon_rider = rider
-			carbon_rider.limb_rig?.set_seated(FALSE)
+			carbon_rider.limb_rig?.set_seated(null)
 	rider = new_rider
 	raised = 0
 	if(!rider)
 		return
 	// Sitting, the hips are on the top, the shins hanging down in front.
-	raised = fnf_prop_height(icon_state) - (seated ? 8 : 0)
-	rider.pixel_z += raised
-	if(seated && iscarbon(rider))
+	raised = fnf_prop_height(icon_state) - (way == "sit" ? 8 : 0)
+	// As an offset of its own, so nothing else putting the mob's offsets right takes it away.
+	rider.add_offsets(FNF_BATTLE_TRAIT, z_add = raised, animate = FALSE)
+	if(way && iscarbon(rider))
 		var/mob/living/carbon/carbon_rider = rider
-		carbon_rider.limb_rig?.set_seated(TRUE)
+		carbon_rider.limb_rig?.set_seated(way)
 
 /// The speakers thump with the beat.
 /obj/effect/abstract/fnf_prop/proc/thump()
@@ -91,19 +96,27 @@
 	animate(transform = matrix(), time = 2.5, easing = SINE_EASING)
 
 /**
- * Sat on something, facing the front: the thighs swung straight out at the viewer (so they
- * foreshorten to nothing) and the shins hanging down, on top of whatever the body does anyway.
+ * Sat on something ("sit"), facing the front: the thighs swung straight out at the viewer (so they
+ * foreshorten to nothing) and the shins hanging down. Or squatting on it ("crouch"): thighs out,
+ * shins folded right back under, hunched over. On top of whatever the body does anyway; null stands.
  */
-/datum/limb_rig/proc/set_seated(seated)
+/datum/limb_rig/proc/set_seated(way)
 	var/mob/living/carbon/human/human_owner = owner
 	var/list/own_posture = istype(human_owner) ? human_owner.dna.species.limb_rig_shape?["posture"] : null
-	if(!seated)
-		posture = own_posture
-		return
-	posture = rig_merge_pose(own_posture, list(
-		RIG_L_LEG = list("swing" = 88, "knee" = 88),
-		RIG_R_LEG = list("swing" = 88, "knee" = 88),
-	))
+	switch(way)
+		if("sit")
+			posture = rig_merge_pose(own_posture, list(
+				RIG_L_LEG = list("swing" = 88, "knee" = 88),
+				RIG_R_LEG = list("swing" = 88, "knee" = 88),
+			))
+		if("crouch")
+			posture = rig_merge_pose(own_posture, list(
+				RIG_L_LEG = list("swing" = 80, "knee" = 140),
+				RIG_R_LEG = list("swing" = 70, "knee" = 135),
+				RIG_CHEST = list("bend" = 14),
+			))
+		else
+			posture = own_posture
 
 // The stage's.
 
@@ -126,7 +139,7 @@
  * Puts something in the girlfriend's place for her to sit on ("speakers", "speakers_evil", "abot"),
  * or to stand on, or takes it away (null). Whoever's there now gets up on it, if they're seen.
  */
-/datum/fnf_stage/proc/set_seat(state, seated = TRUE)
+/datum/fnf_stage/proc/set_seat(state, way = "sit")
 	if(seat?.icon_state != state)
 		QDEL_NULL(seat)
 		if(!state)
@@ -136,18 +149,18 @@
 			return
 		seat = new(spot)
 		seat.set_look(state)
-	seat.set_rider(girlfriend && girlfriend.alpha ? girlfriend : null, seated)
+	seat.set_rider(girlfriend && girlfriend.alpha ? girlfriend : null, way)
 
-/// What the girlfriend's place has to stand on for this character, as Funkin' has it: list(state, seated).
+/// What the girlfriend's place has to be up on for this character, as Funkin' has it: list(state, way).
 /datum/fnf_stage/proc/get_seat_for(character)
 	if(length(battle.chart["speaker"]))
-		// Stress: up on the speakers, to shoot from.
-		return list("speakers", FALSE)
+		// Stress: squatting up on the speakers to shoot from, Otis on Nene's A-Bot in the Pico mix.
+		return list(character == "otis" ? "abot" : "speakers", "crouch")
 	switch(character)
 		if("gf")
-			return list("speakers", TRUE)
+			return list("speakers", "sit")
 		if("nene")
-			return list("abot", TRUE)
+			return list("abot", "sit")
 
 /// Gives a singer one of their props ("dance_pad", "speaker_small"), or takes it away (null).
 /datum/fnf_stage/proc/set_singer_prop(mob/living/singer, state)

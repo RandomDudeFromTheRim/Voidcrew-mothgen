@@ -320,7 +320,7 @@
 /// How long a tankman takes to run in, in song milliseconds.
 #define FNF_SOLDIER_RUN_MS 1600
 /// Most tankmen out at once, kept low: each is a whole rigged mob. Shots beyond that are just shots.
-#define FNF_MAX_SOLDIERS 4
+#define FNF_MAX_SOLDIERS 2
 
 /// Sends in the tankmen the speaker is about to shoot.
 /datum/fnf_stage/proc/send_soldiers(now)
@@ -384,8 +384,10 @@
 	girlfriend_busy_until = world.time + 3
 	var/turf/shooter_turf = get_turf(girlfriend)
 	var/turf/target_turf = get_turf(soldier)
+	// From up on the speakers, squatting.
+	var/lift = seat?.rider == girlfriend ? seat.raised - 6 : 0
 	if(shooter_turf && target_turf)
-		tracer(shooter_turf, 16 + (from_left ? -10 : 10), 26, (target_turf.x - shooter_turf.x) * world.icon_size + 16, (target_turf.y - shooter_turf.y) * world.icon_size + 22)
+		tracer(shooter_turf, 16 + (from_left ? -10 : 10), 26 + lift, (target_turf.x - shooter_turf.x) * world.icon_size + 16, (target_turf.y - shooter_turf.y) * world.icon_size + 22)
 	soldier.limb_rig?.step_delay_override = null
 	// Knocked flying: a ragdoll, kicked away from the shooter, falling however physics has it.
 	// Without the physics library, a flinch and a fall.
