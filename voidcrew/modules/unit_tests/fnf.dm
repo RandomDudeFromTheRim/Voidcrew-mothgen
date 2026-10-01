@@ -125,6 +125,11 @@
 	var/list/right_east = fnf_traced_keyframes("cpico", "singRIGHT", EAST)
 	TEST_ASSERT(length(left_west) && length(left_west) == length(right_east), "A traced move isn't swapped for a singer facing the other way from the sprite.")
 	TEST_ASSERT_NULL(fnf_traced_keyframes("bf", "idle", WEST), "Someone nobody traced got a traced move.")
+	// A long note stutters on a move's first two frames before playing it through; a short one just plays it.
+	var/list/move = list(list(list("a" = 1), 0.4), list(list("b" = 1), 0.4), list(list("c" = 1), 0.4))
+	TEST_ASSERT_EQUAL(length(fnf_traced_hold(move, 1, list())), 4, "A short note's traced move didn't just play through.")
+	var/list/held = fnf_traced_hold(move, 3, list())
+	TEST_ASSERT(length(held) > 4 && held[1][1] == move[1][1] && held[2][1] == move[2][1] && held[3][1] == move[1][1], "A long note's traced move doesn't repeat its first frames.")
 	var/list/frame_states = icon_states('voidcrew/modules/fnf/icons/fnf_healthbar_tainted.dmi')
 	TEST_ASSERT(("hole" in frame_states) && ("block" in frame_states), "The tainted health bar has no opening for its colours to fill.")
 	var/list/prop_states = icon_states('voidcrew/modules/fnf/icons/fnf_props.dmi')

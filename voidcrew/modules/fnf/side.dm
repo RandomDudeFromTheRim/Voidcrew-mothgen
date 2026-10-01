@@ -65,6 +65,8 @@
 	var/old_hud_version
 	/// Whether the singer's screen was zoomed in on the stage.
 	var/zoomed = FALSE
+	/// How far to zoom the singer's screen in once their last note's played, if at all.
+	var/zoom_when_done = 0
 	/// Until when (world.time) the singer is busy with a pose, and shouldn't bop to the beat.
 	var/busy_until = 0
 
@@ -310,6 +312,9 @@
 			score += round(250 * world.tick_lag / 10)
 			if(!is_cpu)
 				battle.adjust_health(0.1, src)
+	if(zoom_when_done && next_note > length(chart) && !length(live))
+		zoom_screen(zoom_when_done)
+		zoom_when_done = 0
 
 /datum/fnf_side/proc/spawn_note(list/entry, now, pixels_per_ms)
 	var/datum/fnf_note/note = new

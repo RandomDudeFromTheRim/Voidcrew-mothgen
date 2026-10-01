@@ -402,7 +402,6 @@
 /// Screaming in agony (Corruption+'s corrupted Pico, fighting it): snaps into it and shakes.
 /mob/living/proc/fnf_scream(mic_arm, facing, style)
 	fnf_nudge(0, 2)
-	emote("scream")
 
 /mob/living/carbon/fnf_scream(mic_arm, facing, style)
 	. = ..()
@@ -575,12 +574,25 @@
 	for(var/list/keyframe as anything in keyframes)
 		. += keyframe[2]
 
-/// A traced move held on its last frame for as long as the note (hold deciseconds), then back to rest.
+/**
+ * A traced move for a note held hold deciseconds, then back to rest. A long note stutters on the
+ * move's first two frames until it's let go, the way Funkin' starts the move over on every bit of a
+ * held note, then plays it through.
+ */
 /proc/fnf_traced_hold(list/keyframes, hold, list/rest)
-	. = keyframes.Copy()
-	var/list/last = keyframes[length(keyframes)]
+	. = list()
 	var/left = hold - fnf_keyframes_time(keyframes)
+	if(length(keyframes) >= 2)
+		var/list/first = keyframes[1]
+		var/list/second = keyframes[2]
+		var/first_time = min(first[2], 0.5)
+		var/second_time = min(second[2], 0.5)
+		while(left > first_time + second_time)
+			. += list(list(first[1], first_time), list(second[1], second_time))
+			left -= first_time + second_time
+	. += keyframes
 	if(left > 0)
+		var/list/last = keyframes[length(keyframes)]
 		. += list(list(last[1], left))
 	. += list(list(rest, 2, SINE_EASING))
 

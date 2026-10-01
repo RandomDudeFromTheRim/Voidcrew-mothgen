@@ -192,8 +192,9 @@
 /datum/limb_rig/proc/get_corrupted_face_images(face_icon, face_set, expression, offset, grin_only = FALSE)
 	var/half = grin_only || is_face_half_freed() ? "half" : ""
 	var/tag = corruption_eyes == "red" ? "corruptred" : "corrupt"
-	// Eyes gone blank, the pupils out of them (Purification's Girlfriend, with Boyfriend taking over).
-	if(!half && owner.fnf_face_mood == "blank")
+	// Eyes gone blank, the pupils out of them: Purification's Girlfriend with Boyfriend taking over, and
+	// the ones whose sprites keep their pupils dark.
+	if(!half && (corruption_eyes == "blank" || owner.fnf_face_mood == "blank"))
 		tag = "corruptblank"
 	var/state = "[face_set]_[tag][half]_[expression == "blink" ? "idle" : expression]"
 	var/image/face = image(face_icon, state)

@@ -23,10 +23,10 @@
 
 /**
  * The mod's characters: each a look (see opponents.dm; null for nobody, just the speakers), how
- * corrupted they are, and anything else about them: "eyes" ("red" instead of pink), "wings"
- * ("angel", "demon"), "flying", "peak": how far it had them before they started fighting it off
- * (the ones partway free), "face": "manic" for a desperate grin, sweating, between notes, and
- * "bar": their colour on the health bar, "seat": what they're sat on in the girlfriend's place (see
+ * corrupted they are, and anything else about them: "eyes" ("red" instead of pink, "blank" for no
+ * pupils glowing in them), "wings" ("angel", "demon"), "flying", "peak": how far it had them before
+ * they started fighting it off (the ones partway free), "face": "manic" for a desperate grin,
+ * sweating, between notes, and "bar": their colour on the health bar, "seat": what they're sat on in the girlfriend's place (see
  * /datum/fnf_stage/proc/set_seat()), "prop": what they have by them (see set_singer_prop()), and
  * "facing": "enemy" for someone in the girlfriend's place turned to face the opponent, not the front.
  */
@@ -34,7 +34,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	// Pico, corrupted from the start of the arcade; the second and third fight back (orange hair and
 	// a green collar through the dark, then half his face), then it takes him again.
 	"corruptedpico" = list("bar" = "#1a152a", "look" = "pico", "level" = 1),
-	"corruptedpico2" = list("bar" = "#1a152a", "look" = "pico", "level" = 0.85, "peak" = 1),
+	"corruptedpico2" = list("bar" = "#1a152a", "look" = "pico", "level" = 0.85, "peak" = 1, "eyes" = "blank"),
 	"corruptedpico3" = list("bar" = "#1a152a", "look" = "pico", "level" = 0.7, "peak" = 1),
 	"corruptedpico4" = list("bar" = "#1a152a", "look" = "pico", "level" = 1),
 	"corruptedpico5" = list("bar" = "#1a152a", "look" = "pico", "level" = 1),
@@ -46,7 +46,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"kapi2" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.25, "prop" = "dance_pad"),
 	"kapi3" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.45, "prop" = "dance_pad"),
 	"kapi4" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.65, "prop" = "dance_pad"),
-	"kapi5" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85, "prop" = "dance_pad"),
+	"kapi5" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85, "eyes" = "blank", "prop" = "dance_pad"),
 	"kapi6" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1, "prop" = "dance_pad"),
 	"kapi-bait" = list("bar" = "#76719e", "look" = "kapi", "level" = 0, "prop" = "dance_pad"),
 	// Kapi corrupted, hunting: he fights it (a grey ear and his blue coming back), then his eyes go red.
@@ -63,7 +63,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"skarlet3" = list("bar" = "#1a152a", "look" = "skarlet", "level" = 0.62),
 	// Marble, behind the speaker, long gone.
 	"corruptedmarble" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1, "prop" = "speaker_small"),
-	"corruptedmarble2" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 0.9, "peak" = 1, "prop" = "speaker_small"),
+	"corruptedmarble2" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 0.9, "peak" = 1, "eyes" = "blank", "prop" = "speaker_small"),
 	"corruptedmarble3" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1, "prop" = "speaker_small"),
 	// Carol in the church ruins, then flying, half angel and half demon, then all demon.
 	"carol1" = list("bar" = "#666699", "look" = "carol", "level" = 0.05),
@@ -71,7 +71,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"carolBait" = list("bar" = "#666699", "look" = "carol", "level" = 0),
 	"Acarol3" = list("bar" = "#ff7900", "look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE),
 	"Acarol4" = list("bar" = "#ff7900", "look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE, "face" = "manic"),
-	"Acarol5" = list("bar" = "#1a152a", "look" = "carol", "level" = 0.9, "wings" = "demon", "flying" = TRUE),
+	"Acarol5" = list("bar" = "#1a152a", "look" = "carol", "level" = 0.9, "wings" = "demon", "eyes" = "blank", "flying" = TRUE),
 	// Girlfriend, corrupted, singing and flying; Boyfriend corrupted on the speakers.
 	"corruptedgirlfriend" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 1),
 	"corruptedgirlfriendBait" = list("bar" = "#a5004d", "look" = "gf", "level" = 0),
@@ -950,10 +950,10 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	if(cast["hidden"] && singer == battle.right?.singer)
 		battle.camera_focus = -battle.stage?.gap_px / 48 || -1
 		battle.pan_cameras()
-		// And zoomed right in on them.
+		// And zoomed right in on them, once the player's last notes are played: zoomed, they'd lose them.
 		for(var/datum/fnf_side/side as anything in battle.sides)
 			if(side.zoomed)
-				side.zoom_screen(FNF_ZOOM + 1)
+				side.zoom_when_done = FNF_ZOOM + 1
 	singer.fnf_face_mood = cast["face"]
 	// Kapi's dance pad, Marble's speaker.
 	battle.stage?.set_singer_prop(singer, cast["prop"])
