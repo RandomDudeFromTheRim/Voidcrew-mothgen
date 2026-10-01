@@ -73,6 +73,8 @@
 	start_intro()
 
 /datum/fnf_stage/Destroy()
+	QDEL_NULL(seat)
+	QDEL_LIST_ASSOC_VAL(singer_props)
 	if(girlfriend && !QDELETED(girlfriend))
 		do_sparks(2, FALSE, girlfriend)
 		qdel(girlfriend)
@@ -107,10 +109,10 @@
 
 /// Summons someone to stand behind the singers, as one of the looks in opponents.dm.
 /datum/fnf_stage/proc/summon_girlfriend_as(character)
-	if(!GLOB.fnf_opponents[character] || !left_spot || !right_spot)
+	if(!GLOB.fnf_opponents[character])
 		return
-	var/turf/middle = locate(round((left_spot.x + right_spot.x) / 2), left_spot.y + 1, left_spot.z)
-	if(!middle || middle.is_blocked_turf(exclude_mobs = FALSE))
+	var/turf/middle = get_girlfriend_spot()
+	if(!middle || (locate(/mob/living) in middle))
 		return
 	girlfriend = fnf_summon_opponent(character, middle)
 	var/speaker_shooter = length(battle.chart["speaker"])
@@ -125,6 +127,10 @@
 		girlfriend.put_in_hands(new gun_type(girlfriend))
 	girlfriend.setDir(SOUTH)
 	do_sparks(2, FALSE, girlfriend)
+	// Up on her speakers (Corruption+'s songs say what she's on themselves).
+	if(!battle.song.corruption)
+		var/list/seat_for = get_seat_for(character)
+		set_seat(seat_for?[1], seat_for?[2])
 
 /// In Stress, the player sings holding someone: Boyfriend carries Girlfriend, Nene clings to Pico's
 /// back. They ride along on the player's tile, just behind them.
@@ -162,6 +168,7 @@
 		else
 			girlfriend.setDir(SOUTH)
 			girlfriend.fnf_bop(beat_time, RIG_R_ARM, SOUTH, null)
+	seat?.thump()
 	for(var/mob/living/carbon/human/henchman as anything in henchmen)
 		henchman.fnf_dance(beat_time, battle.last_beat % 2)
 	if(carried && !QDELETED(carried))

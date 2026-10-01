@@ -26,7 +26,8 @@
  * corrupted they are, and anything else about them: "eyes" ("red" instead of pink), "wings"
  * ("angel", "demon"), "flying", "peak": how far it had them before they started fighting it off
  * (the ones partway free), "face": "manic" for a desperate grin, sweating, between notes, and
- * "bar": their colour on the health bar.
+ * "bar": their colour on the health bar, "seat": what they're sat on in the girlfriend's place (see
+ * /datum/fnf_stage/proc/set_seat()), and "prop": what they have by them (see set_singer_prop()).
  */
 GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	// Pico, corrupted from the start of the arcade; the second and third fight back (orange hair and
@@ -39,29 +40,29 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"pico-bait" = list("bar" = "#b7d855", "look" = "pico", "level" = 0),
 	// Kapi at his arcade machine, taken a little more each time: a red hand, then the far side, then
 	// half his face, then all of him.
-	"kapi" = list("bar" = "#76719e", "look" = "kapi", "level" = 0),
-	"kapi1" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.08),
-	"kapi2" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.25),
-	"kapi3" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.45),
-	"kapi4" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.65),
-	"kapi5" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85),
-	"kapi6" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1),
-	"kapi-bait" = list("bar" = "#76719e", "look" = "kapi", "level" = 0),
+	"kapi" = list("bar" = "#76719e", "look" = "kapi", "level" = 0, "prop" = "dance_pad"),
+	"kapi1" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.08, "prop" = "dance_pad"),
+	"kapi2" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.25, "prop" = "dance_pad"),
+	"kapi3" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.45, "prop" = "dance_pad"),
+	"kapi4" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.65, "prop" = "dance_pad"),
+	"kapi5" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85, "prop" = "dance_pad"),
+	"kapi6" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1, "prop" = "dance_pad"),
+	"kapi-bait" = list("bar" = "#76719e", "look" = "kapi", "level" = 0, "prop" = "dance_pad"),
 	// Kapi corrupted, hunting: he fights it (a grey ear and his blue coming back), then his eyes go red.
-	"corruptedkapi" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1),
-	"corruptedkapi2" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1),
-	"corruptedkapi3" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.75, "peak" = 1),
-	"corruptedkapi35" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85, "peak" = 1),
-	"corruptedkapi4" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1, "eyes" = "red"),
+	"corruptedkapi" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1, "prop" = "dance_pad_corrupt"),
+	"corruptedkapi2" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1, "prop" = "dance_pad_corrupt"),
+	"corruptedkapi3" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.75, "peak" = 1, "prop" = "dance_pad_corrupt"),
+	"corruptedkapi35" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85, "peak" = 1, "prop" = "dance_pad_corrupt"),
+	"corruptedkapi4" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1, "eyes" = "red", "prop" = "dance_pad_corrupt"),
 	"morabait" = list("bar" = "#1f1a2f", "look" = "mora", "level" = 0),
 	// Skarlet Bunny, with the corruption at her boots from the start.
 	"skarlet1" = list("bar" = "#ff006e", "look" = "skarlet", "level" = 0.1),
 	"skarlet2" = list("bar" = "#ff006e", "look" = "skarlet", "level" = 0.35),
 	"skarlet3" = list("bar" = "#1a152a", "look" = "skarlet", "level" = 0.75),
 	// Marble, behind the speaker, long gone.
-	"corruptedmarble" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1),
-	"corruptedmarble2" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 0.9, "peak" = 1),
-	"corruptedmarble3" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1),
+	"corruptedmarble" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1, "prop" = "speaker_small"),
+	"corruptedmarble2" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 0.9, "peak" = 1, "prop" = "speaker_small"),
+	"corruptedmarble3" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1, "prop" = "speaker_small"),
 	// Carol in the church ruins, then flying, half angel and half demon, then all demon.
 	"carol1" = list("bar" = "#666699", "look" = "carol", "level" = 0.05),
 	"carol2" = list("bar" = "#666699", "look" = "carol", "level" = 0.15),
@@ -74,14 +75,14 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"corruptedgirlfriendBait" = list("bar" = "#a5004d", "look" = "gf", "level" = 0),
 	"corruptedgirlfriendflying" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 0.9, "flying" = TRUE),
 	"corruptedgirlfriendflying2" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 1, "flying" = TRUE),
-	"EVILspeakersGF" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 1),
-	"EVILspeakersBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1),
-	"EVILspeakersBFbait" = list("bar" = "#31b0d1", "look" = "bf", "level" = 0),
-	"GFPcorruptedBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1),
+	"EVILspeakersGF" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 1, "seat" = "speakers_evil"),
+	"EVILspeakersBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1, "seat" = "speakers_evil"),
+	"EVILspeakersBFbait" = list("bar" = "#31b0d1", "look" = "bf", "level" = 0, "seat" = "speakers"),
+	"GFPcorruptedBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1, "seat" = "speakers_evil"),
 	"corruptedbf2" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1),
 	// Nobody: just the speakers, or an empty stage.
-	"speakers" = list("bar" = "#3d3d65", "look" = null),
-	"EVILspeakers" = list("bar" = "#3d3d65", "look" = null),
+	"speakers" = list("bar" = "#3d3d65", "look" = null, "seat" = "speakers"),
+	"EVILspeakers" = list("bar" = "#3d3d65", "look" = null, "seat" = "speakers_evil"),
 	"nocharacter" = list("bar" = "#000000", "look" = null, "hidden" = TRUE),
 ))
 
@@ -848,6 +849,8 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 			if(!cast["look"])
 				if(stage.girlfriend)
 					stage.girlfriend.alpha = 0
+				// Just the speakers, if anything.
+				stage.set_seat(cast["seat"])
 				return
 			if(!stage.girlfriend || stage.girlfriend.fnf_look != cast["look"])
 				QDEL_NULL(stage.girlfriend)
@@ -855,6 +858,7 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 			if(stage.girlfriend)
 				stage.girlfriend.alpha = 255
 				corrupt(stage.girlfriend, cast)
+			stage.set_seat(cast["seat"])
 
 /datum/fnf_corruption/proc/corrupt(mob/living/carbon/singer, list/cast)
 	if(!istype(singer))
@@ -862,6 +866,8 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	touched |= singer
 	singer.alpha = cast["hidden"] ? 0 : initial(singer.alpha)
 	singer.fnf_face_mood = cast["face"]
+	// Kapi's dance pad, Marble's speaker.
+	battle.stage?.set_singer_prop(singer, cast["prop"])
 	singer.fnf_set_corruption(cast["level"] || 0, cast["eyes"], cast["peak"])
 	// Only the song's own characters grow wings; a player stays as they are.
 	if(singer == battle.npc || singer == battle.stage?.girlfriend)

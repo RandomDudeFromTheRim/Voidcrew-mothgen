@@ -7034,6 +7034,7 @@
 #include "voidcrew\modules\fnf\microphone.dm"
 #include "voidcrew\modules\fnf\opponents.dm"
 #include "voidcrew\modules\fnf\poses.dm"
+#include "voidcrew\modules\fnf\props.dm"
 #include "voidcrew\modules\fnf\side.dm"
 #include "voidcrew\modules\fnf\songs.dm"
 #include "voidcrew\modules\fnf\stage.dm"
