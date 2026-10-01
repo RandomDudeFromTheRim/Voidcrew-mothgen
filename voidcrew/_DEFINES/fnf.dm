@@ -29,6 +29,8 @@
 #define FNF_LANE_GAP 22
 #define FNF_BAR_WIDTH 128
 #define FNF_BAR_HEIGHT 6
+/// How wide a health bar's own frame is (see /obj/effect/abstract/fnf_hud/healthbar/proc/set_frame()).
+#define FNF_HUD_FRAME_WIDTH 144
 
 /// Trait source for being kept on the floor through a game over.
 #define FNF_GAME_OVER_TRAIT "fnf_game_over"

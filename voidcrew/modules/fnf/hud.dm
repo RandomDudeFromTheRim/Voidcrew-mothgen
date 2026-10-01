@@ -31,6 +31,13 @@
 	var/obj/effect/abstract/fnf_hud/portrait/right_portrait
 	/// Big text in the middle, for the countdown.
 	var/obj/effect/abstract/fnf_hud/text/announcer
+	/// A frame of the song's own instead of the plain one (see set_frame()), and the colours filling
+	/// its opening, the challenger's cut off where the colours meet.
+	var/obj/effect/abstract/fnf_hud/shaped_frame
+	var/obj/effect/abstract/fnf_hud/shaped_left
+	var/obj/effect/abstract/fnf_hud/shaped_right
+	/// The health it was last shown at.
+	var/shown_health = FNF_HEALTH_MAX / 2
 
 /obj/effect/abstract/fnf_hud/healthbar/Initialize(mapload, center_x, center_y, mob/living/left_mob, mob/living/right_mob)
 	. = ..()
@@ -60,6 +67,9 @@
 	QDEL_NULL(left_portrait)
 	QDEL_NULL(right_portrait)
 	QDEL_NULL(announcer)
+	QDEL_NULL(shaped_frame)
+	QDEL_NULL(shaped_left)
+	QDEL_NULL(shaped_right)
 	return ..()
 
 /obj/effect/abstract/fnf_hud/healthbar/proc/make_bar(colour, width, height, layer_offset)
@@ -73,13 +83,52 @@
 	vis_contents += bar
 	return bar
 
+/**
+ * Puts the bar in a frame of its own (Corruption+'s tainted one), the plain one gone: an icon of
+ * FNF_HUD_FRAME_WIDTH by 32 pixels, centred on the bar, with states "frame", "hole" (its opening,
+ * which the colours fill, whatever its shape) and "block" (solid, to cut the challenger's colour off
+ * with). The singers' heads stay in front of it.
+ */
+/obj/effect/abstract/fnf_hud/healthbar/proc/set_frame(frame_icon)
+	for(var/obj/effect/abstract/fnf_hud/plain as anything in list(frame, left_bar, right_bar))
+		plain.alpha = 0
+	shaped_left = make_shaped(frame_icon, "hole", left_bar.color, 0.02)
+	shaped_right = make_shaped(frame_icon, "hole", right_bar.color, 0.03)
+	shaped_right.add_filter("split", 1, alpha_mask_filter(icon = icon(frame_icon, "block")))
+	shaped_frame = make_shaped(frame_icon, "frame", null, 0.035)
+	update(shown_health, instant = TRUE)
+
+/obj/effect/abstract/fnf_hud/healthbar/proc/make_shaped(frame_icon, state, colour, layer_offset)
+	var/obj/effect/abstract/fnf_hud/shaped = new
+	shaped.icon = frame_icon
+	shaped.icon_state = state
+	shaped.color = colour
+	shaped.layer = ABOVE_ALL_MOB_LAYER + layer_offset
+	shaped.pixel_w = center_x - FNF_HUD_FRAME_WIDTH / 2
+	shaped.pixel_z = center_y - 16
+	vis_contents += shaped
+	return shaped
+
+/// Colours the bar: the opponent's side and the challenger's.
+/obj/effect/abstract/fnf_hud/healthbar/proc/set_colours(left_colour, right_colour)
+	if(left_colour)
+		left_bar.color = left_colour
+		shaped_left?.color = left_colour
+	if(right_colour)
+		right_bar.color = right_colour
+		shaped_right?.color = right_colour
+
 /// Moves the split to match the health, which is how much of the bar is the challenger's.
 /obj/effect/abstract/fnf_hud/healthbar/proc/update(health, instant = FALSE)
+	shown_health = health
 	var/width = max(FNF_BAR_WIDTH * health / FNF_HEALTH_MAX, 0.5)
 	var/time = instant ? 0 : 1
 	animate(right_bar, transform = matrix(width / 32, 0, (FNF_BAR_WIDTH - width) / 2, 0, FNF_BAR_HEIGHT / 32, 0), time = time)
 	// Where the colours meet, from the bar's middle.
 	var/split = FNF_BAR_WIDTH / 2 - width
+	// In a frame of its own, the challenger's colour starts there.
+	if(shaped_right)
+		shaped_right.transition_filter("split", list("x" = FNF_HUD_FRAME_WIDTH / 2 + split), time)
 	for(var/obj/effect/abstract/fnf_hud/portrait/portrait as anything in list(left_portrait, right_portrait))
 		if(!portrait)
 			continue

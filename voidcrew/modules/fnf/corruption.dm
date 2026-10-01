@@ -25,63 +25,64 @@
  * The mod's characters: each a look (see opponents.dm; null for nobody, just the speakers), how
  * corrupted they are, and anything else about them: "eyes" ("red" instead of pink), "wings"
  * ("angel", "demon"), "flying", "peak": how far it had them before they started fighting it off
- * (the ones partway free), and "face": "manic" for a desperate grin, sweating, between notes.
+ * (the ones partway free), "face": "manic" for a desperate grin, sweating, between notes, and
+ * "bar": their colour on the health bar.
  */
 GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	// Pico, corrupted from the start of the arcade; the second and third fight back (orange hair and
 	// a green collar through the dark, then half his face), then it takes him again.
-	"corruptedpico" = list("look" = "pico", "level" = 1),
-	"corruptedpico2" = list("look" = "pico", "level" = 0.85, "peak" = 1),
-	"corruptedpico3" = list("look" = "pico", "level" = 0.7, "peak" = 1),
-	"corruptedpico4" = list("look" = "pico", "level" = 1),
-	"corruptedpico5" = list("look" = "pico", "level" = 1),
-	"pico-bait" = list("look" = "pico", "level" = 0),
+	"corruptedpico" = list("bar" = "#1a152a", "look" = "pico", "level" = 1),
+	"corruptedpico2" = list("bar" = "#1a152a", "look" = "pico", "level" = 0.85, "peak" = 1),
+	"corruptedpico3" = list("bar" = "#1a152a", "look" = "pico", "level" = 0.7, "peak" = 1),
+	"corruptedpico4" = list("bar" = "#1a152a", "look" = "pico", "level" = 1),
+	"corruptedpico5" = list("bar" = "#1a152a", "look" = "pico", "level" = 1),
+	"pico-bait" = list("bar" = "#b7d855", "look" = "pico", "level" = 0),
 	// Kapi at his arcade machine, taken a little more each time: a red hand, then the far side, then
 	// half his face, then all of him.
-	"kapi" = list("look" = "kapi", "level" = 0),
-	"kapi1" = list("look" = "kapi", "level" = 0.08),
-	"kapi2" = list("look" = "kapi", "level" = 0.25),
-	"kapi3" = list("look" = "kapi", "level" = 0.45),
-	"kapi4" = list("look" = "kapi", "level" = 0.65),
-	"kapi5" = list("look" = "kapi", "level" = 0.85),
-	"kapi6" = list("look" = "kapi", "level" = 1),
-	"kapi-bait" = list("look" = "kapi", "level" = 0),
+	"kapi" = list("bar" = "#76719e", "look" = "kapi", "level" = 0),
+	"kapi1" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.08),
+	"kapi2" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.25),
+	"kapi3" = list("bar" = "#76719e", "look" = "kapi", "level" = 0.45),
+	"kapi4" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.65),
+	"kapi5" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85),
+	"kapi6" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1),
+	"kapi-bait" = list("bar" = "#76719e", "look" = "kapi", "level" = 0),
 	// Kapi corrupted, hunting: he fights it (a grey ear and his blue coming back), then his eyes go red.
-	"corruptedkapi" = list("look" = "kapi", "level" = 1),
-	"corruptedkapi2" = list("look" = "kapi", "level" = 1),
-	"corruptedkapi3" = list("look" = "kapi", "level" = 0.75, "peak" = 1),
-	"corruptedkapi35" = list("look" = "kapi", "level" = 0.85, "peak" = 1),
-	"corruptedkapi4" = list("look" = "kapi", "level" = 1, "eyes" = "red"),
-	"morabait" = list("look" = "mora", "level" = 0),
+	"corruptedkapi" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1),
+	"corruptedkapi2" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1),
+	"corruptedkapi3" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.75, "peak" = 1),
+	"corruptedkapi35" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 0.85, "peak" = 1),
+	"corruptedkapi4" = list("bar" = "#1f1a2f", "look" = "kapi", "level" = 1, "eyes" = "red"),
+	"morabait" = list("bar" = "#1f1a2f", "look" = "mora", "level" = 0),
 	// Skarlet Bunny, with the corruption at her boots from the start.
-	"skarlet1" = list("look" = "skarlet", "level" = 0.1),
-	"skarlet2" = list("look" = "skarlet", "level" = 0.35),
-	"skarlet3" = list("look" = "skarlet", "level" = 0.75),
+	"skarlet1" = list("bar" = "#ff006e", "look" = "skarlet", "level" = 0.1),
+	"skarlet2" = list("bar" = "#ff006e", "look" = "skarlet", "level" = 0.35),
+	"skarlet3" = list("bar" = "#1a152a", "look" = "skarlet", "level" = 0.75),
 	// Marble, behind the speaker, long gone.
-	"corruptedmarble" = list("look" = "marble", "level" = 1),
-	"corruptedmarble2" = list("look" = "marble", "level" = 0.9, "peak" = 1),
-	"corruptedmarble3" = list("look" = "marble", "level" = 1),
+	"corruptedmarble" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1),
+	"corruptedmarble2" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 0.9, "peak" = 1),
+	"corruptedmarble3" = list("bar" = "#1f1a2f", "look" = "marble", "level" = 1),
 	// Carol in the church ruins, then flying, half angel and half demon, then all demon.
-	"carol1" = list("look" = "carol", "level" = 0.05),
-	"carol2" = list("look" = "carol", "level" = 0.15),
-	"carolBait" = list("look" = "carol", "level" = 0),
-	"Acarol3" = list("look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE),
-	"Acarol4" = list("look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE, "face" = "manic"),
-	"Acarol5" = list("look" = "carol", "level" = 0.9, "wings" = "demon", "flying" = TRUE),
+	"carol1" = list("bar" = "#666699", "look" = "carol", "level" = 0.05),
+	"carol2" = list("bar" = "#666699", "look" = "carol", "level" = 0.15),
+	"carolBait" = list("bar" = "#666699", "look" = "carol", "level" = 0),
+	"Acarol3" = list("bar" = "#ff7900", "look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE),
+	"Acarol4" = list("bar" = "#ff7900", "look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE, "face" = "manic"),
+	"Acarol5" = list("bar" = "#1a152a", "look" = "carol", "level" = 0.9, "wings" = "demon", "flying" = TRUE),
 	// Girlfriend, corrupted, singing and flying; Boyfriend corrupted on the speakers.
-	"corruptedgirlfriend" = list("look" = "gf", "level" = 1),
-	"corruptedgirlfriendBait" = list("look" = "gf", "level" = 0),
-	"corruptedgirlfriendflying" = list("look" = "gf", "level" = 0.9, "flying" = TRUE),
-	"corruptedgirlfriendflying2" = list("look" = "gf", "level" = 1, "flying" = TRUE),
-	"EVILspeakersGF" = list("look" = "gf", "level" = 1),
-	"EVILspeakersBF" = list("look" = "bf", "level" = 1),
-	"EVILspeakersBFbait" = list("look" = "bf", "level" = 0),
-	"GFPcorruptedBF" = list("look" = "bf", "level" = 1),
-	"corruptedbf2" = list("look" = "bf", "level" = 1),
+	"corruptedgirlfriend" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 1),
+	"corruptedgirlfriendBait" = list("bar" = "#a5004d", "look" = "gf", "level" = 0),
+	"corruptedgirlfriendflying" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 0.9, "flying" = TRUE),
+	"corruptedgirlfriendflying2" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 1, "flying" = TRUE),
+	"EVILspeakersGF" = list("bar" = "#1f1a2f", "look" = "gf", "level" = 1),
+	"EVILspeakersBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1),
+	"EVILspeakersBFbait" = list("bar" = "#31b0d1", "look" = "bf", "level" = 0),
+	"GFPcorruptedBF" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1),
+	"corruptedbf2" = list("bar" = "#1f1a2f", "look" = "bf", "level" = 1),
 	// Nobody: just the speakers, or an empty stage.
-	"speakers" = list("look" = null),
-	"EVILspeakers" = list("look" = null),
-	"nocharacter" = list("look" = null, "hidden" = TRUE),
+	"speakers" = list("bar" = "#3d3d65", "look" = null),
+	"EVILspeakers" = list("bar" = "#3d3d65", "look" = null),
+	"nocharacter" = list("bar" = "#000000", "look" = null, "hidden" = TRUE),
 ))
 
 /**
@@ -458,8 +459,6 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	/// Which silhouettes are up: "white" (black figures on white), "black" (white on black),
 	/// "colour" (each in their colour, on black), or null.
 	var/apple
-	/// The tainted health bar's frame, in Skarlet's songs.
-	var/obj/effect/abstract/fnf_hud/bar_frame
 	/// How much of the stage each listener's map window really shows, in pixels, by listener's ref:
 	/// list(width, height). A zoomed-in map in a small window shows less than its whole view.
 	var/list/visible_sizes = list()
@@ -490,8 +489,6 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	for(var/name in layers)
 		battle?.healthbar?.vis_contents -= layers[name]
 	QDEL_LIST_ASSOC_VAL(layers)
-	battle?.healthbar?.vis_contents -= bar_frame
-	QDEL_NULL(bar_frame)
 	battle = null
 	return ..()
 
@@ -522,13 +519,7 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	var/obj/effect/abstract/fnf_hud/healthbar/bar = battle.healthbar
 	if(!bar || battle.song.note_skin != "skarlet")
 		return
-	bar_frame = new
-	bar_frame.icon = 'voidcrew/modules/fnf/icons/fnf_healthbar_tainted.dmi'
-	bar_frame.icon_state = "frame"
-	bar_frame.pixel_w = bar.center_x - 72
-	bar_frame.pixel_z = bar.center_y - 16
-	bar_frame.layer = ABOVE_ALL_MOB_LAYER + 0.04
-	bar.vis_contents += bar_frame
+	bar.set_frame('voidcrew/modules/fnf/icons/fnf_healthbar_tainted.dmi')
 
 /**
  * One of the things the song lays over the stage, as the mod lays them over its screen: over the
@@ -837,6 +828,11 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	if(!cast)
 		return
 	current_cast[role] = cast
+	// Their colour on the health bar, as the mod has it.
+	if(role == "player")
+		battle.healthbar?.set_colours(null, cast["bar"])
+	else if(role == "opponent")
+		battle.healthbar?.set_colours(cast["bar"], null)
 	switch(role)
 		if("player")
 			corrupt(battle.right?.singer, cast)
