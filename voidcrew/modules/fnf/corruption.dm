@@ -579,6 +579,11 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 			height = min(height, text2num(window[2]) / zoom)
 	if(QDELETED(src) || !battle)
 		return
+	// A singer's screen is zoomed in on the stage (see /datum/fnf_side/proc/zoom_screen()).
+	for(var/datum/fnf_side/side as anything in battle.sides)
+		if(side.singer == listener && side.zoomed)
+			width /= FNF_ZOOM
+			height /= FNF_ZOOM
 	var/list/old = visible_sizes[REF(listener)]
 	if(old && old[1] == width && old[2] == height)
 		return
@@ -600,7 +605,7 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 		var/list/size = getviewsize(listener.client.view)
 		view_width = max(view_width, size[1] * ICON_SIZE_X)
 		view_height = max(view_height, size[2] * ICON_SIZE_Y)
-		var/list/seen = visible_sizes[REF(listener)] || list(size[1] * ICON_SIZE_X, size[2] * ICON_SIZE_Y)
+		var/list/seen = visible_sizes[REF(listener)] || list(size[1] * ICON_SIZE_X / FNF_ZOOM, size[2] * ICON_SIZE_Y / FNF_ZOOM)
 		seen_width = isnull(seen_width) ? seen[1] : min(seen_width, seen[1])
 		seen_height = isnull(seen_height) ? seen[2] : min(seen_height, seen[2])
 	seen_width = seen_width || view_width

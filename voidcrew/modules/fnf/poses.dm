@@ -282,6 +282,9 @@
 	// The face for the note, held as long as the note is.
 	var/static/list/faces = list("left", "down", "up", "right")
 	limb_rig.set_fnf_face(faces[lane + 1], 1.5 + beat * 0.6)
+	// Pico spins his gun round into aiming it at the rival.
+	if((style == "pico" || style == "cpico") && (lane == 0 || lane == 3) && ((lane == 0) == (facing == WEST)))
+		fnf_spin_guns(mic_arm, style, 3)
 
 /// The between-notes bop, one beat long.
 /mob/living/proc/fnf_bop(beat_time, mic_arm, facing, style)
@@ -404,10 +407,17 @@
 		list(pose, hold, SINE_EASING),
 		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
 	), settle_after = FALSE)
+	// Pico twirls his gun for a taunt, or getting cocky.
+	if((style == "pico" || style == "cpico") && (kind == "taunt" || kind == "cock"))
+		fnf_spin_guns(mic_arm, style, max(hold, 4), 2)
 	// Taking a hit winces; throwing one, or anything else, is effort. A meow's a grin, and confusion's
 	// a look to the side.
 	var/static/list/faces = list("meow" = "hey", "confused" = "left")
 	limb_rig.set_fnf_face(faces[kind] || (findtext(kind, "hit") ? "miss" : "down"), 0.5 + hold)
+
+/// Spins the gun in the free hand round about the hand.
+/mob/living/carbon/proc/fnf_spin_guns(mic_arm, style, time, turns = 1)
+	limb_rig?.spin_held_item(mic_arm == RIG_L_ARM ? "r" : "l", time, turns)
 
 /// A backup dancer's move for one beat: into one side of the dance, then easing off it.
 /mob/living/proc/fnf_dance(beat_time, left)
@@ -460,6 +470,27 @@
  */
 /proc/fnf_apply_style(list/pose, kind, style, mic_arm, free_arm)
 	switch(style)
+		if("cpico")
+			// Corrupted Pico (Corruption+): hunched, the gun held out one-handed, as cool as ever:
+			// up at the chest, levelled at the rival, straight out low, up at the sky, or slung back
+			// over the shoulder, spun round into aiming it.
+			switch(kind)
+				if("rest", "bop", "miss")
+					pose[free_arm] = list("swing" = 50, "raise" = 10, "elbow" = 55)
+				if("toward")
+					pose[free_arm] = list("swing" = 85, "raise" = 5, "elbow" = 5)
+				if("away")
+					pose[free_arm] = list("swing" = 140, "raise" = 10, "elbow" = 120)
+				if(1)
+					pose[free_arm] = list("swing" = 90, "raise" = 5, "elbow" = 0)
+					fnf_pose_add(pose, RIG_L_LEG, "knee", 20)
+					fnf_pose_add(pose, RIG_R_LEG, "knee", 20)
+				if(2, "hey")
+					pose[free_arm] = list("swing" = 165, "raise" = 5, "elbow" = 10)
+			fnf_pose_add(pose, RIG_CHEST, "bend", 8)
+			fnf_pose_add(pose, RIG_HEAD, "nod", 6)
+			fnf_pose_add(pose, RIG_L_LEG, "knee", 12)
+			fnf_pose_add(pose, RIG_R_LEG, "knee", 12)
 		if("pico", "tankman")
 			// The gun's in the free hand, and goes where the note does: levelled at the rival, up at
 			// the sky, down at the floor. Pico sings the rival note into the mic and lets the gun talk.

@@ -43,6 +43,9 @@
 	var/list/obj/effect/abstract/limb_rig_part/parts = list()
 	/// Unmasked pieces holding each hand's held item, "l" and "r".
 	var/list/obj/effect/abstract/limb_rig_part/item_parts = list()
+	/// Inside each of them, what the held item's actually drawn on, so it can be twirled about the
+	/// hand (see spin_held_item()) while the hand goes on moving.
+	var/list/obj/effect/abstract/limb_rig_part/item_spinners = list()
 	/// The overlays_standing layers currently copied onto the pieces, by cache index.
 	var/list/mirrored_layers = list()
 	/// What the rig is currently doing, a RIG_ACTIVITY_ define.
@@ -122,6 +125,7 @@
 	owner.vis_contents -= owner_pieces
 	owner_pieces = null
 	QDEL_LIST_ASSOC_VAL(parts)
+	QDEL_LIST_ASSOC_VAL(item_spinners)
 	QDEL_LIST_ASSOC_VAL(item_parts)
 	QDEL_NULL(pivot)
 	QDEL_NULL(tail_part)
@@ -212,19 +216,54 @@
 /// Rebuilds each hand's held item piece. Held items aren't masked, so a long gun stays whole.
 /datum/limb_rig/proc/refresh_held_items()
 	for(var/side in item_parts)
-		var/obj/effect/abstract/limb_rig_part/part = item_parts[side]
+		var/obj/effect/abstract/limb_rig_part/part = get_item_spinner(side)
 		part.cut_overlays()
 	if(owner.handcuffed)
 		return
 	for(var/obj/item/held in owner.held_items)
 		var/hand_index = owner.get_held_index_of_item(held)
 		var/right = IS_RIGHT_INDEX(hand_index)
-		var/obj/effect/abstract/limb_rig_part/part = item_parts[right ? "r" : "l"]
+		var/obj/effect/abstract/limb_rig_part/part = get_item_spinner(right ? "r" : "l")
 		part.add_overlay(held.build_worn_icon(
 			default_layer = HANDS_LAYER,
 			default_icon_file = right ? held.righthand_file : held.lefthand_file,
 			isinhands = TRUE,
 		))
+
+/// What one hand's held item is drawn on (see item_spinners).
+/datum/limb_rig/proc/get_item_spinner(side)
+	var/obj/effect/abstract/limb_rig_part/spinner = item_spinners[side]
+	if(!spinner && item_parts[side])
+		spinner = new_part(side == "l" ? RIG_L_ARM : RIG_R_ARM)
+		item_parts[side].vis_contents += spinner
+		item_spinners[side] = spinner
+	return spinner
+
+/**
+ * Twirls whatever one hand ("l" or "r") holds right round about the hand, turns times over time
+ * deciseconds, the way Pico spins his gun.
+ */
+/datum/limb_rig/proc/spin_held_item(side, time = 3, turns = 1)
+	var/obj/effect/abstract/limb_rig_part/spinner = item_spinners[side]
+	if(!spinner)
+		return
+	// Held items are drawn for a human hand: hanging under the shoulder, at hand height.
+	var/list/shoulder = get_rig_joint(side == "l" ? RIG_L_ARM : RIG_R_ARM, get_facing())
+	var/offset_x = shoulder[1] - 16
+	var/offset_y = 12.5 - 16
+	// Spun forward, the way the hand faces.
+	var/way = get_facing() == WEST ? -1 : 1
+	var/steps = max(round(turns * 3), 1)
+	for(var/i in 1 to steps)
+		var/matrix/turned = matrix()
+		turned.Translate(-offset_x, -offset_y)
+		turned.Turn(way * 120 * i)
+		turned.Translate(offset_x, offset_y)
+		if(i == 1)
+			animate(spinner, transform = turned, time = time / steps)
+		else
+			animate(transform = turned, time = time / steps)
+	animate(transform = matrix(), time = 0)
 
 /// Redraws wounds a body draws for itself, rather than the mob's damage overlay. Most don't.
 /datum/limb_rig/proc/refresh_damage_marks()

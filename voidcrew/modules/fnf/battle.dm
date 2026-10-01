@@ -222,6 +222,9 @@
 	// what they hold. Nobody brings a gun to a fistfight, though.
 	if(song.player_character && song.player_character != "bf")
 		right.style = song.player_character
+		// Corrupted, Pico hunches over his gun, held out one-handed.
+		if(song.corruption && song.player_character == "pico")
+			right.style = "cpico"
 		if(GLOB.fnf_opponents[song.player_character]?["gun"] && !is_fight())
 			right.give_prop(/obj/item/toy/fnf_gun)
 	sides = list(left, right)

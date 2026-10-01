@@ -318,6 +318,8 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 	if(GLOB.fnf_corruption_cast[legacy_cast["player"]])
 		corruption = TRUE
 		opponent_character = GLOB.fnf_corruption_cast[legacy_cast["opponent"]]?["look"]
+		// The player sings as the mod's character does: corrupted Pico all through Kapi's arcade.
+		player_character = GLOB.fnf_corruption_cast[legacy_cast["player"]]?["look"] || player_character
 		// Whoever's behind the speakers, wherever in the song they turn up first.
 		girlfriend_character = GLOB.fnf_corruption_cast[legacy_cast["gf"]]?["look"]
 		for(var/list/change as anything in character_changes)
