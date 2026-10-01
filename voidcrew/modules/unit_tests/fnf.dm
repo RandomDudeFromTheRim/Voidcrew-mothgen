@@ -116,6 +116,7 @@
 	var/datum/limb_rig/sprites/sprite_rig = rig
 	if(istype(sprite_rig))
 		TEST_ASSERT(sprite_rig.sprite_saturation < 1, "Corruption didn't drain the body's own sprites.")
+	TEST_ASSERT("human_laugh" in icon_states('voidcrew/modules/fnf/icons/fnf_faces.dmi'), "There's no manic grin for Carol's face.")
 	var/list/coats = icon_states('voidcrew/modules/fnf/icons/corruption_coats.dmi')
 	for(var/coat in list("coat_humanoid_chest_8", "coat_humanoid_chest_f_1", "coat_experiment_tail_4", "coat_milkie_head_8"))
 		TEST_ASSERT(coat in coats, "Corruption's coat isn't baked for [coat].")

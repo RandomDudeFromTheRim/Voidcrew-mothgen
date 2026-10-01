@@ -230,8 +230,9 @@
 			.[way > 0 ? RIG_L_LEG : RIG_R_LEG] = list("swing" = 20, "knee" = 25)
 		if("stare")
 			// Corrupted Marble behind the speaker: glaring down at the player, head cocked, the near
-			// arm reached up high, claws spread, the other hand down on the speaker.
-			.[RIG_R_ARM] = list("swing" = 160, "raise" = 20, "elbow" = 25)
+			// arm reached up and out at them (clear of her face), claws spread, the other hand down on
+			// the speaker.
+			.[RIG_R_ARM] = list("swing" = 110, "raise" = 20, "elbow" = 40)
 			.[RIG_L_ARM] = list("swing" = 35, "raise" = 10, "elbow" = 55)
 			.[RIG_CHEST] = list("bend" = 4)
 			.[RIG_HEAD] = list("nod" = 8, "tilt" = 10)

@@ -17,6 +17,9 @@
 	var/fnf_face_eyes
 	/// Which of opponents.dm's looks this is, if it was summoned as one.
 	var/fnf_look
+	/// The face pulled between notes instead of the usual, if any: "manic" for a desperate grin and
+	/// a bead of sweat (Corruption+'s Carol, losing it).
+	var/fnf_face_mood
 
 /datum/limb_rig
 	/// The face being pulled, while a rhythm battle has one on.
@@ -126,6 +129,10 @@
 		return get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_corrupt.dmi', face_set, expression, 0, eyes_covered)
 	// Only people's faces come in other eyes.
 	var/eyes = face_set == "human" && owner.fnf_face_eyes ? "_[owner.fnf_face_eyes]" : ""
+	// Between notes, a mood of their own, where there's a face for it.
+	var/static/list/face_states = icon_states('voidcrew/modules/fnf/icons/fnf_faces.dmi')
+	if((expression == "idle" || expression == "blink") && owner.fnf_face_mood == "manic" && ("[face_set][eyes]_laugh" in face_states))
+		expression = "laugh"
 	if(eyes_covered)
 		var/image/mouth = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set][eyes]_mouth_[expression]")
 		mouth.layer = FLOAT_LAYER

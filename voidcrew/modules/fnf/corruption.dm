@@ -24,8 +24,8 @@
 /**
  * The mod's characters: each a look (see opponents.dm; null for nobody, just the speakers), how
  * corrupted they are, and anything else about them: "eyes" ("red" instead of pink), "wings"
- * ("angel", "demon"), "flying", and "peak": how far it had them before they started fighting it
- * off (the ones partway free).
+ * ("angel", "demon"), "flying", "peak": how far it had them before they started fighting it off
+ * (the ones partway free), and "face": "manic" for a desperate grin, sweating, between notes.
  */
 GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	// Pico, corrupted from the start of the arcade; the second and third fight back (orange hair and
@@ -66,7 +66,7 @@ GLOBAL_LIST_INIT(fnf_corruption_cast, list(
 	"carol2" = list("look" = "carol", "level" = 0.15),
 	"carolBait" = list("look" = "carol", "level" = 0),
 	"Acarol3" = list("look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE),
-	"Acarol4" = list("look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE),
+	"Acarol4" = list("look" = "carol", "level" = 0.6, "wings" = "angel", "flying" = TRUE, "face" = "manic"),
 	"Acarol5" = list("look" = "carol", "level" = 0.9, "wings" = "demon", "flying" = TRUE),
 	// Girlfriend, corrupted, singing and flying; Boyfriend corrupted on the speakers.
 	"corruptedgirlfriend" = list("look" = "gf", "level" = 1),
@@ -480,6 +480,7 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	for(var/mob/living/carbon/singer as anything in touched)
 		if(QDELETED(singer))
 			continue
+		singer.fnf_face_mood = null
 		singer.fnf_set_corruption(0)
 		singer.alpha = initial(singer.alpha)
 		if(HAS_TRAIT_FROM(singer, TRAIT_MOVE_FLOATING, FNF_BATTLE_TRAIT))
@@ -864,6 +865,7 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 		return
 	touched |= singer
 	singer.alpha = cast["hidden"] ? 0 : initial(singer.alpha)
+	singer.fnf_face_mood = cast["face"]
 	singer.fnf_set_corruption(cast["level"] || 0, cast["eyes"], cast["peak"])
 	// Only the song's own characters grow wings; a player stays as they are.
 	if(singer == battle.npc || singer == battle.stage?.girlfriend)
