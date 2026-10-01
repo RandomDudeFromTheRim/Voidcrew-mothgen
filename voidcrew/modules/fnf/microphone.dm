@@ -107,9 +107,18 @@
 	if(!player)
 		return CLICK_ACTION_BLOCKING
 	var/zoom_label = GLOB.fnf_no_zoom[player.ckey] ? "Zoom: off" : "Zoom: on"
-	var/choice = tgui_alert(user, "Battle settings", "Battle microphone", list("Audio offset", zoom_label, "Preview a game over"))
+	var/bot_label = GLOB.fnf_botplay[player.ckey] ? "Botplay: on" : "Botplay: off"
+	var/choice = tgui_input_list(user, "Battle settings", "Battle microphone", list("Audio offset", zoom_label, bot_label, "Preview a game over"))
 	if(!choice || QDELETED(player))
 		return CLICK_ACTION_BLOCKING
+	if(choice == bot_label)
+		if(GLOB.fnf_botplay[player.ckey])
+			GLOB.fnf_botplay -= player.ckey
+			to_chat(user, span_notice("Botplay off: you'll sing your own notes."))
+		else
+			GLOB.fnf_botplay[player.ckey] = TRUE
+			to_chat(user, span_notice("Botplay on: your notes will hit themselves, every one dead on."))
+		return CLICK_ACTION_SUCCESS
 	if(choice == "Preview a game over")
 		INVOKE_ASYNC(src, PROC_REF(preview_game_over), user)
 		return CLICK_ACTION_SUCCESS

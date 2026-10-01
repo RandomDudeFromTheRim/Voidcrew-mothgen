@@ -54,6 +54,9 @@ GLOBAL_LIST_EMPTY(fnf_offsets)
 /// Players who'd rather their screen didn't zoom in while they sing, by ckey.
 GLOBAL_LIST_EMPTY(fnf_no_zoom)
 
+/// Players who've turned on botplay, by ckey: their notes hit themselves, every one dead on.
+GLOBAL_LIST_EMPTY(fnf_botplay)
+
 /proc/get_fnf_songs(refresh = FALSE)
 	if(GLOB.fnf_songs && !refresh)
 		return GLOB.fnf_songs

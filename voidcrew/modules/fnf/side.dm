@@ -244,10 +244,14 @@
 /datum/fnf_side/proc/lane_x(lane)
 	return fnf_lane_x(lane)
 
+/// Whether this side's notes hit themselves: the CPU's, or a player's with botplay on.
+/datum/fnf_side/proc/is_bot()
+	return is_cpu || (singer?.ckey && GLOB.fnf_botplay[singer.ckey])
+
 /// How late this singer's presses arrive after they heard the note, in milliseconds.
 /datum/fnf_side/proc/get_latency()
 	var/client/user = singer?.client
-	if(!user || is_cpu)
+	if(!user || is_bot())
 		return 0
 	return clamp(user.avgping, 0, 400) + (GLOB.fnf_offsets[user.ckey] || 0)
 
@@ -284,9 +288,10 @@
 		spawn_note(entry, now, pixels_per_ms)
 
 	var/heard = now - get_latency()
+	var/bot = is_bot()
 	for(var/datum/fnf_note/note as anything in live.Copy())
 		if(!note.judged)
-			if(is_cpu)
+			if(bot)
 				if(now >= note.time)
 					hit(note, 0, now)
 			else if(heard - note.time > FNF_WINDOW_SHIT)
@@ -295,9 +300,9 @@
 		if(!note.holding)
 			continue
 		var/hold_end = note.time + note.length
-		if((is_cpu ? now : heard) >= hold_end)
+		if((bot ? now : heard) >= hold_end)
 			finish_hold(note)
-		else if(!is_cpu && !is_lane_held(note.lane) && hold_end - heard > FNF_HOLD_GRACE)
+		else if(!bot && !is_lane_held(note.lane) && hold_end - heard > FNF_HOLD_GRACE)
 			drop_hold(note)
 		else
 			score += round(250 * world.tick_lag / 10)
@@ -355,7 +360,7 @@
 
 /datum/fnf_side/proc/on_key(mob/source, key, client/user, full_key)
 	SIGNAL_HANDLER
-	if(is_cpu || battle.state == FNF_STATE_OVER || battle.state == FNF_STATE_READY)
+	if(is_bot() || battle.state == FNF_STATE_OVER || battle.state == FNF_STATE_READY)
 		return
 	var/lane = fnf_key_lane(user, key)
 	if(isnull(lane))
@@ -547,7 +552,7 @@
 	return judged_count ? accuracy_total / judged_count * 100 : 100
 
 /datum/fnf_side/proc/update_score_text()
-	var/cpu = is_cpu ? " (CPU)" : ""
+	var/cpu = is_cpu ? " (CPU)" : (is_bot() ? " (BOT)" : "")
 	score_text.maptext = MAPTEXT("<span style='text-align:center;-dm-text-outline:1px #000000'>[singer_name][cpu]<br>[score] · [misses] miss · [round(get_accuracy(), 0.1)]%</span>")
 
 /// A letter grade from accuracy, and how clean the run was.
