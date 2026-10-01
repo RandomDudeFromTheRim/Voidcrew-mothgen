@@ -262,7 +262,18 @@
 /mob/living/carbon/fnf_sing(lane, hold, mic_arm, facing, style)
 	if(!limb_rig)
 		return ..()
+	fnf_hide_mic(style)
 	setDir(facing)
+	var/static/list/faces = list("left", "down", "up", "right")
+	// The character's own move, traced off their sprites, held for the note.
+	var/list/traced = fnf_traced_keyframes(style, "sing[uppertext(faces[lane + 1])]", facing)
+	if(traced)
+		limb_rig.play(fnf_traced_hold(traced, hold, fnf_traced_rest(style, mic_arm, facing)), settle_after = FALSE)
+		limb_rig.set_fnf_face(faces[lane + 1], max(hold, 1.5))
+		fnf_idle_until = 0
+		if((style == "pico" || style == "cpico") && (lane == 0 || lane == 3) && ((lane == 0) == (facing == WEST)))
+			fnf_spin_guns(mic_arm, style, 3)
+		return
 	var/list/pose = fnf_pose(lane, mic_arm, facing, style)
 	var/list/keyframes = list(
 		list(fnf_scale_pose(pose, 1.2), 0.5, CUBIC_EASING|EASE_OUT),
@@ -281,7 +292,6 @@
 	keyframes += list(list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING))
 	limb_rig.play(keyframes, settle_after = FALSE)
 	// The face for the note, held as long as the note is.
-	var/static/list/faces = list("left", "down", "up", "right")
 	limb_rig.set_fnf_face(faces[lane + 1], 1.5 + beat * 0.6)
 	// Pico spins his gun round into aiming it at the rival.
 	if((style == "pico" || style == "cpico") && (lane == 0 || lane == 3) && ((lane == 0) == (facing == WEST)))
@@ -294,8 +304,17 @@
 /mob/living/carbon/fnf_bop(beat_time, mic_arm, facing, style)
 	if(!limb_rig)
 		return ..()
+	fnf_hide_mic(style)
 	if(!limb_rig.is_pulling_fnf_face())
 		limb_rig.set_fnf_face("idle")
+	// A traced idle plays right through, then starts again on the next beat after.
+	var/list/idle = fnf_traced_keyframes(style, "idle", facing)
+	if(idle)
+		if(world.time < fnf_idle_until)
+			return
+		fnf_idle_until = world.time + fnf_keyframes_time(idle) - 0.5
+		limb_rig.play(idle, settle_after = FALSE)
+		return
 	limb_rig.play(list(
 		list(fnf_pose("bop", mic_arm, facing, style), beat_time * 0.25, CUBIC_EASING|EASE_OUT),
 		list(fnf_pose("rest", mic_arm, facing, style), beat_time * 0.75, SINE_EASING),
@@ -321,6 +340,13 @@
 		return ..()
 	if(!limb_rig.is_pulling_fnf_face())
 		limb_rig.set_fnf_face("idle")
+	// Purification's Girlfriend has her own, traced.
+	var/list/traced = fnf_traced_keyframes(style, "idle-alt", facing)
+	if(traced)
+		if(world.time >= fnf_idle_until)
+			fnf_idle_until = world.time + fnf_keyframes_time(traced) - 0.5
+			limb_rig.play(traced, settle_after = FALSE)
+		return
 	var/list/pose = fnf_pose("rest", mic_arm, facing, style)
 	if(!prob(30))
 		limb_rig.play(list(list(pose, beat_time, SINE_EASING)), settle_after = FALSE)
@@ -383,6 +409,17 @@
 	if(!limb_rig)
 		return
 	setDir(facing)
+	// Corrupted Pico's own, traced: into it, then shaking in its last two frames.
+	var/list/traced = fnf_traced_keyframes(style, "scream", facing)
+	if(length(traced) >= 2)
+		var/list/shaking = traced.Copy()
+		for(var/i in 1 to 4)
+			shaking += traced.Copy(length(traced) - 1)
+		shaking += list(list(fnf_traced_rest(style, mic_arm, facing), 3, SINE_EASING))
+		limb_rig.play(shaking, settle_after = FALSE)
+		limb_rig.set_fnf_face("miss", 4)
+		fnf_idle_until = 0
+		return
 	var/list/scream = fnf_pose("scream", mic_arm, facing, style)
 	var/list/frames = list(list(fnf_scale_pose(scream, 1.15), 0.5, CUBIC_EASING|EASE_OUT))
 	// Shaking with it.
@@ -407,6 +444,19 @@
 	setDir(facing)
 	if(!limb_rig.is_pulling_fnf_face())
 		limb_rig.set_fnf_face("idle")
+	// Her own idle, traced, with a twitch thrown in now and then.
+	var/list/traced = fnf_traced_keyframes("marble", "idle", facing)
+	if(traced)
+		if(world.time < fnf_idle_until)
+			return
+		var/list/frames = traced.Copy()
+		if(prob(35))
+			var/list/last = frames[length(frames)]
+			var/list/twitch = fnf_nudge_pose(fnf_nudge_pose(last[1], RIG_HEAD, "tilt", pick(-16, 14)), RIG_HEAD, "nod", pick(-8, 6))
+			frames += list(list(twitch, 0.4), list(last[1], 0.6))
+		fnf_idle_until = world.time + fnf_keyframes_time(frames) - 0.5
+		limb_rig.play(frames, settle_after = FALSE)
+		return
 	// The near arm's the one reaching out: the far one goes back to the speaker.
 	var/near_arm = facing == WEST ? RIG_L_ARM : RIG_R_ARM
 	var/list/pose = fnf_pose("stare", near_arm == RIG_L_ARM ? RIG_R_ARM : RIG_L_ARM, facing, null)
@@ -433,12 +483,17 @@
 	if(!limb_rig)
 		return
 	setDir(facing)
-	var/list/pose = fnf_pose(kind, mic_arm, facing, style)
-	limb_rig.play(list(
-		list(fnf_scale_pose(pose, 1.15), 0.5, CUBIC_EASING|EASE_OUT),
-		list(pose, hold, SINE_EASING),
-		list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
-	), settle_after = FALSE)
+	var/list/traced = fnf_traced_keyframes(style, kind, facing)
+	if(traced)
+		limb_rig.play(fnf_traced_hold(traced, hold, fnf_traced_rest(style, mic_arm, facing)), settle_after = FALSE)
+		fnf_idle_until = 0
+	else
+		var/list/pose = fnf_pose(kind, mic_arm, facing, style)
+		limb_rig.play(list(
+			list(fnf_scale_pose(pose, 1.15), 0.5, CUBIC_EASING|EASE_OUT),
+			list(pose, hold, SINE_EASING),
+			list(fnf_pose("rest", mic_arm, facing, style), 2, SINE_EASING),
+		), settle_after = FALSE)
 	// Pico twirls his gun for a taunt, or getting cocky.
 	if((style == "pico" || style == "cpico") && (kind == "taunt" || kind == "cock"))
 		fnf_spin_guns(mic_arm, style, max(hold, 4), 2)
@@ -450,6 +505,72 @@
 /// Spins the gun in the free hand round about the hand.
 /mob/living/carbon/proc/fnf_spin_guns(mic_arm, style, time, turns = 1)
 	limb_rig?.spin_held_item(mic_arm == RIG_L_ARM ? "r" : "l", time, turns)
+
+// Traced animations (traced_anims.dm).
+
+/mob/living
+	/// Until when a traced idle is still playing through (see fnf_bop()).
+	var/fnf_idle_until = 0
+
+/**
+ * A move traced off the sprites of a style's character, as rig keyframes (list(pose, deciseconds,
+ * easing)), or null if nobody's traced it. Their left and right swap for a singer facing the other way
+ * from the sprite.
+ */
+/proc/fnf_traced_keyframes(style, anim, facing)
+	var/static/list/sheets = list(
+		"cpico" = list("corruptedpico", "corruptedpico2"),
+		"kapi" = list("corruptedkapi"),
+		"gf" = list("corruptedgirlfriendflying"),
+		"gf_flying" = list("corruptedgirlfriendflying"),
+		"marble" = list("corruptedmarble2", "corruptedmarble"),
+	)
+	for(var/sheet in sheets[style])
+		var/name = anim
+		var/sprite_facing = GLOB.fnf_traced_facing[sheet]
+		if((sprite_facing == "right" && facing == WEST) || (sprite_facing == "left" && facing == EAST))
+			if(anim == "singLEFT")
+				name = "singRIGHT"
+			else if(anim == "singRIGHT")
+				name = "singLEFT"
+		var/list/frames = GLOB.fnf_traced_anims[sheet]?[name]
+		if(!length(frames))
+			continue
+		. = list()
+		for(var/list/frame as anything in frames)
+			. += list(list(frame[1], frame[2], LINEAR_EASING))
+		return
+
+/**
+ * Corruption+'s cast mostly don't sing into a mic (Kapi dances, Girlfriend floats, corrupted Pico has
+ * his gun): whoever's moving as one of them keeps the battle mic, but it isn't drawn.
+ */
+/mob/living/carbon/proc/fnf_hide_mic(style)
+	var/static/list/micless = list("cpico", "kapi", "gf", "gf_flying", "marble")
+	limb_rig?.set_hidden_held((style in micless) ? list(/obj/item/fnf_microphone) : null)
+
+/// How long some keyframes take altogether, in deciseconds.
+/proc/fnf_keyframes_time(list/keyframes)
+	. = 0
+	for(var/list/keyframe as anything in keyframes)
+		. += keyframe[2]
+
+/// A traced move held on its last frame for as long as the note (hold deciseconds), then back to rest.
+/proc/fnf_traced_hold(list/keyframes, hold, list/rest)
+	. = keyframes.Copy()
+	var/list/last = keyframes[length(keyframes)]
+	var/left = hold - fnf_keyframes_time(keyframes)
+	if(left > 0)
+		. += list(list(last[1], left))
+	. += list(list(rest, 2, SINE_EASING))
+
+/// Where a traced character rests: the first frame of their traced idle, or the usual rest.
+/proc/fnf_traced_rest(style, mic_arm, facing)
+	var/list/idle = fnf_traced_keyframes(style, "idle", facing)
+	if(idle)
+		var/list/first = idle[1]
+		return first[1]
+	return fnf_pose("rest", mic_arm, facing, style)
 
 /// A backup dancer's move for one beat: into one side of the dance, then easing off it.
 /mob/living/proc/fnf_dance(beat_time, left)
@@ -483,6 +604,7 @@
 	return
 
 /mob/living/carbon/fnf_rest()
+	limb_rig?.set_hidden_held(null)
 	limb_rig?.clear_fnf_face()
 	limb_rig?.settle()
 

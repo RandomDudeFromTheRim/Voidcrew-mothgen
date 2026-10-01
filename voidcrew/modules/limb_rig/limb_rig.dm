@@ -46,6 +46,8 @@
 	/// Inside each of them, what the held item's actually drawn on, so it can be twirled about the
 	/// hand (see spin_held_item()) while the hand goes on moving.
 	var/list/obj/effect/abstract/limb_rig_part/item_spinners = list()
+	/// Kinds of held item not drawn in the hands for now (see set_hidden_held()).
+	var/list/hidden_held_types
 	/// The overlays_standing layers currently copied onto the pieces, by cache index.
 	var/list/mirrored_layers = list()
 	/// What the rig is currently doing, a RIG_ACTIVITY_ define.
@@ -221,6 +223,8 @@
 	if(owner.handcuffed)
 		return
 	for(var/obj/item/held in owner.held_items)
+		if(hidden_held_types && is_type_in_list(held, hidden_held_types))
+			continue
 		var/hand_index = owner.get_held_index_of_item(held)
 		var/right = IS_RIGHT_INDEX(hand_index)
 		var/obj/effect/abstract/limb_rig_part/part = get_item_spinner(right ? "r" : "l")
@@ -229,6 +233,13 @@
 			default_icon_file = right ? held.righthand_file : held.lefthand_file,
 			isinhands = TRUE,
 		))
+
+/// Stops drawing these kinds of held item in the hands (they're still held), or (with null) draws them all again.
+/datum/limb_rig/proc/set_hidden_held(list/types)
+	if(types ~= hidden_held_types)
+		return
+	hidden_held_types = types
+	refresh_held_items()
 
 /// What one hand's held item is drawn on (see item_spinners).
 /datum/limb_rig/proc/get_item_spinner(side)

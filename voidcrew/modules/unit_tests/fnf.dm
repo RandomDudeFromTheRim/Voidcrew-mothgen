@@ -119,6 +119,12 @@
 	if(istype(sprite_rig))
 		TEST_ASSERT(sprite_rig.sprite_saturation < 1, "Corruption didn't drain the body's own sprites.")
 	TEST_ASSERT("human_laugh" in icon_states('voidcrew/modules/fnf/icons/fnf_faces.dmi'), "There's no manic grin for Carol's face.")
+	// The cast's traced moves: corrupted Pico's, turned round for whichever way he faces.
+	TEST_ASSERT(length(fnf_traced_keyframes("cpico", "idle", WEST)), "Corrupted Pico's traced idle is missing.")
+	var/list/left_west = fnf_traced_keyframes("cpico", "singLEFT", WEST)
+	var/list/right_east = fnf_traced_keyframes("cpico", "singRIGHT", EAST)
+	TEST_ASSERT(length(left_west) && length(left_west) == length(right_east), "A traced move isn't swapped for a singer facing the other way from the sprite.")
+	TEST_ASSERT_NULL(fnf_traced_keyframes("bf", "idle", WEST), "Someone nobody traced got a traced move.")
 	var/list/frame_states = icon_states('voidcrew/modules/fnf/icons/fnf_healthbar_tainted.dmi')
 	TEST_ASSERT(("hole" in frame_states) && ("block" in frame_states), "The tainted health bar has no opening for its colours to fill.")
 	var/list/prop_states = icon_states('voidcrew/modules/fnf/icons/fnf_props.dmi')

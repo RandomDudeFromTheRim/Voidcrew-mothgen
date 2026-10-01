@@ -7037,6 +7037,7 @@
 #include "voidcrew\modules\fnf\props.dm"
 #include "voidcrew\modules\fnf\side.dm"
 #include "voidcrew\modules\fnf\songs.dm"
+#include "voidcrew\modules\fnf\traced_anims.dm"
 #include "voidcrew\modules\fnf\stage.dm"
 #include "voidcrew\modules\food_and_drinks\drinks\bottles.dm"
 #include "voidcrew\modules\holopads\ship_holocall.dm"
