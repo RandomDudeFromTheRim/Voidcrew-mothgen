@@ -137,8 +137,9 @@
 	cover.layer = FLOAT_LAYER
 	// The head's own shade, tinted as the head is (a head drawn in its own colours isn't), and
 	// coloured as its piece is (by corruption, coating it).
+	// A patch fought free of it isn't, though: that's the point of it.
 	var/obj/effect/abstract/limb_rig_part/head_piece = cloth_parts[RIG_HEAD]
-	cover.color = fnf_tint_then_colour(head.should_draw_greyscale ? head.draw_color : null, head_piece?.color)
+	cover.color = fnf_tint_then_colour(head.should_draw_greyscale ? head.draw_color : null, half_freed ? null : head_piece?.color)
 	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set][eyes][half_freed ? "_window" : ""]_[expression]")
 	face.layer = FLOAT_LAYER
 	if(half_freed)

@@ -714,6 +714,8 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 			eased["face"] = "blank"
 			current_cast["player"] = eased
 			corrupt(get_singer("player"), eased)
+			// And she just hangs there, twitching, while he sings.
+			battle.right?.hanging = TRUE
 		if("blammed")
 			var/static/list/colours = list("#31a2fd", "#31fd8c", "#f794f7", "#f96d63", "#fba633")
 			set_apple(value ? "blammed" : null, 1, colours[clamp(value, 1, 5)])
@@ -896,6 +898,9 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	if(!cast)
 		return
 	current_cast[role] = cast
+	// A new character for the player moves as usual again (see the "alt_idle" event).
+	if(role == "player" && battle.right)
+		battle.right.hanging = FALSE
 	// Their colour on the health bar, as the mod has it.
 	if(role == "player")
 		battle.healthbar?.set_colours(null, cast["bar"])
@@ -945,6 +950,10 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 	if(cast["hidden"] && singer == battle.right?.singer)
 		battle.camera_focus = -battle.stage?.gap_px / 48 || -1
 		battle.pan_cameras()
+		// And zoomed right in on them.
+		for(var/datum/fnf_side/side as anything in battle.sides)
+			if(side.zoomed)
+				side.zoom_screen(FNF_ZOOM + 1)
 	singer.fnf_face_mood = cast["face"]
 	// Kapi's dance pad, Marble's speaker.
 	battle.stage?.set_singer_prop(singer, cast["prop"])

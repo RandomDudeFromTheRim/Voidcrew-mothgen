@@ -302,8 +302,37 @@
 	), settle_after = FALSE)
 
 /mob/living/proc/fnf_nudge(x_offset, z_offset)
-	animate(src, pixel_w = x_offset, pixel_z = z_offset, time = 0.5, flags = ANIMATION_RELATIVE|ANIMATION_PARALLEL)
-	animate(pixel_w = -x_offset, pixel_z = -z_offset, time = 2, easing = SINE_EASING)
+	// Back to where the mob rests (up on the speakers, say), not to the floor.
+	var/home_w = base_pixel_w + has_offset(null, PIXEL_W_OFFSET)
+	var/home_z = base_pixel_z + has_offset(null, PIXEL_Z_OFFSET)
+	animate(src, pixel_w = home_w + x_offset, pixel_z = home_z + z_offset, time = 0.5, flags = ANIMATION_PARALLEL)
+	animate(pixel_w = home_w, pixel_z = home_z, time = 2, easing = SINE_EASING)
+
+/**
+ * Hanging there instead of bopping, still but for a twitch now and then: Purification's Girlfriend,
+ * once Boyfriend's swooped in to sing for her.
+ */
+/mob/living/proc/fnf_hang(beat_time, mic_arm, facing, style)
+	if(prob(25))
+		fnf_nudge(pick(-1, 1), 0)
+
+/mob/living/carbon/fnf_hang(beat_time, mic_arm, facing, style)
+	if(!limb_rig)
+		return ..()
+	if(!limb_rig.is_pulling_fnf_face())
+		limb_rig.set_fnf_face("idle")
+	var/list/pose = fnf_pose("rest", mic_arm, facing, style)
+	if(!prob(30))
+		limb_rig.play(list(list(pose, beat_time, SINE_EASING)), settle_after = FALSE)
+		return
+	var/list/twitch = fnf_nudge_pose(pose, RIG_HEAD, "tilt", pick(-14, 12))
+	twitch = fnf_nudge_pose(twitch, RIG_HEAD, "nod", pick(-6, 8))
+	twitch = fnf_nudge_pose(twitch, mic_arm == RIG_L_ARM ? RIG_R_ARM : RIG_L_ARM, "elbow", 25)
+	limb_rig.play(list(
+		list(twitch, 0.4),
+		list(twitch, 0.5),
+		list(pose, max(beat_time - 0.9, 1), SINE_EASING),
+	), settle_after = FALSE)
 
 /mob/living/proc/fnf_flash(colour, duration)
 	add_atom_colour(colour, TEMPORARY_COLOUR_PRIORITY)

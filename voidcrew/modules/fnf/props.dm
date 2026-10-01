@@ -140,6 +140,9 @@
  * or to stand on, or takes it away (null). Whoever's there now gets up on it, if they're seen.
  */
 /datum/fnf_stage/proc/set_seat(state, way = "sit")
+	if(!state)
+		QDEL_NULL(seat)
+		return
 	if(seat?.icon_state != state)
 		QDEL_NULL(seat)
 		if(!state)

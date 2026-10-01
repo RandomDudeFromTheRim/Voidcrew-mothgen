@@ -581,7 +581,6 @@
 			girlfriend_busy_until = world.time + max(note.length / 100, 2) + 1.5
 			girlfriend.setDir(girlfriend_facing)
 			girlfriend.fnf_sing(note.lane, max(note.length / 100, 2), girlfriend_facing == SOUTH ? RIG_R_ARM : girlfriend.fnf_mic_arm(girlfriend_facing), girlfriend_facing, girlfriend.fnf_look)
-			side.singer?.fnf_nudge(rand(-2, 2), rand(-1, 1))
 			return TRUE
 		if("ugh")
 			side.act("ugh", 3)

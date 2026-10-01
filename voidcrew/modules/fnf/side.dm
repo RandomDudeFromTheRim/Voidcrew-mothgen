@@ -55,6 +55,8 @@
 	var/facing
 	/// A summoned character's own way of moving (see fnf_apply_style), or null.
 	var/style
+	/// Whether the singer just hangs there between notes, twitching, instead of bopping (see fnf_hang()).
+	var/hanging = FALSE
 	/// Held items the singer can't let go of while singing, as weakrefs.
 	var/list/datum/weakref/locked_items = list()
 	/// Things handed to the singer for the song (Pico's gun), taken back after.
@@ -533,7 +535,10 @@
 /datum/fnf_side/proc/bop(beat_time)
 	if(world.time < busy_until)
 		return
-	singer?.fnf_bop(beat_time, mic_arm, facing, style)
+	if(hanging)
+		singer?.fnf_hang(beat_time, mic_arm, facing, style)
+	else
+		singer?.fnf_bop(beat_time, mic_arm, facing, style)
 
 /datum/fnf_side/proc/hey()
 	busy_until = world.time + 8
