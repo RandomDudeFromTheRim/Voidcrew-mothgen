@@ -156,8 +156,12 @@
 
 /datum/fnf_stage/proc/bop(beat_time)
 	if(girlfriend && !QDELETED(girlfriend) && world.time >= girlfriend_busy_until)
-		girlfriend.setDir(SOUTH)
-		girlfriend.fnf_bop(beat_time, RIG_R_ARM, SOUTH, null)
+		// Corrupted Marble doesn't dance: she glares at the player.
+		if(girlfriend.fnf_look == "marble")
+			girlfriend.fnf_stare(beat_time, battle.right?.facing == WEST ? EAST : WEST)
+		else
+			girlfriend.setDir(SOUTH)
+			girlfriend.fnf_bop(beat_time, RIG_R_ARM, SOUTH, null)
 	for(var/mob/living/carbon/human/henchman as anything in henchmen)
 		henchman.fnf_dance(beat_time, battle.last_beat % 2)
 	if(carried && !QDELETED(carried))

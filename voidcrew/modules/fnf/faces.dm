@@ -101,8 +101,10 @@
 	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces_experiment.dmi', "[fnf_face_set][half_freed ? "_window" : ""]_[expression]")
 	// Its sprites are 64 wide, drawn from 16 pixels left of the piece.
 	face.pixel_w = -16
-	face.layer = FLOAT_LAYER
+	face.layer = FLOAT_LAYER + 0.05
 	if(half_freed)
+		// The patch fought clean keeps its own colours, whatever the rest is.
+		face.appearance_flags = RESET_COLOR|KEEP_APART
 		return list(face) + get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_experiment_corrupt.dmi', fnf_face_set, expression, -16)
 	return list(face)
 
@@ -137,6 +139,9 @@
 	var/image/face = image('voidcrew/modules/fnf/icons/fnf_faces.dmi', "[face_set][eyes][half_freed ? "_window" : ""]_[expression]")
 	face.layer = FLOAT_LAYER
 	if(half_freed)
+		// The patch fought clean keeps its own colours, whatever the rest is.
+		cover.appearance_flags = RESET_COLOR|KEEP_APART
+		face.appearance_flags = RESET_COLOR|KEEP_APART
 		return list(cover, face) + get_corrupted_face_images('voidcrew/modules/fnf/icons/fnf_faces_corrupt.dmi', face_set, expression, 0)
 	return list(cover, face)
 
@@ -174,8 +179,10 @@
 	var/state = "[face_set]_[corruption_eyes == "red" ? "corruptred" : "corrupt"][half]_[expression == "blink" ? "idle" : expression]"
 	var/image/face = image(face_icon, state)
 	face.pixel_w = offset
-	face.layer = FLOAT_LAYER
-	face.appearance_flags = RESET_COLOR
-	var/mutable_appearance/glow = emissive_appearance(face_icon, state, owner, FLOAT_LAYER, appearance_flags = RESET_COLOR)
+	face.layer = FLOAT_LAYER + 0.06
+	// Drawn apart from the piece: a piece draws as one, so the colour on it (corruption's, on a head
+	// that isn't drawn from sprites of its own) would go over the glow too, whatever its own flags say.
+	face.appearance_flags = RESET_COLOR|KEEP_APART
+	var/mutable_appearance/glow = emissive_appearance(face_icon, state, owner, FLOAT_LAYER + 0.06, appearance_flags = RESET_COLOR|KEEP_APART)
 	glow.pixel_w = offset
 	return list(face, glow)

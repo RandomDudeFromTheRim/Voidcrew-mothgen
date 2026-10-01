@@ -49,7 +49,7 @@
  *   "shoot", and Blazin's fight: "punch_high", "punch_low", "block", "dodge_high", "dodge_low",
  *   "hit_high", "hit_low", "prep", "uppercut", "uppercut_hit", "taunt". And "aim", the gun
  *   levelled straight out ("aim_both" for two), and the backup dancers' "dance_left" and
- *   "dance_right". And Corruption+'s "scream", Kapi's "meow", and "confused".
+ *   "dance_right". And Corruption+'s "scream", Kapi's "meow", "confused", and Marble's "stare".
  * * mic_arm - the arm with the mic in it, RIG_L_ARM or RIG_R_ARM
  * * facing - which way the singer faces, WEST or EAST, to tell which arrow points at the rival
  * * style - a character's own way of moving on top (see fnf_apply_style), or null
@@ -228,6 +228,14 @@
 			.[RIG_CHEST] = list("lean" = 8 * way, "bend" = 4)
 			.[RIG_HEAD] = list("tilt" = -12 * way, "nod" = 6)
 			.[way > 0 ? RIG_L_LEG : RIG_R_LEG] = list("swing" = 20, "knee" = 25)
+		if("stare")
+			// Corrupted Marble behind the speaker: glaring down at the player, head cocked, the near
+			// arm reached up high, claws spread, the other hand down on the speaker.
+			.[RIG_R_ARM] = list("swing" = 160, "raise" = 20, "elbow" = 25)
+			.[RIG_L_ARM] = list("swing" = 35, "raise" = 10, "elbow" = 55)
+			.[RIG_CHEST] = list("bend" = 4)
+			.[RIG_HEAD] = list("nod" = 8, "tilt" = 10)
+			.[RIG_TAIL] = list("lift" = -10, "wag" = 10)
 		if("taunt")
 			// Come on then: beckoning, chin up, weight back.
 			.[free_arm] = list("swing" = 80, "raise" = 10, "elbow" = 80)
@@ -350,6 +358,34 @@
 	frames += list(list(fnf_pose("rest", mic_arm, facing, style), 3, SINE_EASING))
 	limb_rig.play(frames, settle_after = FALSE)
 	limb_rig.set_fnf_face("miss", 4)
+
+/**
+ * Standing still and staring (Corruption+'s Marble, behind the speaker): side-on, so the face shows,
+ * held in her pose but for a twitch now and then, the head jerking and the raised hand clenching.
+ */
+/mob/living/proc/fnf_stare(beat_time, facing)
+	setDir(facing)
+	if(prob(30))
+		fnf_nudge(facing == EAST ? 1 : -1, 0)
+
+/mob/living/carbon/fnf_stare(beat_time, facing)
+	if(!limb_rig)
+		return ..()
+	setDir(facing)
+	if(!limb_rig.is_pulling_fnf_face())
+		limb_rig.set_fnf_face("idle")
+	var/list/pose = fnf_pose("stare", RIG_L_ARM, facing, null)
+	if(!prob(30))
+		limb_rig.play(list(list(pose, beat_time, SINE_EASING)), settle_after = FALSE)
+		return
+	var/list/twitch = fnf_nudge_pose(pose, RIG_HEAD, "tilt", pick(-16, 14))
+	twitch = fnf_nudge_pose(twitch, RIG_HEAD, "nod", pick(-8, 6))
+	twitch = fnf_nudge_pose(twitch, RIG_R_ARM, "elbow", 30)
+	limb_rig.play(list(
+		list(twitch, 0.4),
+		list(twitch, 0.6),
+		list(pose, max(beat_time - 1, 1), SINE_EASING),
+	), settle_after = FALSE)
 
 /// A one-off move (see fnf_pose()): snaps into it, holds it for hold deciseconds, and goes back.
 /mob/living/proc/fnf_act(kind, mic_arm, facing, style, hold = 3)
@@ -485,6 +521,76 @@
 			fnf_pose_add(pose, RIG_CHEST, "bend", -8)
 			fnf_pose_add(pose, RIG_HEAD, "nod", -6)
 			fnf_pose_add(pose, RIG_L_LEG, "swing", 15)
+		// Corruption+'s cast, as the mod animates them.
+		if("kapi")
+			// Dancing on his arcade's dance pad more than singing: an arm flung up, a stamp, a tucked
+			// jump, a knee and fist driven forward, slouching between them, tail going.
+			switch(kind)
+				if("rest", "bop")
+					pose[free_arm] = list("swing" = 5, "raise" = 8, "elbow" = 15)
+					fnf_pose_add(pose, RIG_CHEST, "bend", 6)
+					fnf_pose_add(pose, RIG_HEAD, "nod", 6)
+				if("away")
+					pose[free_arm] = list("swing" = 160, "raise" = 40, "elbow" = 30)
+					pose[RIG_R_LEG] = list("swing" = 35, "knee" = 60)
+					fnf_pose_add(pose, RIG_CHEST, "lean", -6)
+				if("toward")
+					pose[free_arm] = list("swing" = 90, "raise" = 10, "elbow" = 10)
+					pose[RIG_L_LEG] = list("swing" = 60, "knee" = 70)
+				if(1)
+					pose[RIG_L_LEG] = list("swing" = 75, "knee" = 15)
+					pose[RIG_R_LEG] = list("swing" = -5, "knee" = 25)
+				if(2)
+					pose[RIG_L_LEG] = list("swing" = 55, "knee" = 90)
+					pose[RIG_R_LEG] = list("swing" = 55, "knee" = 90)
+					fnf_pose_add(pose, RIG_CHEST, "air", 6)
+			fnf_pose_add(pose, RIG_TAIL, "wag", kind == "away" ? -18 : 18)
+		if("skarlet")
+			// All attitude: a hand on her cocked hip, pointing at the rival, a shrug thrown away from them.
+			switch(kind)
+				if("rest", "bop")
+					pose[free_arm] = list("swing" = 10, "raise" = 35, "elbow" = 110)
+					fnf_pose_add(pose, RIG_CHEST, "lean", 6)
+					fnf_pose_add(pose, RIG_HEAD, "tilt", -6)
+				if("toward")
+					pose[free_arm] = list("swing" = 95, "raise" = 5, "elbow" = 0)
+					pose[mic_arm] = list("swing" = 50, "raise" = 10, "hand_y" = 27)
+				if("away")
+					pose[free_arm] = list("swing" = 40, "raise" = 40, "elbow" = 60)
+					fnf_pose_add(pose, RIG_HEAD, "tilt", 10)
+				if(1)
+					fnf_pose_add(pose, RIG_HEAD, "nod", 10)
+			fnf_pose_add(pose, RIG_CHEST, "bend", -3)
+		if("carol", "carol_flying")
+			// Shy: the mic held up in both hands, feet together, hardly moving.
+			pose[free_arm] = list("swing" = 50, "raise" = 5, "elbow" = 100)
+			for(var/part_id in pose)
+				var/list/entry = pose[part_id]
+				if(part_id == free_arm || part_id == mic_arm)
+					continue
+				for(var/key in entry)
+					if(key != "hand_y")
+						entry[key] *= 0.6
+			fnf_pose_add(pose, RIG_HEAD, "tilt", 8)
+			if(style == "carol_flying")
+				// Up on her wings, curled up in the air.
+				pose[RIG_L_LEG] = list("swing" = 45, "knee" = 80)
+				pose[RIG_R_LEG] = list("swing" = 30, "knee" = 70)
+		if("gf", "gf_flying")
+			// Corrupted, she sings like she dances: the mic swung out wide, a leg kicked up on the high
+			// notes, a hand on her hip in between. Flying, her legs dangle.
+			switch(kind)
+				if("rest", "bop")
+					pose[free_arm] = list("swing" = 10, "raise" = 35, "elbow" = 110)
+				if("toward", "away")
+					pose[mic_arm] = list("swing" = 85, "raise" = 35, "elbow" = 40)
+					pose[free_arm] = list("swing" = 20, "raise" = 30, "elbow" = 100)
+				if(2)
+					pose[RIG_L_LEG] = list("swing" = 70, "knee" = 40)
+					pose[free_arm] = list("swing" = 165, "raise" = 10, "elbow" = 10)
+			if(style == "gf_flying")
+				pose[RIG_L_LEG] = list("swing" = 15, "knee" = 30)
+				pose[RIG_R_LEG] = list("swing" = -10, "knee" = 20)
 
 #undef FNF_MIC_UP
 #undef FNF_FIST

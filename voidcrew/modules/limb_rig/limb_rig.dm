@@ -162,6 +162,13 @@
 	chest_patch.vis_contents += chest_patch_fill
 	pivot.vis_contents += chest_patch
 
+/**
+ * Drains the colour from the body's own sprites, if it's drawn from them (see sprite_rig.dm), and
+ * only them: whatever's drawn over them keeps its own. 0 for grey to 1 for as they are.
+ */
+/datum/limb_rig/proc/set_sprite_saturation(value)
+	return
+
 /datum/limb_rig/proc/hang_on_owner(obj/effect/abstract/limb_rig_part/part)
 	owner.vis_contents += part
 	owner_pieces += part

@@ -55,6 +55,10 @@
 	var/damage_icon
 	/// The marks currently on each piece, by piece id.
 	var/list/damage_marks = list()
+	/// The body sprite on each piece, by piece id.
+	var/list/sprite_images = list()
+	/// How much colour the body sprites keep, 0 to 1 (see set_sprite_saturation()).
+	var/sprite_saturation = 1
 
 /datum/limb_rig/sprites/refresh_shape()
 	. = ..()
@@ -90,10 +94,8 @@
 /// Makes a body piece showing its sprite, and a cloth piece to go with it (the tail wears nothing).
 /datum/limb_rig/sprites/proc/add_piece(part_id, obj/effect/abstract/limb_rig_part/container)
 	var/obj/effect/abstract/limb_rig_part/part = new_part(part_id)
-	var/image/sprite = image(sprite_icon, part_id)
-	sprite.pixel_w = -16
-	part.add_overlay(sprite)
 	parts[part_id] = part
+	refresh_sprite_image(part_id)
 	var/obj/effect/abstract/limb_rig_part/cloth
 	if(part_id != RIG_TAIL)
 		cloth = new_part(part_id)
@@ -107,9 +109,28 @@
 		if(cloth)
 			hang_on_owner(cloth)
 
+/// Puts a piece's body sprite on, as drained of colour as the body is.
+/datum/limb_rig/sprites/proc/refresh_sprite_image(part_id)
+	var/obj/effect/abstract/limb_rig_part/part = parts[part_id]
+	part.cut_overlay(sprite_images[part_id])
+	var/image/sprite = image(sprite_icon, part_id)
+	sprite.pixel_w = -16
+	if(sprite_saturation < 1)
+		sprite.color = color_matrix_saturation(sprite_saturation)
+	part.add_overlay(sprite)
+	sprite_images[part_id] = sprite
+
+/datum/limb_rig/sprites/set_sprite_saturation(value)
+	if(sprite_saturation == value)
+		return
+	sprite_saturation = value
+	for(var/part_id in sprite_images)
+		refresh_sprite_image(part_id)
+
 /datum/limb_rig/sprites/Destroy()
 	QDEL_LIST_ASSOC_VAL(cloth_parts)
 	QDEL_LIST_ASSOC_VAL(shoe_parts)
+	sprite_images = null
 	return ..()
 
 /datum/limb_rig/sprites/set_layer(cache_index, standing)

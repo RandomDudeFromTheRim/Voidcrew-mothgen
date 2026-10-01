@@ -24,6 +24,13 @@
 	var/list/chart
 	/// world.time (in deciseconds, fractional) when the song is at 0.
 	var/start_time = 0
+	/// The real time of day the music started (see get_song_time()), or null before it has.
+	var/real_start
+	/// And where the song was then, by world.time, in milliseconds.
+	var/game_start_ms = 0
+	/// How far world.time has fallen behind the music since, in milliseconds: when the server
+	/// lags, world.time slows down, while everyone's music plays on in real time.
+	var/lag_ms = 0
 	/// How long a note takes to rise to its strum, in milliseconds.
 	var/travel_ms = 1100
 	/// Milliseconds per beat.
@@ -116,7 +123,22 @@
 
 /// The song position right now, in milliseconds. Negative during the countdown.
 /datum/fnf_battle/proc/get_song_time()
-	return (FNF_NOW - start_time) * 100
+	return (FNF_NOW - start_time) * 100 + lag_ms
+
+/**
+ * Catches the song's clock up with the music after the server's lagged. The real clock only counts
+ * tenths of a second, so it isn't the clock itself: world.time is, and this is how far behind the
+ * real one it's fallen, smoothed out (and jumped to when it's a long way out).
+ */
+/datum/fnf_battle/proc/catch_up_with_music()
+	if(isnull(real_start))
+		return
+	var/real_ms = (REALTIMEOFDAY - real_start) * 100 + game_start_ms
+	var/behind = max(real_ms - (world.time - start_time) * 100, 0)
+	if(abs(behind - lag_ms) > 150)
+		lag_ms = behind
+	else
+		lag_ms += (behind - lag_ms) * 0.05
 
 /// list(file, channel) for everything that plays: the backing track and both singers' vocals.
 /datum/fnf_battle/proc/get_tracks()
@@ -321,11 +343,14 @@
 	if(state != FNF_STATE_COUNTDOWN)
 		return
 	state = FNF_STATE_PLAYING
+	real_start = REALTIMEOFDAY
+	game_start_ms = (world.time - start_time) * 100
 	unpause_song()
 
 /datum/fnf_battle/proc/tick()
 	if(state == FNF_STATE_OVER)
 		return
+	catch_up_with_music()
 	var/now = get_song_time()
 	for(var/datum/fnf_side/side as anything in sides)
 		side.process_notes(now)

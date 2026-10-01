@@ -71,10 +71,16 @@
 	tail_part = new_part(RIG_TAIL)
 	hang_on_owner(tail_part)
 
-/datum/limb_rig/sprites/humanoid/add_piece(part_id, obj/effect/abstract/limb_rig_part/container)
-	. = ..()
-	// The body sprite goes on in refresh_skin(), tinted.
-	parts[part_id].cut_overlays()
+// The body sprite goes on in refresh_skin(), tinted.
+/datum/limb_rig/sprites/humanoid/refresh_sprite_image(part_id)
+	return
+
+/datum/limb_rig/sprites/humanoid/set_sprite_saturation(value)
+	if(sprite_saturation == value)
+		return
+	sprite_saturation = value
+	if(length(parts))
+		refresh_skin()
 
 /datum/limb_rig/sprites/humanoid/Destroy()
 	. = ..()
@@ -103,9 +109,19 @@
 		var/image/skin = image(sprite_icon, (part_id == RIG_CHEST && female) ? "chest_f" : part_id)
 		skin.pixel_w = -16
 		var/obj/item/bodypart/limb = owner.get_bodypart(zones[part_id])
-		skin.color = limb?.get_rig_skin_colour()
+		skin.color = get_drained_colour(limb?.get_rig_skin_colour(), sprite_saturation)
 		part.add_overlay(skin)
 		skin_images[part_id] = skin
+
+/// A tint with only this much of its colour left (0 to 1), as a colour if it was one, else a matrix.
+/proc/get_drained_colour(colour, saturation)
+	if(saturation >= 1)
+		return colour
+	if(!istext(colour))
+		return color_matrix_saturation(saturation)
+	var/list/rgb = rgb2num(colour)
+	var/grey = rgb[1] * 0.3 + rgb[2] * 0.59 + rgb[3] * 0.11
+	return rgb(grey + (rgb[1] - grey) * saturation, grey + (rgb[2] - grey) * saturation, grey + (rgb[3] - grey) * saturation)
 
 /// Takes the head, tail, wings and markings from the species' own limb sprites.
 /datum/limb_rig/sprites/humanoid/proc/refresh_species_parts()

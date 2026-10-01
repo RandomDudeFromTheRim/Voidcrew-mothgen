@@ -110,6 +110,12 @@
 	rig.set_corruption(1, "red")
 	TEST_ASSERT(length(rig.corruption_images), "Corruption drew nothing on the body.")
 	TEST_ASSERT(rig.is_face_corrupted(), "Full corruption didn't take the face.")
+	// The glowing face draws apart from the head, or the colour on the head would go over it too.
+	for(var/image/face as anything in rig.get_fnf_face_images("idle"))
+		TEST_ASSERT(face.appearance_flags & KEEP_APART, "A corrupted face is drawn as part of the head, under its colour.")
+	var/datum/limb_rig/sprites/sprite_rig = rig
+	if(istype(sprite_rig))
+		TEST_ASSERT(sprite_rig.sprite_saturation < 1, "Corruption didn't drain the body's own sprites.")
 	var/list/coats = icon_states('voidcrew/modules/fnf/icons/corruption_coats.dmi')
 	for(var/coat in list("coat_humanoid_chest_8", "coat_humanoid_chest_f_1", "coat_experiment_tail_4", "coat_milkie_head_8"))
 		TEST_ASSERT(coat in coats, "Corruption's coat isn't baked for [coat].")
@@ -123,6 +129,8 @@
 	TEST_ASSERT(!rig.is_face_corrupted(), "Fighting corruption well off didn't give the whole face back.")
 	rig.set_corruption(0)
 	TEST_ASSERT_NULL(rig.corruption_images, "Corruption stayed drawn on the body after it was cleared.")
+	if(istype(sprite_rig))
+		TEST_ASSERT_EQUAL(sprite_rig.sprite_saturation, 1, "The body's sprites stayed drained after corruption was cleared.")
 
 	var/datum/fnf_song/song = new("data/fnf/tests/", "none")
 	song.path = "data/fnf/tests/"
@@ -142,7 +150,7 @@
 	var/list/screens = song.read_overlay_events(list("events" = list(
 		list(1000, list(list("Lightr", "0.5", ""), list("badapplelol", "a", "1"), list("flashBom", "1", "2"))),
 	)))
-	TEST_ASSERT_EQUAL(length(screens), 3, "A chart's flash, silhouette and glow events weren't read.")
+	TEST_ASSERT_EQUAL(length(screens), 2, "A chart's flash and silhouette events weren't read, or its glow was.")
 	var/list/flash = screens[1]
 	TEST_ASSERT(flash[2] == "light" && flash[3] == "#960030", "A chart's crimson flash wasn't read as one.")
 	var/list/overlay_states = icon_states('voidcrew/modules/fnf/icons/fnf_corruption_overlays.dmi')

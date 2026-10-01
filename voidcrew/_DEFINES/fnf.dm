@@ -47,8 +47,9 @@
 #define FNF_CORRUPTION_HANDS "#a8102c"
 /// How much of the corruption it takes to swallow one piece of the body, start to finish.
 #define FNF_CORRUPTION_SPAN 0.35
-/// How far a head's taken over before its face is the corruption's.
-#define FNF_CORRUPTION_FACE 0.75
+/// How far a head's taken over before its face is the corruption's: halfway, as dark as it gets
+/// with its own face still to be seen on it.
+#define FNF_CORRUPTION_FACE 0.5
 /// How far below its peak corruption has to fall for a piece to be fought wholly free.
 #define FNF_CORRUPTION_FIGHT 0.4
 /// How much of a taken head has to be fought free for its near eye to come back, the grin staying.

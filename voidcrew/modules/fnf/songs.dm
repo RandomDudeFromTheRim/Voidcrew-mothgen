@@ -411,9 +411,8 @@ GLOBAL_LIST_EMPTY(fnf_no_zoom)
 				found = list(entry[1], "light", lights[event[1]], text2num("[event[2]]") || 0.5)
 			else if(event[1] == "BlackScreenEvent")
 				found = list(entry[1], "black", "[event[2]]", text2num("[event[3]]") || 0.5)
-			// Its bloom shader: a burst of glow, as strong as its second value.
-			else if(event[1] == "flashBom")
-				found = list(entry[1], "bloom", "", text2num("[event[3]]") || 1)
+			// Its "flashBom" bloom shader is left out: a flash of glow every bar or two, more glare
+			// than anything, and too much drawing.
 			// Silhouettes: black on white ("a" on, "b" off), white on black, or in colour on black (toggles).
 			else if(event[1] == "badapplelol")
 				found = list(entry[1], "apple", lowertext("[event[2]]") == "a" ? "white" : "off", text2num("[event[3]]") || 0.5)
