@@ -121,7 +121,7 @@
 		"* You found out how to stop being Kris!/",
 		CALLBACK(src, PROC_REF(pose), moffer, "head_down", 8),
 		"* And no one else has noticed.../%",
-	))
+	), face = TRUE)
 	WEIRD_ROUTE_WAIT(30)
 	say(list(
 		CALLBACK(src, PROC_REF(set_waver), TRUE),
@@ -136,7 +136,7 @@
 		CALLBACK(src, PROC_REF(shake), moffer),
 		CALLBACK(src, PROC_REF(set_waver), TRUE),
 		"* Without even thinking where it goes!/%",
-	))
+	), face = TRUE)
 	WEIRD_ROUTE_WAIT(30)
 	pose(moffer, "head_down")
 	say(list(
@@ -144,10 +144,10 @@
 		"* Kris.../",
 		CALLBACK(src, PROC_REF(pose), moffer, "hands_to_chest", 30),
 		"* Being around you.../%",
-	))
+	), face = TRUE)
 	WEIRD_ROUTE_WAIT(60)
 	pose(moffer, "hands_to_chest_head_down")
-	say(list("* Is changing me^1, too./%"))
+	say(list("* Is changing me^1, too./%"), face = TRUE)
 	WEIRD_ROUTE_WAIT(15)
 	say(list(
 		"* K..^1. Kris.../",
@@ -156,7 +156,7 @@
 		"* I.../",
 		CALLBACK(src, PROC_REF(pose), moffer, "hands_to_chest_head_down_more", 8),
 		"* I felt stronger than I have in my entire life./%",
-	))
+	), face = TRUE)
 	WEIRD_ROUTE_WAIT(30)
 	// They look up; she drops to the ground.
 	pose(player, "rest", 15)
@@ -182,13 +182,13 @@
 		"* If you tell me to^1, I can do things that are impossible./",
 		CALLBACK(src, PROC_REF(pose), moffer, "kneel", 8),
 		"* Things no one else can do./%",
-	))
+	), face = TRUE)
 	WEIRD_ROUTE_WAIT(30)
 	pose(moffer, "kneel_head_up")
-	say(list("* So^1, why don't we do it?/%"))
+	say(list("* So^1, why don't we do it?/%"), face = TRUE)
 	pose(moffer, "kneel_head_down")
 	WEIRD_ROUTE_WAIT(30)
-	say(list("* Why don't we do.../%"))
+	say(list("* Why don't we do.../%"), face = TRUE)
 	// She gets up and comes to them.
 	pose(player, "head_down", 16)
 	pose(moffer, "rest")
@@ -199,7 +199,7 @@
 		"* \"Something crazy?\"/",
 		CALLBACK(src, PROC_REF(pose), moffer, "head_down", 8),
 		"* Tell me./%",
-	))
+	), face = TRUE)
 	pose(moffer, "hands_to_chest", 30)
 	WEIRD_ROUTE_WAIT(45)
 	say(list(
@@ -210,7 +210,7 @@
 		CALLBACK(src, PROC_REF(shake), moffer),
 		CALLBACK(src, PROC_REF(set_waver), TRUE),
 		"* To somewhere no one has ever been before!/%",
-	))
+	), face = TRUE)
 	pose(moffer, "walk_left_hands_up")
 	walk_along(moffer, 320, 30)
 	WEIRD_ROUTE_WAIT(45)
@@ -240,7 +240,7 @@
 		"* You'll tell me^1, won't you?/",
 		CALLBACK(src, PROC_REF(pose), moffer, "hands_to_chest_head_down", 8),
 		"* If you tell me to^1, I can do anything./%",
-	))
+	), face = TRUE)
 	pose(moffer, "walk_left_hands_up")
 	walk_along(moffer, 305, 30, TRUE)
 	if(QDELETED(src))
@@ -250,7 +250,7 @@
 	pose(moffer, "take_hands", 30)
 	pose(player, "take_hands", 30)
 	WEIRD_ROUTE_WAIT(30)
-	say(list("* So..^1. tell me^1, Kris./%"))
+	say(list("* So..^1. tell me^1, Kris./%"), face = TRUE)
 	fade(music_channel, 0.7, 0, 60, 0.95)
 	WEIRD_ROUTE_WAIT(30)
 	// And leads them down to the water, hand in hand.
@@ -262,7 +262,7 @@
 	walk_along(moffer, WEIRD_ROUTE_HANDOFF_X, 120)
 	walk_along(player, WEIRD_ROUTE_HANDOFF_X - 17, 120)
 	WEIRD_ROUTE_WAIT(150)
-	say(list("* The words..^1. I've been waiting to hear./%"))
+	say(list("* The words..^1. I've been waiting to hear./%"), face = TRUE)
 	WEIRD_ROUTE_WAIT(60)
 	ask()
 
@@ -301,6 +301,7 @@
 
 /datum/weird_route/proc/clouds_in()
 	clouds_state = 1
+	shape_clouds(0)
 	var/list/fade_times = list(300, 360, 420)
 	for(var/number in 1 to 3)
 		var/atom/movable/screen/weird_route/pinwheel/cloud = clouds[number]
@@ -309,20 +310,40 @@
 	INVOKE_ASYNC(src, PROC_REF(clouds_breathe))
 
 /datum/weird_route/proc/clouds_breathe()
-	var/breath = 0
+	var/started = world.time
 	while(clouds_state == 1 && !QDELETED(src))
-		breath++
-		var/matrix/first = matrix()
-		first.Scale(1, abs(sin(breath / 60 * 180 / PI) * 0.05) + 0.85)
-		var/matrix/second = matrix()
-		second.Scale(abs(sin(breath / 90 * 180 / PI) * 0.05) + 0.85, 1)
-		var/matrix/third = matrix()
-		third.Scale(abs(sin(breath / 90 * 180 / PI) * 0.05) + 0.85, abs(cos(breath / 90 * 180 / PI) * 0.05) + 0.85)
-		var/list/shapes = list(first, second, third)
-		for(var/number in 1 to 3)
-			var/atom/movable/screen/weird_route/pinwheel/cloud = clouds[number]
-			cloud.transform = shapes[number]
-		sleep(WEIRD_ROUTE_FRAME)
+		shape_clouds((world.time - started) / WEIRD_ROUTE_FRAME)
+		sleep(world.tick_lag)
+
+/**
+ * Sizes the clouds to the player's screen as the game's are to its own (at 0.85, they just cover it),
+ * breathing a frame's worth in: each scaled about the middle of its soft patch, which sits a third of
+ * the way down the screen.
+ */
+/datum/weird_route/proc/shape_clouds(breath)
+	var/list/screen_size = view_pixels()
+	var/across = screen_size[1] / 480
+	var/down = screen_size[2] / 480
+	var/list/breaths = list(
+		list(1, abs(sin(breath / 60 * 180 / PI) * 0.05) + 0.85),
+		list(abs(sin(breath / 90 * 180 / PI) * 0.05) + 0.85, 1),
+		list(abs(sin(breath / 90 * 180 / PI) * 0.05) + 0.85, abs(cos(breath / 90 * 180 / PI) * 0.05) + 0.85),
+	)
+	for(var/number in 1 to 3)
+		var/list/scale = breaths[number]
+		// The first two only breathe one way: the other stays as the game leaves it, 1.
+		var/x_scale = across * (scale[1] == 1 ? 0.85 : scale[1])
+		var/y_scale = down * (scale[2] == 1 ? 0.85 : scale[2])
+		var/matrix/shape = matrix()
+		shape.Scale(x_scale, y_scale)
+		shape.Translate(0, screen_size[2] / 6 - 120 * y_scale)
+		var/atom/movable/screen/weird_route/pinwheel/cloud = clouds[number]
+		cloud.transform = shape
+
+/// The player's view, in pixels: list(width, height).
+/datum/weird_route/proc/view_pixels()
+	var/list/size = getviewsize(player?.client?.view || world.view)
+	return list(size[1] * 32, size[2] * 32)
 
 /datum/weird_route/proc/clouds_out()
 	set waitfor = FALSE
@@ -346,8 +367,13 @@
 	void.alpha = 255
 	vision = make_moffer()
 	vision.moveToNullspace()
-	vision.setDir(EAST)
+	// Facing out at whoever's watching.
+	vision.setDir(SOUTH)
 	vision.limb_rig?.set_seated("crouch")
+	// The memories filling the screen, whatever its size.
+	var/list/screen_size = view_pixels()
+	for(var/atom/movable/screen/weird_route/pinwheel/place as anything in memories)
+		place.transform = matrix(screen_size[1] / 480, 0, 0, 0, screen_size[2] / 480, 0)
 	silhouette.vis_contents += vision
 	silhouette.alpha = 0
 	animate(silhouette, alpha = 255, time = 60 * WEIRD_ROUTE_FRAME)
@@ -356,6 +382,8 @@
 /// Turns it, fades its memories in and ripples them, a frame at a time, as the game's step does.
 /datum/weird_route/proc/pinwheel_process()
 	var/last = world.time
+	var/list/screen_size = view_pixels()
+	var/wedge_scale = max(screen_size[1], screen_size[2]) / 480
 	while(pinwheel_on && !QDELETED(src))
 		var/frames = (world.time - last) / WEIRD_ROUTE_FRAME
 		last = world.time
@@ -368,7 +396,9 @@
 				pinwheel_angle -= 360
 		for(var/number in 1 to 3)
 			var/atom/movable/screen/weird_route/pinwheel/wedge = wedges[number]
-			wedge.transform = turn(matrix(), pinwheel_angle - 270 + (number - 1) * 120)
+			var/matrix/turned = turn(matrix(), pinwheel_angle - 270 + (number - 1) * 120)
+			turned.Scale(wedge_scale, wedge_scale)
+			wedge.transform = turned
 			var/atom/movable/screen/weird_route/pinwheel/place = memories[number]
 			if(pinwheel_segments >= number)
 				place.alpha = min(place.alpha + 0.02 * 255 * frames, 255)
@@ -695,6 +725,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 			else
 				game.modify_filter("weird_route_blur", list("x" = smear))
 				game.modify_filter("weird_route_soften", list("size" = soft))
+			blur_box(smear, soft)
 
 		// The chant: rising out of nothing, then deep and loud under the water, then sinking and climbing.
 		if(music_started)
@@ -749,17 +780,30 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		text_shake = textind >= WEIRD_ROUTE_DROWN_INDEX ? LERP(0.26, 3, progress(textind, WEIRD_ROUTE_DROWN_INDEX, 34)) : 0
 		if(text_shake >= 1)
 			var/most = round(text_shake)
-			writing.pixel_w = rand(-most, most)
-			writing.pixel_z = rand(-most, most)
+			writing.pixel_x = rand(-most, most)
+			writing.pixel_y = rand(-most, most)
 		else
-			writing.pixel_w = 0
-			writing.pixel_z = 0
+			writing.pixel_x = 0
+			writing.pixel_y = 0
 		sleep(world.tick_lag)
+
+/// Blurs the text box with the rest of the screen (its planes aren't the world's), or stops (0, 0).
+/datum/weird_route/proc/blur_box(smear, soft)
+	for(var/atom/movable/screen/part as anything in list(box, border, portrait, writing, left_option, right_option, heart))
+		if(!smear && !soft)
+			part.remove_filter(list("weird_route_blur", "weird_route_soften"))
+		else if(!part.get_filter("weird_route_blur"))
+			part.add_filter("weird_route_blur", 1, motion_blur_filter(smear, 0))
+			part.add_filter("weird_route_soften", 2, gauss_blur_filter(soft))
+		else
+			part.modify_filter("weird_route_blur", list("x" = smear))
+			part.modify_filter("weird_route_soften", list("size" = soft))
 
 /// Colours the box and the heart as they are now.
 /datum/weird_route/proc/colour_box()
 	border.color = border_colour
-	box.color = weird_route_blend(COLOR_BLACK, COLOR_WHITE, inner_white)
+	// Its inside stays black: it's the white over the screen and the blur that take it.
+	box.color = COLOR_BLACK
 	heart.color = heart_white ? list(1 - heart_white, 0, 0, 0, 1 - heart_white, 0, 0, 0, 1 - heart_white, heart_white, heart_white, heart_white) : null
 	if(choices)
 		update_choices()
@@ -767,6 +811,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 /// They hesitated too long: white, going to black, and then she's wrong about it all.
 /datum/weird_route/proc/fail()
 	stop_writing()
+	blur_box(0, 0)
 	player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter(list("weird_route_blur", "weird_route_soften"))
 	whiteout.alpha = 255
 	whiteout.color = COLOR_WHITE
@@ -813,7 +858,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		letters.maptext_height = 40
 		if(ghost != COLOR_WHITE)
 			letters.blend_mode = BLEND_ADD
-			letters.pixel_w = ghost == "#ff3030" ? -1 : 1
+			letters.pixel_x = ghost == "#ff3030" ? -1 : 1
 			// Swimming in and out every four seconds.
 			animate(letters, alpha = 0, time = 20, loop = -1, easing = SINE_EASING)
 			animate(alpha = 255, time = 20, easing = SINE_EASING)
@@ -863,8 +908,9 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		qdel(src)
 		return
 	player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter(list("weird_route_blur", "weird_route_soften"))
+	blur_box(0, 0)
 	var/turf/factory_origin = factory.bottom_left_turfs[1]
-	var/turf/arrival = locate(factory_origin.x + WEIRD_ROUTE_FACTORY_WIDTH / 2, factory_origin.y + 4, factory_origin.z)
+	var/turf/arrival = locate(factory_origin.x + round(WEIRD_ROUTE_FACTORY_WIDTH / 2), factory_origin.y + round(WEIRD_ROUTE_FACTORY_HEIGHT / 2), factory_origin.z)
 	for(var/mob/living/carbon/human/who as anything in list(player, moffer))
 		who.remove_filter("weird_route_sink")
 		// Out of the sunset: lit by the white.
@@ -893,3 +939,6 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	if(old_hud_version)
 		player.hud_used?.show_hud(old_hud_version)
 		old_hud_version = null
+	// Moffer comes along, a step behind them wherever they go.
+	moffer.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED), WEIRD_ROUTE_TRAIT)
+	walk_to(moffer, player, 1, 3)

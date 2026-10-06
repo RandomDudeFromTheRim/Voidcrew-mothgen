@@ -44,8 +44,8 @@
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	color = null
 	blend_mode = BLEND_ADD
-	pixel_w = 18
-	pixel_z = -25
+	pixel_x = 18
+	pixel_y = -25
 
 /atom/movable/screen/weird_route/text
 	screen_loc = "CENTER-7:16,SOUTH:6"
@@ -76,7 +76,7 @@
 
 /atom/movable/screen/weird_route/heart/Initialize(mapload, datum/hud/hud_owner, datum/weird_route/route)
 	. = ..()
-	transform = matrix() * 0.6
+	transform = matrix() * 1.25
 
 /// A colour over the whole screen, under the box.
 /atom/movable/screen/weird_route/fill

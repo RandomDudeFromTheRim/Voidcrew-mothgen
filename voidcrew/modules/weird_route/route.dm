@@ -140,6 +140,9 @@ GLOBAL_LIST_EMPTY(weird_routes)
 		old_hud_version = player.hud_used.hud_version
 		player.hud_used.show_hud(HUD_STYLE_NOHUD)
 	make_screen()
+	// Sent ahead, so nothing waits on a download when it's due (the Meat Factory's music is big).
+	for(var/sound_name in flist(WEIRD_ROUTE_SOUNDS))
+		player << browse_rsc(file(WEIRD_ROUTE_SOUNDS + sound_name), sound_name)
 	INVOKE_ASYNC(src, PROC_REF(play_scene))
 
 /datum/weird_route/Destroy()
@@ -161,6 +164,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 		if(!QDELETED(player))
 			player.forceMove(came_from || get_safe_random_station_turf())
 	player = null
+	if(moffer)
+		walk(moffer, 0)
 	QDEL_NULL(moffer)
 	QDEL_NULL(vision)
 	for(var/atom/movable/screen/part as anything in get_screen())
@@ -228,13 +233,14 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	blackout = new(null, null, src)
 	blackout.color = COLOR_BLACK
 	whiteout = new(null, null, src)
+	// Over the box as well: hesitating whites all of it out.
+	whiteout.plane = ABOVE_HUD_PLANE
 	whiteness = new(null, null, src)
 	for(var/number in 1 to 3)
 		var/atom/movable/screen/weird_route/pinwheel/cloud = new(null, null, src)
-		// Centred across the screen and a quarter of the way down it, as the game puts it.
 		cloud.icon = 'voidcrew/modules/weird_route/icons/weird_route_fade.dmi'
 		cloud.icon_state = "fade"
-		cloud.screen_loc = "CENTER-9:19,CENTER-5:11"
+		cloud.screen_loc = "CENTER-9:19,CENTER-9:19"
 		clouds += cloud
 		var/atom/movable/screen/weird_route/pinwheel/wedge = new(null, null, src)
 		wedge.icon_state = "wedge"
@@ -253,7 +259,7 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	silhouette.screen_loc = "CENTER,CENTER:28"
 	silhouette.layer = MOB_LAYER - 0.25
 	silhouette.appearance_flags |= KEEP_TOGETHER
-	silhouette.add_filter("weird_route_silhouette", 1, color_matrix_filter(list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)))
+	silhouette.add_filter("weird_route_silhouette", 1, color_matrix_filter(list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0.35, 0.9, 1)))
 	show_box(FALSE)
 	show_choices(FALSE)
 	player.client.screen += get_screen()
@@ -494,8 +500,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/heart_x = WEIRD_ROUTE_HEART_START
 	if(selected)
 		var/centre = selected == 1 ? WEIRD_ROUTE_LEFT_OPTION : WEIRD_ROUTE_RIGHT_OPTION
-		heart_x = centre - length(choices[selected]) * 3.5 - 17
-	animate(heart, pixel_w = heart_x - 16, pixel_z = WEIRD_ROUTE_OPTION_Y - 14, time = 1)
+		heart_x = centre - length(choices[selected]) * 5 - 20
+	animate(heart, pixel_x = heart_x - 16, pixel_y = WEIRD_ROUTE_OPTION_Y - 10, time = 1)
 
 /// The text's colour. White, always, as the game's text style 63 is: even once the box has gone white.
 /datum/weird_route/proc/text_colour()
@@ -510,7 +516,7 @@ GLOBAL_LIST_EMPTY(weird_routes)
 
 /// Some text in the box's font.
 /proc/weird_route_text(message, colour, centred = FALSE)
-	return "<span style='font-family: \"Pixellari\"; font-size: 12pt; line-height: 1.3; color: [colour];[centred ? " text-align: center;" : ""]'>[message]</span>"
+	return "<span style='font-family: \"Pixellari\"; font-size: 16pt; line-height: 1.3; vertical-align: top; color: [colour];[centred ? " text-align: center;" : ""]'>[message]</span>"
 
 /**
  * Types out messages in the box, one at a time, each waiting on a press: lines are the game's own,
@@ -551,6 +557,9 @@ GLOBAL_LIST_EMPTY(weird_routes)
 		if(token != writer_token)
 			return
 		if(choice_options && typed == messages)
+			// Once the choice is up, it's all there is in the box: the two options and the heart.
+			writing.maptext = null
+			portrait.alpha = 0
 			choices = choice_options
 			show_choices(TRUE)
 			while(!chosen)
@@ -613,5 +622,5 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	show_box(FALSE)
 
 /// Writes and waits for it to finish: the game's c_talk_wait().
-/datum/weird_route/proc/say(list/lines, voice = "snd_txtnoe.wav", rate = 2)
-	write(lines, voice, FALSE, rate)
+/datum/weird_route/proc/say(list/lines, voice = "snd_txtnoe.wav", rate = 2, face = FALSE)
+	write(lines, voice, face, rate)
