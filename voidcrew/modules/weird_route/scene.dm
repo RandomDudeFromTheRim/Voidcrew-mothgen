@@ -3,7 +3,7 @@
 // own code wasn't to hand (its effects objects, and what it does once they're all the way in), what's
 // here stands in for it and says so.
 
-/datum/weird_route/proc/run()
+/datum/weird_route/proc/play_scene()
 	// Moffer's at the water's edge, looking out over it. They come up the path behind her.
 	put(player, 40)
 	player.setDir(EAST)
@@ -15,7 +15,7 @@
 	fade(music_channel, 0, 0.5, 30, 1)
 	var/walk_time = (288 - 40) / 4
 	pan(156 + 320, walk_time)
-	walk_to(player, 288, walk_time, TRUE)
+	walk_along(player, 288, walk_time, TRUE)
 	if(QDELETED(src))
 		return
 	WEIRD_ROUTE_WAIT(60)
@@ -192,7 +192,7 @@
 	// She gets up and comes to them.
 	pose(player, "head_down", 16)
 	pose(moffer, "rest")
-	walk_to(moffer, 309, 16, TRUE)
+	walk_along(moffer, 309, 16, TRUE)
 	if(QDELETED(src))
 		return
 	say(list(
@@ -212,7 +212,7 @@
 		"* To somewhere no one has ever been before!/%",
 	))
 	pose(moffer, "walk_left_hands_up")
-	walk_to(moffer, 320, 30)
+	walk_along(moffer, 320, 30)
 	WEIRD_ROUTE_WAIT(45)
 	pose(moffer, "hands_to_chest_turn_up", 20)
 	WEIRD_ROUTE_WAIT(26)
@@ -242,7 +242,7 @@
 		"* If you tell me to^1, I can do anything./%",
 	))
 	pose(moffer, "walk_left_hands_up")
-	walk_to(moffer, 305, 30, TRUE)
+	walk_along(moffer, 305, 30, TRUE)
 	if(QDELETED(src))
 		return
 	WEIRD_ROUTE_WAIT(30)
@@ -259,8 +259,8 @@
 	pose(moffer, "lead")
 	pose(player, "follow")
 	pan(220 + 320, 120)
-	walk_to(moffer, WEIRD_ROUTE_HANDOFF_X, 120)
-	walk_to(player, WEIRD_ROUTE_HANDOFF_X - 17, 120)
+	walk_along(moffer, WEIRD_ROUTE_HANDOFF_X, 120)
+	walk_along(player, WEIRD_ROUTE_HANDOFF_X - 17, 120)
 	WEIRD_ROUTE_WAIT(150)
 	say(list("* The words..^1. I've been waiting to hear./%"))
 	WEIRD_ROUTE_WAIT(60)

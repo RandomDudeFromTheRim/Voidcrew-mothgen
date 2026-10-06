@@ -140,7 +140,7 @@ GLOBAL_LIST_EMPTY(weird_routes)
 		old_hud_version = player.hud_used.hud_version
 		player.hud_used.show_hud(HUD_STYLE_NOHUD)
 	make_screen()
-	INVOKE_ASYNC(src, PROC_REF(run))
+	INVOKE_ASYNC(src, PROC_REF(play_scene))
 
 /datum/weird_route/Destroy()
 	GLOB.weird_routes -= src
@@ -310,9 +310,9 @@ GLOBAL_LIST_EMPTY(weird_routes)
 		update_camera()
 
 /// Walks someone to x over this many frames (without waiting, unless wait).
-/datum/weird_route/proc/walk_to(mob/living/who, to_x, frames, wait = FALSE)
+/datum/weird_route/proc/walk_along(mob/living/who, to_x, frames, wait = FALSE)
 	if(!wait)
-		INVOKE_ASYNC(src, PROC_REF(walk_to), who, to_x, frames, TRUE)
+		INVOKE_ASYNC(src, PROC_REF(walk_along), who, to_x, frames, TRUE)
 		return
 	var/from_x = positions[who]
 	var/started = world.time
