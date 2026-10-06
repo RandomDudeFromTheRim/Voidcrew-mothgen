@@ -867,6 +867,8 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	var/turf/arrival = locate(factory_origin.x + WEIRD_ROUTE_FACTORY_WIDTH / 2, factory_origin.y + 4, factory_origin.z)
 	for(var/mob/living/carbon/human/who as anything in list(player, moffer))
 		who.remove_filter("weird_route_sink")
+		// Out of the sunset: lit by the white.
+		weird_route_silhouette(who, FALSE)
 		who.pixel_w = who.base_pixel_w
 		who.limb_rig?.set_seated(null)
 		who.limb_rig?.play(list(list(list(), 1)))

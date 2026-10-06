@@ -174,13 +174,21 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	SIGNAL_HANDLER
 	qdel(src)
 
-/// Holds someone to the scene: nowhere to go, nothing in their hands, nothing to hurt them.
+/// Holds someone to the scene: nowhere to go, nothing in their hands, nothing to hurt them. And with
+/// the sun low over the far side of the lake, a silhouette against it (the game's "silo" sprites).
 /datum/weird_route/proc/hold(mob/living/carbon/human/who)
 	who.add_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_GODMODE), WEIRD_ROUTE_TRAIT)
+	weird_route_silhouette(who, TRUE)
+
+/// Darkens someone nearly to black, a little of the sunset's red still in them, or lets them be lit again.
+/proc/weird_route_silhouette(mob/living/who, dark)
+	who.remove_filter("weird_route_silo")
+	if(dark)
+		who.add_filter("weird_route_silo", 10, color_matrix_filter(list(0.12, 0.02, 0.01, 0.06, 0.04, 0.02, 0.03, 0.02, 0.03, 0.07, 0.015, 0.01)))
 
 /datum/weird_route/proc/let_go(mob/living/carbon/human/who)
 	who.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_GODMODE), WEIRD_ROUTE_TRAIT)
-	who.remove_filter("weird_route_sink")
+	who.remove_filter(list("weird_route_sink", "weird_route_silo"))
 	who.underlays.Cut()
 	who.pixel_w = who.base_pixel_w
 	who.pixel_z = who.base_pixel_z
@@ -200,7 +208,10 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	return npc
 
 /datum/weird_route/proc/get_screen()
-	return list(box, border, portrait, writing, left_option, right_option, heart, blackout, whiteout, whiteness, void, silhouette) + clouds + memories + wedges + chapter_letters - null
+	. = list()
+	for(var/atom/movable/screen/part as anything in list(box, border, portrait, writing, left_option, right_option, heart, blackout, whiteout, whiteness, void, silhouette) + clouds + memories + wedges + chapter_letters)
+		if(part)
+			. += part
 
 /datum/weird_route/proc/make_screen()
 	box = new(null, null, src)
@@ -216,6 +227,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	heart = new(null, null, src)
 	blackout = new(null, null, src)
 	blackout.color = COLOR_BLACK
+	whiteout = new(null, null, src)
+	whiteness = new(null, null, src)
 	for(var/number in 1 to 3)
 		var/atom/movable/screen/weird_route/pinwheel/cloud = new(null, null, src)
 		// Centred across the screen and a quarter of the way down it, as the game puts it.
@@ -287,7 +300,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 
 /// Changes how loud and how fast a looping sound plays. Volume's the game's (1 is as made, 3 the loudest).
 /datum/weird_route/proc/tune(channel, volume, pitch)
-	var/sound/update = sound(null, channel = channel, volume = clamp(volume * 40, 0, 100))
+	// Only the looping sounds are tuned: an update without repeat would stop them looping.
+	var/sound/update = sound(null, repeat = TRUE, channel = channel, volume = clamp(volume * 40, 0, 100))
 	update.frequency = max(pitch, 0.05)
 	update.status = SOUND_UPDATE
 	SEND_SOUND(player, update)
