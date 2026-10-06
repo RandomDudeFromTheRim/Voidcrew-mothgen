@@ -7,11 +7,12 @@
 	// Moffer's at the water's edge, looking out over it. They come up the path behind her.
 	put(player, 40)
 	player.setDir(EAST)
-	put(moffer, 340)
+	put(moffer, 384)
 	moffer.setDir(EAST)
 	give_shadow(player)
 	give_shadow(moffer)
-	play_sound("ocean.ogg", 40, 0, music_channel, TRUE)
+	play_sound("ocean.ogg", 0, 0, music_channel, TRUE)
+	fade(music_channel, 0, 0.5, 30, 1)
 	var/walk_time = (288 - 40) / 4
 	pan(156 + 320, walk_time)
 	walk_to(player, 288, walk_time, TRUE)
@@ -48,7 +49,7 @@
 	WEIRD_ROUTE_WAIT(15)
 	pose(moffer, "up")
 	WEIRD_ROUTE_WAIT(15)
-	fade(music_channel, 1, 0, 30, 1)
+	fade(music_channel, 0.5, 0, 30, 1)
 	say(list("* I want that./%"), rate = 4)
 	WEIRD_ROUTE_WAIT(90)
 	animate(blackout, alpha = 255, time = 120 * WEIRD_ROUTE_FRAME)
@@ -61,29 +62,29 @@
 		"* Since Dess left.../",
 		CALLBACK(src, PROC_REF(pinwheel_segment)),
 		"* All I've been doing has just been.../%",
-	), rate = 2)
+	))
 	pinwheel_segment()
 	WEIRD_ROUTE_WAIT(30)
-	say(list("* Marching down my path./%"), rate = 2)
+	say(list("* Marching down my path./%"))
 	pinwheel_segment()
 	WEIRD_ROUTE_WAIT(30)
-	say(list("* Staying quiet^1. Getting good grades./%"), rate = 2)
+	say(list("* Staying quiet^1. Getting good grades./%"))
 	pinwheel_turn(TRUE)
 	pinwheel_ripple()
 	WEIRD_ROUTE_WAIT(30)
-	say(list("* It feels like..^1. I've just been watching myself through glass./%"), rate = 2)
+	say(list("* It feels like..^1. I've just been watching myself through glass./%"))
 	WEIRD_ROUTE_WAIT(30)
 	pinwheel_turn()
 	pinwheel_ripple()
-	say(list("* Watching someone else move me through my life./%"), rate = 2)
+	say(list("* Watching someone else move me through my life./%"))
 	WEIRD_ROUTE_WAIT(30)
 	pinwheel_turn()
 	pinwheel_ripple()
-	say(list("* That's why I want..^1. to do something crazy./%"), rate = 2)
+	say(list("* That's why I want..^1. to do something crazy./%"))
 	WEIRD_ROUTE_WAIT(30)
 	pinwheel_turn()
 	pinwheel_ripple()
-	say(list("* That's why I want..^1. to break free./%"), rate = 2)
+	say(list("* That's why I want..^1. to break free./%"))
 	WEIRD_ROUTE_WAIT(30)
 	play_sound("snd_noise.wav")
 	pinwheel_fade()
@@ -92,16 +93,16 @@
 		"* But^1, I can't^1. I couldn't./",
 		"* Because I'm just Noelle./",
 		"* A Noelle that has to do Noelle things./%",
-	), rate = 2)
+	))
 	pinwheel_fade()
 	pose(player, "head_down")
 	pose(moffer, "head_down")
 	put(moffer, 320)
 	WEIRD_ROUTE_WAIT(90)
 	blackout.alpha = 255
-	say(list("* Just like Kris has to do Kris things.../%"), rate = 2)
+	say(list("* Just like Kris has to do Kris things.../%"))
 	WEIRD_ROUTE_WAIT(60)
-	say(list("* But Kris..^1. you changed./%"), rate = 2)
+	say(list("* But Kris..^1. you changed./%"))
 	animate(blackout, alpha = 0, time = 60 * WEIRD_ROUTE_FRAME)
 	WEIRD_ROUTE_WAIT(90)
 	pose(moffer, "exasperated")
@@ -113,7 +114,7 @@
 		"* You found out how to stop being Kris!/",
 		CALLBACK(src, PROC_REF(pose), moffer, "head_down", 8),
 		"* And no one else has noticed.../%",
-	), rate = 2)
+	))
 	WEIRD_ROUTE_WAIT(30)
 	say(list(
 		CALLBACK(src, PROC_REF(set_waver), TRUE),
@@ -128,7 +129,7 @@
 		CALLBACK(src, PROC_REF(shake), moffer),
 		CALLBACK(src, PROC_REF(set_waver), TRUE),
 		"* Without even thinking where it goes!/%",
-	), rate = 2)
+	))
 	WEIRD_ROUTE_WAIT(30)
 	pose(moffer, "head_down")
 	say(list(
@@ -136,10 +137,10 @@
 		"* Kris.../",
 		CALLBACK(src, PROC_REF(pose), moffer, "hands_to_chest", 30),
 		"* Being around you.../%",
-	), rate = 2)
+	))
 	WEIRD_ROUTE_WAIT(60)
 	pose(moffer, "hands_to_chest_head_down")
-	say(list("* Is changing me^1, too./%"), rate = 2)
+	say(list("* Is changing me^1, too./%"))
 	WEIRD_ROUTE_WAIT(15)
 	say(list(
 		"* K..^1. Kris.../",
@@ -148,7 +149,7 @@
 		"* I.../",
 		CALLBACK(src, PROC_REF(pose), moffer, "hands_to_chest_head_down_more", 8),
 		"* I felt stronger than I have in my entire life./%",
-	), rate = 2)
+	))
 	WEIRD_ROUTE_WAIT(30)
 	// They look up; she drops to the ground.
 	pose(player, "rest", 15)
@@ -162,7 +163,7 @@
 	say(list(
 		CALLBACK(src, PROC_REF(set_waver), TRUE),
 		"* I know..^1. it's horrible^1. It's horrible to say that^1, but.../%",
-	), rate = 2)
+	))
 	pose(moffer, "kneel", 30)
 	WEIRD_ROUTE_WAIT(60)
 	pose(moffer, "kneel_head_down")
@@ -174,13 +175,13 @@
 		"* If you tell me to^1, I can do things that are impossible./",
 		CALLBACK(src, PROC_REF(pose), moffer, "kneel", 8),
 		"* Things no one else can do./%",
-	), rate = 2)
+	))
 	WEIRD_ROUTE_WAIT(30)
 	pose(moffer, "kneel_head_up")
-	say(list("* So^1, why don't we do it?/%"), rate = 2)
+	say(list("* So^1, why don't we do it?/%"))
 	pose(moffer, "kneel_head_down")
 	WEIRD_ROUTE_WAIT(30)
-	say(list("* Why don't we do.../%"), rate = 2)
+	say(list("* Why don't we do.../%"))
 	// She gets up and comes to them.
 	pose(player, "head_down", 16)
 	pose(moffer, "rest")
@@ -191,7 +192,7 @@
 		"* \"Something crazy?\"/",
 		CALLBACK(src, PROC_REF(pose), moffer, "head_down", 8),
 		"* Tell me./%",
-	), rate = 2)
+	))
 	pose(moffer, "hands_to_chest", 30)
 	WEIRD_ROUTE_WAIT(45)
 	say(list(
@@ -202,7 +203,7 @@
 		CALLBACK(src, PROC_REF(shake), moffer),
 		CALLBACK(src, PROC_REF(set_waver), TRUE),
 		"* To somewhere no one has ever been before!/%",
-	), rate = 2)
+	))
 	pose(moffer, "walk_left_hands_up")
 	walk_to(moffer, 320, 30)
 	WEIRD_ROUTE_WAIT(45)
@@ -219,7 +220,7 @@
 		"* The other side of the lake./",
 		"* We always wanted to see what was there^1, didn't we?/",
 		"* The four of us^1, when we were kids.../%",
-	), rate = 2)
+	))
 	WEIRD_ROUTE_WAIT(12)
 	moffer.setDir(WEST)
 	WEIRD_ROUTE_WAIT(14)
@@ -232,7 +233,7 @@
 		"* You'll tell me^1, won't you?/",
 		CALLBACK(src, PROC_REF(pose), moffer, "hands_to_chest_head_down", 8),
 		"* If you tell me to^1, I can do anything./%",
-	), rate = 2)
+	))
 	pose(moffer, "walk_left_hands_up")
 	walk_to(moffer, 305, 30, TRUE)
 	if(QDELETED(src))
@@ -242,7 +243,7 @@
 	pose(moffer, "take_hands", 30)
 	pose(player, "take_hands", 30)
 	WEIRD_ROUTE_WAIT(30)
-	say(list("* So..^1. tell me^1, Kris./%"), rate = 2)
+	say(list("* So..^1. tell me^1, Kris./%"))
 	fade(music_channel, 0.7, 0, 60, 0.95)
 	WEIRD_ROUTE_WAIT(30)
 	// And leads them down to the water, hand in hand.
@@ -254,7 +255,7 @@
 	walk_to(moffer, WEIRD_ROUTE_HANDOFF_X, 120)
 	walk_to(player, WEIRD_ROUTE_HANDOFF_X - 17, 120)
 	WEIRD_ROUTE_WAIT(150)
-	say(list("* The words..^1. I've been waiting to hear./%"), rate = 2)
+	say(list("* The words..^1. I've been waiting to hear./%"))
 	WEIRD_ROUTE_WAIT(60)
 	ask()
 
@@ -383,8 +384,14 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	put(player, x - 17)
 	camera_x = x + 170
 	update_camera()
-	// Into the water to their knees, then their waists, then gone (the game's submerge object).
-	var/depth = clamp((x - 420) / (1024 - 420), 0, 1) * 44
+	// Into the water to their knees, then their waists, then gone, as the game's submerge object
+	// steps through its 47 frames of them going under between 240 and 928.
+	var/going = weird_route_submerged(x)
+	var/depth = going * 48
+	// Their shadow (one between them, from her) shrinking as there's less of them above the water.
+	var/shadow_left = going >= 1 ? 22 + round(clamp((x - 928) / (1066 - 928), 0, 1) * 7) : round(going * 47 / 2)
+	give_shadow(moffer, length = floor(58 * (1 - clamp(shadow_left / 33, 0, 1))))
+	player.underlays.Cut()
 	for(var/mob/living/who as anything in list(moffer, player))
 		var/list/sink = who.get_filter("weird_route_sink")
 		if(!sink)
@@ -392,14 +399,20 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		else
 			who.modify_filter("weird_route_sink", list("y" = 32 + depth))
 
+/// How far under they are at x, 0 to 1: the game's mix of an ease-in-back and an ease-in-cubic.
+/proc/weird_route_submerged(x)
+	var/progress = max((x - 240) / (928 - 240), 0)
+	var/overshoot = 1.70158
+	var/back = progress * progress * ((overshoot + 1) * progress - overshoot)
+	var/cubic = progress ** 3
+	return clamp(back + (cubic - back) * 2 / 3, 0, 1)
+
 /// Plays one of the asking's layered sounds at volume (the game's 0 to 1), if it's loud enough to hear.
 /datum/weird_route/proc/play_layer(name, volume, pitch = 1)
 	if(volume > 0)
 		play_sound(name, volume * 60, pitch == 1 ? 0 : pitch)
 
 /datum/weird_route/proc/ask()
-	moffer.underlays.Cut()
-	player.underlays.Cut()
 	var/textind = 0
 	var/stops = 0
 	var/state = "ask"
@@ -421,6 +434,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	var/whiteout_alpha = 0
 	var/whiteness_alpha = 0
 	var/blur = 0
+	var/blur_flicker = 0
 	var/hurt_timer = 0
 	var/hurt_timer_2 = 0
 	var/static_started = FALSE
@@ -436,7 +450,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 				var/line = GLOB.weird_route_proceed_lines[min(textind + 1, length(GLOB.weird_route_proceed_lines))]
 				textind++
 				var/list/options = list(textind >= 7 ? "Proceed" : "Stop", "Proceed")
-				INVOKE_ASYNC(src, PROC_REF(write), line ? (islist(line) ? line : list(line)) : list(), "snd_txtnoe.wav", !!line, 1, options)
+				INVOKE_ASYNC(src, PROC_REF(write), line ? (islist(line) ? line : list(line)) : list(), "snd_txtnoe.wav", !!line, 2, options)
 				state = "choosing"
 			if("choosing")
 				if(chosen)
@@ -453,7 +467,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 			if("stopped")
 				timer += frames
 				if(timer >= 2)
-					INVOKE_ASYNC(src, PROC_REF(write), GLOB.weird_route_stop_lines[min(stops + 1, length(GLOB.weird_route_stop_lines))], "snd_txtnoe.wav", TRUE, 1)
+					INVOKE_ASYNC(src, PROC_REF(write), GLOB.weird_route_stop_lines[min(stops + 1, length(GLOB.weird_route_stop_lines))], "snd_txtnoe.wav", TRUE, 2)
 					stops++
 					state = "walk_wait"
 					timer = 0
@@ -520,7 +534,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 				timer += frames
 				if(timer >= 300)
 					stop_sounds()
-					INVOKE_ASYNC(src, PROC_REF(meat_factory))
+					INVOKE_ASYNC(src, PROC_REF(insert_chapter))
 					return
 		if(QDELETED(src))
 			return
@@ -559,15 +573,23 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 			whiteout_alpha += (fail_progress - whiteout_alpha) * (1 - (1 - 1 / 30) ** frames)
 			whiteout.alpha = clamp(whiteout_alpha, 0, 1) * 255
 
-		// Blurring as they go deeper.
+		// Blurring as they go deeper (the game's blur2): a sideways smear and a soft blur, flickering
+		// every other frame somewhere between its base and up to twice that.
 		blur += ((actor_x - 940) / (1453 - 940) - blur) * (1 - (1 - 1 / 60) ** frames)
+		blur_flicker += frames
 		var/atom/movable/plane_master_controller/game = player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]
-		if(game && blur > 0)
-			var/size = 3 * (1 - (1 - min(blur, 1)) ** 3) + fail_progress
+		if(game && blur > 0 && blur_flicker >= 2)
+			blur_flicker = 0
+			var/base = 3 * (1 - (1 - min(blur, 1)) ** 3) + fail_progress
+			var/amount = base + rand() * (base * LERP(1, 2, min(blur, 1)) - base)
+			var/smear = amount / 5 * 2
+			var/soft = 2 ** (10 * min(amount / 5, 1) - 10) * 2
 			if(!game.get_filter("weird_route_blur"))
-				game.add_filter("weird_route_blur", 1, gauss_blur_filter(size))
+				game.add_filter("weird_route_blur", 1, motion_blur_filter(smear, 0))
+				game.add_filter("weird_route_soften", 2, gauss_blur_filter(soft))
 			else
-				game.modify_filter("weird_route_blur", list("size" = size))
+				game.modify_filter("weird_route_blur", list("x" = smear))
+				game.modify_filter("weird_route_soften", list("size" = soft))
 
 		// The chant: rising out of nothing, then deep and loud under the water, then sinking and climbing.
 		if(music_started)
@@ -588,7 +610,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 			if(textind >= WEIRD_ROUTE_END_INDEX - 20)
 				target_volume = LERP(3, 0, progress(textind, WEIRD_ROUTE_END_INDEX - 19, WEIRD_ROUTE_END_INDEX))
 			music_volume += (target_volume - music_volume) * (1 - (1 - 1 / 30) ** frames)
-			if(!submerged && actor_x >= 1024)
+			if(!submerged && weird_route_submerged(actor_x) >= 1)
 				music_volume = 3
 				music_pitch = 0.4
 				submerged = TRUE
@@ -640,7 +662,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 /// They hesitated too long: white, going to black, and then she's wrong about it all.
 /datum/weird_route/proc/fail()
 	stop_writing()
-	player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter("weird_route_blur")
+	player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter(list("weird_route_blur", "weird_route_soften"))
 	whiteout.alpha = 255
 	whiteout.color = COLOR_WHITE
 	animate(whiteout, color = COLOR_BLACK, time = 60 * WEIRD_ROUTE_FRAME, easing = CUBIC_EASING | EASE_IN | EASE_OUT)
@@ -659,19 +681,83 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		"* Kris hadn't changed./",
 		"* I hadn't changed./",
 		"* I had simply^2&gotten carried away./%",
-	), "snd_txtnoe.wav", FALSE, 1, null, FALSE)
+	), "snd_txtnoe.wav", FALSE, 2, null, FALSE)
 	qdel(src)
 
-/// They made it all the way in: they come out in the Meat Factory. (The game's own ending,
-/// obj_ch5_LW20W_end, wasn't to hand: this is the theory's.)
+/**
+ * They made it all the way in: the game's ending (obj_ch5_LW20W_end). Black, a sound looping, then
+ * "INSERT CHAPTER 7" a letter at a time; a pause; and where the game spells out " SIDE B", slower,
+ * this spells out where they're really going. Then the Meat Factory, rather than the game restarting.
+ */
+/datum/weird_route/proc/insert_chapter()
+	stop_writing()
+	whiteness.alpha = 0
+	whiteout.alpha = 0
+	blackout.alpha = 255
+	blackout.plane = ABOVE_HUD_PLANE
+	player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter(list("weird_route_blur", "weird_route_soften"))
+	play_sound("snd_next.wav", 100, 0, music_channel, TRUE)
+	// The letters, white, with red and blue ghosts of them either side (the game's aberration shader).
+	for(var/ghost in list("#ff3030", "#30a0ff", COLOR_WHITE))
+		var/atom/movable/screen/weird_route/text/letters = new(null, null, src)
+		letters.screen_loc = "CENTER-7:16,NORTH-3"
+		letters.plane = ABOVE_HUD_PLANE
+		letters.layer = 10
+		letters.maptext_x = 0
+		letters.maptext_width = 448
+		letters.maptext_height = 40
+		if(ghost != COLOR_WHITE)
+			letters.blend_mode = BLEND_ADD
+			letters.pixel_w = ghost == "#ff3030" ? -1 : 1
+			// Swimming in and out every four seconds.
+			animate(letters, alpha = 0, time = 20, loop = -1, easing = SINE_EASING)
+			animate(alpha = 255, time = 20, easing = SINE_EASING)
+		letters.color = ghost
+		chapter_letters += letters
+		player.client?.screen += letters
+	var/shown = ""
+	var/list/reveal_at = list()
+	// "INSERT CHAPTER 7": a letter every third of a second.
+	for(var/i in 0 to 15)
+		reveal_at += round((i + 1) / 3 * 30)
+	// Then, four seconds on, slower.
+	for(var/i in 15 to 15 + length(WEIRD_ROUTE_DESTINATION) - 1)
+		reveal_at += round((i / 3 * 1.4 + 4) * 30)
+	var/full = "INSERT CHAPTER 7" + WEIRD_ROUTE_DESTINATION
+	WEIRD_ROUTE_WAIT(151)
+	var/timer = 0
+	for(var/index in 1 to length(full))
+		WEIRD_ROUTE_WAIT(reveal_at[index] - timer)
+		timer = reveal_at[index]
+		shown = copytext(full, 1, index + 1)
+		for(var/atom/movable/screen/weird_route/text/letters as anything in chapter_letters)
+			letters.maptext = "<span style='font-family: \"VCR OSD Mono\"; font-size: 18pt; color: #ffffff; text-align: center'>[html_encode(copytext(shown, 1, 17))]<br>[html_encode(copytext(shown, 17))]</span>"
+	// Ten seconds of it, then ten more, or until they press something.
+	WEIRD_ROUTE_WAIT(300)
+	confirm_pressed = FALSE
+	var/until = world.time + 10 SECONDS
+	while(!confirm_pressed && world.time < until)
+		sleep(world.tick_lag)
+		if(QDELETED(src))
+			return
+	stop_sounds()
+	for(var/atom/movable/screen/part as anything in chapter_letters)
+		player.client?.screen -= part
+		qdel(part)
+	chapter_letters.Cut()
+	blackout.plane = FULLSCREEN_PLANE
+	whiteout.color = COLOR_WHITE
+	whiteout.alpha = 255
+	blackout.alpha = 0
+	meat_factory()
+
+/// They come out in the Meat Factory.
 /datum/weird_route/proc/meat_factory()
-	animate(whiteout, alpha = 255, color = COLOR_WHITE, time = 30 * WEIRD_ROUTE_FRAME)
-	WEIRD_ROUTE_WAIT(30)
 	factory = weird_route_build_factory()
 	if(!factory)
 		qdel(src)
 		return
-	player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter("weird_route_blur")
+	player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter(list("weird_route_blur", "weird_route_soften"))
 	var/turf/factory_origin = factory.bottom_left_turfs[1]
 	var/turf/arrival = locate(factory_origin.x + WEIRD_ROUTE_FACTORY_WIDTH / 2, factory_origin.y + 4, factory_origin.z)
 	for(var/mob/living/carbon/human/who as anything in list(player, moffer))

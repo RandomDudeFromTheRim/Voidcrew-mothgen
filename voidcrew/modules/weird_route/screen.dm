@@ -59,7 +59,7 @@
 /atom/movable/screen/weird_route/text/option
 	maptext_width = 140
 	maptext_height = 20
-	maptext_y = 10
+	maptext_y = WEIRD_ROUTE_OPTION_Y - 6
 	mouse_opacity = MOUSE_OPACITY_OPAQUE
 	/// 1 for the left, 2 for the right.
 	var/index = 1

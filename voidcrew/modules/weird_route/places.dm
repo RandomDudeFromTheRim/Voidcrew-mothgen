@@ -13,17 +13,21 @@
 
 /// Where the Weird Route's sounds are looked for.
 #define WEIRD_ROUTE_SOUNDS "data/weird_route/"
+/// Spelled out where the game's ending spells out " SIDE B".
+#define WEIRD_ROUTE_DESTINATION " MEAT FACTORY"
 /// Deltarune runs at 30 frames a second: this many deciseconds to a frame.
 #define WEIRD_ROUTE_FRAME (1 / 3)
+/// Our pixels to one of the game's (its units are its own pixels: Noelle's 46 tall, a person here 32).
+#define WEIRD_ROUTE_SCALE 0.7
 /// The lake, in tiles: room enough that the camera never sees past it.
-#define WEIRD_ROUTE_LAKE_WIDTH 44
+#define WEIRD_ROUTE_LAKE_WIDTH 52
 #define WEIRD_ROUTE_LAKE_HEIGHT 17
 /// The row everyone walks along.
 #define WEIRD_ROUTE_LAKE_ROW 9
 /// Tiles of path to the west of where the scene's own room starts (the game's x of 0).
 #define WEIRD_ROUTE_LAKE_LEFT 8
-/// The tile the shore's on: where they first get their feet wet, about 400 of the game's units in.
-#define WEIRD_ROUTE_LAKE_SHORE (WEIRD_ROUTE_LAKE_LEFT + 7)
+/// The tile the shore's on: where they first get their feet wet, 400 of the game's units in.
+#define WEIRD_ROUTE_LAKE_SHORE (WEIRD_ROUTE_LAKE_LEFT + 9)
 /// The Meat Factory, in tiles.
 #define WEIRD_ROUTE_FACTORY_WIDTH 56
 #define WEIRD_ROUTE_FACTORY_HEIGHT 40
