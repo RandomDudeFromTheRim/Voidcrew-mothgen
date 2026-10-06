@@ -55,7 +55,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/atom/movable/screen/weird_route/heart/heart
 	/// All black, over everything but the box.
 	var/atom/movable/screen/weird_route/fill/blackout
-	/// The ominous fade while she remembers yesterday: three dark clouds behind them, breathing.
+	/// The ominous fade while she remembers yesterday: the world going dark behind them but for a soft
+	/// patch up top, three times over, breathing.
 	var/list/atom/movable/screen/weird_route/pinwheel/clouds = list()
 	/// Whether the clouds are out (the game's fadecon: 1 while they are, 2 once they've gone).
 	var/clouds_state = 0
@@ -217,8 +218,10 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	blackout.color = COLOR_BLACK
 	for(var/number in 1 to 3)
 		var/atom/movable/screen/weird_route/pinwheel/cloud = new(null, null, src)
+		// Centred across the screen and a quarter of the way down it, as the game puts it.
+		cloud.icon = 'voidcrew/modules/weird_route/icons/weird_route_fade.dmi'
 		cloud.icon_state = "fade"
-		cloud.screen_loc = "CENTER-7,CENTER-7:60"
+		cloud.screen_loc = "CENTER-9:19,CENTER-5:11"
 		clouds += cloud
 		var/atom/movable/screen/weird_route/pinwheel/wedge = new(null, null, src)
 		wedge.icon_state = "wedge"
@@ -237,7 +240,7 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	silhouette.screen_loc = "CENTER,CENTER:28"
 	silhouette.layer = MOB_LAYER - 0.25
 	silhouette.appearance_flags |= KEEP_TOGETHER
-	silhouette.add_filter("weird_route_silhouette", 1, color_matrix_filter(list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0.06, 0.03, 0.08)))
+	silhouette.add_filter("weird_route_silhouette", 1, color_matrix_filter(list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)))
 	show_box(FALSE)
 	show_choices(FALSE)
 	player.client.screen += get_screen()

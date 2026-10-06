@@ -296,8 +296,8 @@
 	if(!target)
 		SEND_SOUND(player, sound(null, channel = channel))
 
-// The ominous fade (the game's obj_ch5_LW20W_vfx): three dark clouds over the middle of the screen,
-// behind the two of them, each fading in slower than the last and breathing a little.
+// The ominous fade (the game's obj_ch5_LW20W_vfx): three of its sprite, black all over but for a soft
+// patch near the top, behind the two of them, each fading in slower than the last and breathing.
 
 /datum/weird_route/proc/clouds_in()
 	clouds_state = 1
