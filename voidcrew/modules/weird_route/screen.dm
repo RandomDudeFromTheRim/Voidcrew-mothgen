@@ -90,7 +90,8 @@
 	plane = GAME_PLANE
 	layer = MOB_LAYER - 0.2
 
-/// The pinwheel turning behind the monologue, its wedges fading in a pair at a time.
+/// Part of the pinwheel behind the monologue (a memory, the wedge it shows through, the silhouette), or
+/// one of the ominous clouds before it: over the lake, under the two of them.
 /atom/movable/screen/weird_route/pinwheel
 	icon = 'voidcrew/modules/weird_route/icons/weird_route_pinwheel.dmi'
 	screen_loc = "CENTER-7,CENTER-7"

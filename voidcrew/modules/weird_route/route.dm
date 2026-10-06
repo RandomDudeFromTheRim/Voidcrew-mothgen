@@ -49,26 +49,41 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/atom/movable/screen/weird_route/box/box
 	var/atom/movable/screen/weird_route/box/border/border
 	var/atom/movable/screen/weird_route/box/portrait/portrait
-	var/atom/movable/screen/weird_route/text/text
+	var/atom/movable/screen/weird_route/text/writing
 	var/atom/movable/screen/weird_route/text/option/left_option
 	var/atom/movable/screen/weird_route/text/option/right_option
 	var/atom/movable/screen/weird_route/heart/heart
 	/// All black, over everything but the box.
 	var/atom/movable/screen/weird_route/fill/blackout
-	/// A cold blue over the lake while she remembers yesterday.
-	var/atom/movable/screen/weird_route/fill/memory
+	/// The ominous fade while she remembers yesterday: three dark clouds behind them, breathing.
+	var/list/atom/movable/screen/weird_route/pinwheel/clouds = list()
+	/// Whether the clouds are out (the game's fadecon: 1 while they are, 2 once they've gone).
+	var/clouds_state = 0
 	/// White over everything when they've hesitated too long.
 	var/atom/movable/screen/weird_route/fill/whiteout
 	/// White behind the two of them, taking the lake away.
 	var/atom/movable/screen/weird_route/fill/behind/whiteness
-	/// The pinwheel's wedges, a pair to each, in the order they fade in.
-	var/list/atom/movable/screen/weird_route/pinwheel/pinwheel = list()
-	/// How many of its wedges are showing.
-	var/pinwheel_shown = 0
-	/// How long it takes to turn once, in deciseconds, or 0 while it's still.
-	var/pinwheel_period = 0
-	/// How hard it ripples.
+	/// The pinwheel (the game's _rotate_vfx): three places from life aboard, each showing through its
+	/// own third of a turning wheel, over black, a silhouette of Moffer kneeling in the middle.
+	var/list/atom/movable/screen/weird_route/pinwheel/memories = list()
+	/// The wedges the memories show through, by memory: each one's mask (a render target).
+	var/list/atom/movable/screen/weird_route/pinwheel/wedges = list()
+	/// Black behind it all, under the two of them.
+	var/atom/movable/screen/weird_route/fill/behind/void
+	/// Moffer kneeling, a silhouette in the middle of it: a Moffer of its own, kept nowhere.
+	var/atom/movable/screen/weird_route/pinwheel/silhouette
+	var/mob/living/carbon/human/vision
+	/// Whether it's going, and turning.
+	var/pinwheel_on = FALSE
+	var/pinwheel_turning = FALSE
+	var/pinwheel_slowing = FALSE
+	var/pinwheel_angle = 270
+	/// How many degrees a frame it turns by, and how fast its ripples grow.
+	var/pinwheel_turn_speed = 0
+	var/pinwheel_wave_speed = 0
 	var/pinwheel_wave = 0
+	/// How many of the memories are fading in.
+	var/pinwheel_segments = 0
 	/// The ending's letters and their coloured ghosts.
 	var/list/atom/movable/screen/weird_route/text/chapter_letters = list()
 
@@ -146,6 +161,7 @@ GLOBAL_LIST_EMPTY(weird_routes)
 			player.forceMove(came_from || get_safe_random_station_turf())
 	player = null
 	QDEL_NULL(moffer)
+	QDEL_NULL(vision)
 	for(var/atom/movable/screen/part as anything in get_screen())
 		qdel(part)
 	SSsounds.free_datum_channels(src)
@@ -183,13 +199,13 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	return npc
 
 /datum/weird_route/proc/get_screen()
-	return list(box, border, portrait, text, left_option, right_option, heart, blackout, memory, whiteout, whiteness) + pinwheel + chapter_letters - null
+	return list(box, border, portrait, writing, left_option, right_option, heart, blackout, whiteout, whiteness, void, silhouette) + clouds + memories + wedges + chapter_letters - null
 
 /datum/weird_route/proc/make_screen()
 	box = new(null, null, src)
 	border = new(null, null, src)
 	portrait = new(null, null, src)
-	text = new(null, null, src)
+	writing = new(null, null, src)
 	left_option = new(null, null, src)
 	left_option.index = 1
 	left_option.maptext_x = WEIRD_ROUTE_LEFT_OPTION - 70
@@ -199,14 +215,29 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	heart = new(null, null, src)
 	blackout = new(null, null, src)
 	blackout.color = COLOR_BLACK
-	memory = new(null, null, src)
-	memory.color = "#0a1650"
-	whiteout = new(null, null, src)
-	whiteness = new(null, null, src)
-	for(var/wedges in 1 to 4)
-		var/atom/movable/screen/weird_route/pinwheel/pair = new(null, null, src)
-		pair.icon_state = "pinwheel[wedges]"
-		pinwheel += pair
+	for(var/number in 1 to 3)
+		var/atom/movable/screen/weird_route/pinwheel/cloud = new(null, null, src)
+		cloud.icon_state = "fade"
+		cloud.screen_loc = "CENTER-7,CENTER-7:60"
+		clouds += cloud
+		var/atom/movable/screen/weird_route/pinwheel/wedge = new(null, null, src)
+		wedge.icon_state = "wedge"
+		wedge.alpha = 255
+		wedge.render_target = "*weird_route_wedge_[number]"
+		wedges += wedge
+		var/atom/movable/screen/weird_route/pinwheel/place = new(null, null, src)
+		place.icon_state = "memory[number]"
+		place.add_filter("weird_route_wedge", 1, alpha_mask_filter(render_source = "*weird_route_wedge_[number]"))
+		memories += place
+	void = new(null, null, src)
+	void.color = COLOR_BLACK
+	void.layer = MOB_LAYER - 0.35
+	silhouette = new(null, null, src)
+	silhouette.icon = null
+	silhouette.screen_loc = "CENTER,CENTER:28"
+	silhouette.layer = MOB_LAYER - 0.25
+	silhouette.appearance_flags |= KEEP_TOGETHER
+	silhouette.add_filter("weird_route_silhouette", 1, color_matrix_filter(list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0.06, 0.03, 0.08)))
 	show_box(FALSE)
 	show_choices(FALSE)
 	player.client.screen += get_screen()
@@ -323,12 +354,12 @@ GLOBAL_LIST_EMPTY(weird_routes)
 
 /// A long shadow behind someone, the sun low over the water (the game's sunset shadows: 62 of its
 /// pixels, dark red-brown), or in the Meat Factory off the white. Length in the game's pixels.
-/datum/weird_route/proc/give_shadow(mob/living/who, toward = WEST, colour = "#490b01", length = 62)
+/datum/weird_route/proc/give_shadow(mob/living/who, toward = WEST, colour = "#490b01", shadow_length = 62)
 	who.underlays.Cut()
-	if(length <= 0)
+	if(shadow_length <= 0)
 		return
 	var/image/shadow = image('voidcrew/modules/weird_route/icons/weird_route.dmi', "shadow")
-	var/pixels = length * WEIRD_ROUTE_SCALE
+	var/pixels = shadow_length * WEIRD_ROUTE_SCALE
 	var/matrix/stretch = matrix()
 	stretch.Scale(pixels / 32, 1)
 	// From their back foot, out the way the sun throws it.
@@ -425,10 +456,10 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	box.alpha = shown ? 255 : 0
 	border.alpha = shown ? 255 : 0
 	portrait.alpha = shown && with_portrait ? 255 : 0
-	text.maptext_x = with_portrait ? 90 : 18
-	text.maptext_width = with_portrait ? 340 : 410
+	writing.maptext_x = with_portrait ? 90 : 18
+	writing.maptext_width = with_portrait ? 340 : 410
 	if(!shown)
-		text.maptext = null
+		writing.maptext = null
 
 /datum/weird_route/proc/show_choices(shown)
 	left_option.alpha = shown ? 255 : 0
@@ -454,9 +485,9 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	return COLOR_WHITE
 
 /// One colour going over to another, 0 to 1 of the way: the game's merge_color().
-/proc/weird_route_blend(from, to, amount)
+/proc/weird_route_blend(from, target, amount)
 	var/list/a = rgb2num(from)
-	var/list/b = rgb2num(to)
+	var/list/b = rgb2num(target)
 	amount = clamp(amount, 0, 1)
 	return rgb(a[1] + (b[1] - a[1]) * amount, a[2] + (b[2] - a[2]) * amount, a[3] + (b[3] - a[3]) * amount)
 
@@ -531,12 +562,12 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/shown = ""
 	var/owed = 0
 	var/last_voice = 0
-	var/length = length(message)
+	var/message_length = length(message)
 	var/index = 1
-	while(index <= length)
+	while(index <= message_length)
 		var/letter = message[index]
 		index++
-		if(letter == "^" && index <= length && text2num(message[index]))
+		if(letter == "^" && index <= message_length && text2num(message[index]))
 			owed += text2num(message[index]) * 10 * WEIRD_ROUTE_FRAME
 			index++
 			continue
@@ -549,12 +580,12 @@ GLOBAL_LIST_EMPTY(weird_routes)
 			last_voice = world.time
 			play_sound(voice, 60, voice_waver ? 0.8 + rand() * 0.4 : 0)
 		if(owed >= world.tick_lag)
-			text.maptext = weird_route_text(shown, text_colour())
+			writing.maptext = weird_route_text(shown, text_colour())
 			sleep(owed)
 			owed = 0
 			if(token != writer_token)
 				return
-	text.maptext = weird_route_text(shown, text_colour())
+	writing.maptext = weird_route_text(shown, text_colour())
 
 /// Stops whatever's being typed or chosen, and puts the box away.
 /datum/weird_route/proc/stop_writing()

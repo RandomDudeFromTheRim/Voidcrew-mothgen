@@ -27,8 +27,8 @@
 		"* (But..^1. eventually...)/",
 		"* (We're going to have to face the truth.)/%",
 	), "snd_text.wav")
-	// Remembering yesterday (the game's _vfx; what it draws is its own, so here, a cold blue).
-	animate(memory, alpha = 90, time = 30 * WEIRD_ROUTE_FRAME)
+	// Remembering yesterday: the ominous fade.
+	clouds_in()
 	WEIRD_ROUTE_WAIT(200)
 	say(list(
 		"* (Yesterday^1, when..^1. everything happened...)/",
@@ -39,11 +39,16 @@
 		"* (...)/",
 		"* (And you know what terrified me the most about that?)/%",
 	), "snd_text.wav")
-	animate(memory, alpha = 0, time = 30 * WEIRD_ROUTE_FRAME)
-	// She looks back at them.
+	clouds_out()
+	// She looks back at them, her shadow shortening as she turns.
 	WEIRD_ROUTE_WAIT(24)
 	moffer.setDir(WEST)
-	WEIRD_ROUTE_WAIT(61)
+	give_shadow(moffer)
+	WEIRD_ROUTE_WAIT(31)
+	while(clouds_state != 2)
+		WEIRD_ROUTE_WAIT(1)
+	clouds_hide()
+	WEIRD_ROUTE_WAIT(30)
 	pose(moffer, "up_head_tilt")
 	say(list("* (I think...)/%"), "snd_text.wav")
 	WEIRD_ROUTE_WAIT(15)
@@ -89,17 +94,19 @@
 	play_sound("snd_noise.wav")
 	pinwheel_fade()
 	WEIRD_ROUTE_WAIT(30)
+	pinwheel_kneel()
 	say(list(
 		"* But^1, I can't^1. I couldn't./",
 		"* Because I'm just Noelle./",
 		"* A Noelle that has to do Noelle things./%",
 	))
-	pinwheel_fade()
+	pinwheel_silhouette_out()
 	pose(player, "head_down")
 	pose(moffer, "head_down")
 	put(moffer, 320)
 	WEIRD_ROUTE_WAIT(90)
 	blackout.alpha = 255
+	pinwheel_clean_up()
 	say(list("* Just like Kris has to do Kris things.../%"))
 	WEIRD_ROUTE_WAIT(60)
 	say(list("* But Kris..^1. you changed./%"))
@@ -276,50 +283,148 @@
 			return
 
 /// Fades a looping sound from one volume to another over this many frames (the game's mus_volume()).
-/datum/weird_route/proc/fade(channel, from, to, frames, pitch)
+/datum/weird_route/proc/fade(channel, from, target, frames, pitch)
 	set waitfor = FALSE
 	var/started = world.time
 	var/took = frames * WEIRD_ROUTE_FRAME
 	while(world.time < started + took)
-		tune(channel, from + (to - from) * (world.time - started) / took, pitch)
+		tune(channel, from + (target - from) * (world.time - started) / took, pitch)
 		sleep(world.tick_lag)
 		if(QDELETED(src))
 			return
-	tune(channel, to, pitch)
-	if(!to)
+	tune(channel, target, pitch)
+	if(!target)
 		SEND_SOUND(player, sound(null, channel = channel))
 
-// The pinwheel (the game's _rotate_vfx: what it draws is its own, so this is a stand-in).
+// The ominous fade (the game's obj_ch5_LW20W_vfx): three dark clouds over the middle of the screen,
+// behind the two of them, each fading in slower than the last and breathing a little.
+
+/datum/weird_route/proc/clouds_in()
+	clouds_state = 1
+	var/list/fade_times = list(300, 360, 420)
+	for(var/number in 1 to 3)
+		var/atom/movable/screen/weird_route/pinwheel/cloud = clouds[number]
+		cloud.alpha = 0
+		animate(cloud, alpha = 255, time = fade_times[number] * WEIRD_ROUTE_FRAME)
+	INVOKE_ASYNC(src, PROC_REF(clouds_breathe))
+
+/datum/weird_route/proc/clouds_breathe()
+	var/breath = 0
+	while(clouds_state == 1 && !QDELETED(src))
+		breath++
+		var/matrix/first = matrix()
+		first.Scale(1, abs(sin(breath / 60 * 180 / PI) * 0.05) + 0.85)
+		var/matrix/second = matrix()
+		second.Scale(abs(sin(breath / 90 * 180 / PI) * 0.05) + 0.85, 1)
+		var/matrix/third = matrix()
+		third.Scale(abs(sin(breath / 90 * 180 / PI) * 0.05) + 0.85, abs(cos(breath / 90 * 180 / PI) * 0.05) + 0.85)
+		var/list/shapes = list(first, second, third)
+		for(var/number in 1 to 3)
+			var/atom/movable/screen/weird_route/pinwheel/cloud = clouds[number]
+			cloud.transform = shapes[number]
+		sleep(WEIRD_ROUTE_FRAME)
+
+/datum/weird_route/proc/clouds_out()
+	set waitfor = FALSE
+	var/list/fade_times = list(120, 180, 240)
+	for(var/number in 1 to 3)
+		animate(clouds[number], alpha = 0, time = fade_times[number] * WEIRD_ROUTE_FRAME)
+	sleep(240 * WEIRD_ROUTE_FRAME)
+	if(!QDELETED(src))
+		clouds_state = 2
+
+/datum/weird_route/proc/clouds_hide()
+	clouds_state = 0
+	for(var/atom/movable/screen/weird_route/pinwheel/cloud as anything in clouds)
+		cloud.alpha = 0
+
+// The pinwheel (the game's obj_ch5_LW20W_rotate). The game shows Dess's room, Noelle's house and the
+// school, caught on the way here; these are a bridge, an engine room and a medbay, off the server.
 
 /datum/weird_route/proc/pinwheel_start()
-	pinwheel_shown = 0
-	pinwheel_segment()
+	pinwheel_on = TRUE
+	void.alpha = 255
+	vision = make_moffer()
+	vision.moveToNullspace()
+	vision.setDir(EAST)
+	vision.limb_rig?.set_seated("crouch")
+	silhouette.vis_contents += vision
+	silhouette.alpha = 0
+	animate(silhouette, alpha = 255, time = 60 * WEIRD_ROUTE_FRAME)
+	INVOKE_ASYNC(src, PROC_REF(pinwheel_process))
+
+/// Turns it, fades its memories in and ripples them, a frame at a time, as the game's step does.
+/datum/weird_route/proc/pinwheel_process()
+	var/last = world.time
+	while(pinwheel_on && !QDELETED(src))
+		var/frames = (world.time - last) / WEIRD_ROUTE_FRAME
+		last = world.time
+		if(pinwheel_turning)
+			if(!pinwheel_slowing || pinwheel_angle > 270 || pinwheel_angle < 180)
+				pinwheel_angle += pinwheel_turn_speed * frames
+			else
+				pinwheel_angle += (270 - pinwheel_angle) * (1 - 0.95 ** frames)
+			if(pinwheel_angle > 360)
+				pinwheel_angle -= 360
+		for(var/number in 1 to 3)
+			var/atom/movable/screen/weird_route/pinwheel/wedge = wedges[number]
+			wedge.transform = turn(matrix(), pinwheel_angle - 270 + (number - 1) * 120)
+			var/atom/movable/screen/weird_route/pinwheel/place = memories[number]
+			if(pinwheel_segments >= number)
+				place.alpha = min(place.alpha + 0.02 * 255 * frames, 255)
+		pinwheel_wave = min(pinwheel_wave + pinwheel_wave_speed * frames, 1)
+		if(pinwheel_wave > 0)
+			for(var/atom/movable/screen/weird_route/pinwheel/place as anything in memories)
+				if(!place.get_filter("weird_route_wave"))
+					place.add_filter("weird_route_wave", 2, wave_filter(x = 16, size = 0))
+					animate(place.get_filter("weird_route_wave"), offset = 1, time = 20, loop = -1)
+					animate(offset = 0, time = 0)
+				place.modify_filter("weird_route_wave", list("size" = pinwheel_wave * 6))
+		sleep(world.tick_lag)
 
 /datum/weird_route/proc/pinwheel_segment()
-	if(pinwheel_shown >= length(pinwheel))
-		return
-	pinwheel_shown++
-	animate(pinwheel[pinwheel_shown], alpha = 170, time = 30 * WEIRD_ROUTE_FRAME)
+	pinwheel_segments++
 
-/// Sets it turning, or turning faster.
+/// Sets it turning, or turning faster: a fifth of a degree a frame more each time, eased in over a second.
 /datum/weird_route/proc/pinwheel_turn(start = FALSE)
-	pinwheel_period = start || !pinwheel_period ? 120 : max(pinwheel_period / 1.5, 15)
-	for(var/atom/movable/screen/weird_route/pinwheel/pair as anything in pinwheel)
-		animate(pair, transform = turn(matrix(), 120), time = pinwheel_period / 3, loop = -1)
-		animate(transform = turn(matrix(), 240), time = pinwheel_period / 3)
-		animate(transform = matrix(), time = pinwheel_period / 3)
+	set waitfor = FALSE
+	pinwheel_turning = TRUE
+	var/from = pinwheel_turn_speed
+	for(var/frame in 1 to 30)
+		pinwheel_turn_speed = from + 0.2 * frame / 30
+		sleep(WEIRD_ROUTE_FRAME)
+		if(QDELETED(src))
+			return
 
 /datum/weird_route/proc/pinwheel_ripple()
-	pinwheel_wave += 3
-	for(var/atom/movable/screen/weird_route/pinwheel/pair as anything in pinwheel)
-		pair.remove_filter("weird_route_wave")
-		pair.add_filter("weird_route_wave", 1, wave_filter(x = 24, size = pinwheel_wave))
-		animate(pair.get_filter("weird_route_wave"), offset = 1, time = 30, loop = -1)
-		animate(offset = 0, time = 0)
+	set waitfor = FALSE
+	var/from = pinwheel_wave_speed
+	for(var/frame in 1 to 30)
+		pinwheel_wave_speed = from + 0.01 * frame / 30
+		sleep(WEIRD_ROUTE_FRAME)
+		if(QDELETED(src))
+			return
 
+/// The memories gone, all at once.
 /datum/weird_route/proc/pinwheel_fade()
-	for(var/atom/movable/screen/weird_route/pinwheel/pair as anything in pinwheel)
-		animate(pair, alpha = 0, time = 30 * WEIRD_ROUTE_FRAME)
+	pinwheel_segments = 0
+	for(var/atom/movable/screen/weird_route/pinwheel/place as anything in memories)
+		place.alpha = 0
+
+/datum/weird_route/proc/pinwheel_kneel()
+	if(vision?.limb_rig)
+		vision.limb_rig.play(list(list(weird_route_pose("kneel"), 0.5)), settle_after = FALSE)
+
+/datum/weird_route/proc/pinwheel_silhouette_out()
+	animate(silhouette, alpha = 0, time = 60 * WEIRD_ROUTE_FRAME)
+
+/datum/weird_route/proc/pinwheel_clean_up()
+	pinwheel_on = FALSE
+	pinwheel_fade()
+	void.alpha = 0
+	silhouette.alpha = 0
+	silhouette.vis_contents.Cut()
+	QDEL_NULL(vision)
 
 // The asking: obj_ch5_LW20W_handoff.
 
@@ -373,10 +478,10 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 ))
 
 /// How far along textind is from a to b, 0 to 1: the game's wprog().
-/datum/weird_route/proc/progress(textind, from, to)
-	if(to == from)
+/datum/weird_route/proc/progress(textind, from, target)
+	if(target == from)
 		return textind >= from ? 1 : 0
-	return clamp((textind - from) / (to - from), 0, 1)
+	return clamp((textind - from) / (target - from), 0, 1)
 
 /// Puts the two of them, hand in hand, at x: Moffer leading, the player a step behind.
 /datum/weird_route/proc/put_pair(x)
@@ -390,7 +495,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	var/depth = going * 48
 	// Their shadow (one between them, from her) shrinking as there's less of them above the water.
 	var/shadow_left = going >= 1 ? 22 + round(clamp((x - 928) / (1066 - 928), 0, 1) * 7) : round(going * 47 / 2)
-	give_shadow(moffer, length = floor(58 * (1 - clamp(shadow_left / 33, 0, 1))))
+	give_shadow(moffer, shadow_length = floor(58 * (1 - clamp(shadow_left / 33, 0, 1))))
 	player.underlays.Cut()
 	for(var/mob/living/who as anything in list(moffer, player))
 		var/list/sink = who.get_filter("weird_route_sink")
@@ -644,11 +749,11 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		text_shake = textind >= WEIRD_ROUTE_DROWN_INDEX ? LERP(0.26, 3, progress(textind, WEIRD_ROUTE_DROWN_INDEX, 34)) : 0
 		if(text_shake >= 1)
 			var/most = round(text_shake)
-			text.pixel_w = rand(-most, most)
-			text.pixel_z = rand(-most, most)
+			writing.pixel_w = rand(-most, most)
+			writing.pixel_z = rand(-most, most)
 		else
-			text.pixel_w = 0
-			text.pixel_z = 0
+			writing.pixel_w = 0
+			writing.pixel_z = 0
 		sleep(world.tick_lag)
 
 /// Colours the box and the heart as they are now.
@@ -669,12 +774,12 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	WEIRD_ROUTE_WAIT(90)
 	stop_sounds()
 	// Up over the black, not in the box.
-	text.screen_loc = "WEST:40,NORTH:-170"
-	text.maptext_x = 0
-	text.maptext_y = -92
-	text.maptext_width = 560
-	text.layer = 6
-	text.plane = ABOVE_HUD_PLANE
+	writing.screen_loc = "WEST:40,NORTH:-170"
+	writing.maptext_x = 0
+	writing.maptext_y = -92
+	writing.maptext_width = 560
+	writing.layer = 6
+	writing.plane = ABOVE_HUD_PLANE
 	write(list(
 		"* I was wrong./",
 		"* The dream never happened./",

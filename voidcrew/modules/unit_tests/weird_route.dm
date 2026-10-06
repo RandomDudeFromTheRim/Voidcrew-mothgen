@@ -8,7 +8,7 @@
 		TEST_ASSERT(state in ground, "The lake has no \"[state]\" to draw.")
 	var/list/box = icon_states('voidcrew/modules/weird_route/icons/weird_route_box.dmi')
 	TEST_ASSERT(("fill" in box) && ("border" in box) && ("moffer" in box), "The text box or Moffer's face is missing.")
-	TEST_ASSERT_EQUAL(length(icon_states('voidcrew/modules/weird_route/icons/weird_route_pinwheel.dmi')), 4, "The pinwheel hasn't four pairs of wedges.")
+	TEST_ASSERT_EQUAL(length(icon_states('voidcrew/modules/weird_route/icons/weird_route_pinwheel.dmi')), 5, "The pinwheel's memories, wedge or ominous fade are missing.")
 	var/list/sheet_states = icon_states('voidcrew/modules/weird_route/icons/weird_route_sheets.dmi')
 	for(var/list/sheet as anything in GLOB.weird_route_sheets)
 		for(var/column in 0 to sheet[2] - 1)
