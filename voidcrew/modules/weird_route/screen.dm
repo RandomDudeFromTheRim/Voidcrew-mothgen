@@ -37,7 +37,7 @@
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	color = COLOR_WHITE
 
-/// Moffer's face, beside her lines: added on, its black let through.
+/// Moffer's face, beside his lines: added on, its black let through.
 /atom/movable/screen/weird_route/box/portrait
 	icon_state = "moffer"
 	layer = 3

@@ -4,7 +4,7 @@
 // here stands in for it and says so.
 
 /datum/weird_route/proc/play_scene()
-	// Moffer's at the water's edge, looking out over it. They come up the path behind her.
+	// Moffer's at the water's edge, looking out over it. They come up the path behind him.
 	put(player, 40)
 	player.setDir(EAST)
 	put(moffer, 384)
@@ -42,7 +42,7 @@
 		"* (And you know what terrified me the most about that?)/%",
 	), "snd_text.wav")
 	clouds_out()
-	// She looks back at them, her shadow shortening as she turns.
+	// He looks back at them, his shadow shortening as he turns.
 	WEIRD_ROUTE_WAIT(24)
 	moffer.setDir(WEST)
 	give_shadow(moffer)
@@ -160,7 +160,7 @@
 		"* I felt stronger than I have in my entire life./%",
 	), face = TRUE)
 	WEIRD_ROUTE_WAIT(30)
-	// They look up; she drops to the ground.
+	// They look up; he drops to the ground.
 	pose(player, "rest", 15)
 	pose(moffer, "fall", 30)
 	WEIRD_ROUTE_WAIT(20)
@@ -191,7 +191,7 @@
 	pose(moffer, "kneel_head_down")
 	WEIRD_ROUTE_WAIT(30)
 	say(list("* Why don't we do.../%"), face = TRUE)
-	// She gets up and comes to them.
+	// He gets up and comes to them.
 	pose(player, "head_down", 16)
 	pose(moffer, "rest")
 	walk_along(moffer, 309, 16, TRUE)
@@ -218,7 +218,7 @@
 	WEIRD_ROUTE_WAIT(45)
 	pose(moffer, "hands_to_chest_turn_up", 20)
 	WEIRD_ROUTE_WAIT(26)
-	// She turns back to the water.
+	// He turns back to the water.
 	WEIRD_ROUTE_WAIT(12)
 	moffer.setDir(EAST)
 	WEIRD_ROUTE_WAIT(20)
@@ -248,7 +248,7 @@
 	if(QDELETED(src))
 		return
 	WEIRD_ROUTE_WAIT(30)
-	// She takes their hands.
+	// He takes their hands.
 	pose(moffer, "take_hands", 30)
 	pose(player, "take_hands", 30)
 	WEIRD_ROUTE_WAIT(30)
@@ -274,7 +274,7 @@
 	if(on)
 		INVOKE_ASYNC(src, PROC_REF(shake_text))
 
-/// Jitters the text a pixel either way while her voice wavers (the asking shakes it itself).
+/// Jitters the text a pixel either way while his voice wavers (the asking shakes it itself).
 /datum/weird_route/proc/shake_text()
 	while(voice_waver && !QDELETED(src))
 		writing.pixel_x = rand(-1, 1)
@@ -284,7 +284,7 @@
 		writing.pixel_x = 0
 		writing.pixel_y = 0
 
-/// Shakes her head, twice.
+/// Shakes his head, twice.
 /datum/weird_route/proc/shake_head(mob/living/carbon/who)
 	set waitfor = FALSE
 	for(var/i in 1 to 2)
@@ -474,7 +474,7 @@
 
 // The asking: obj_ch5_LW20W_handoff.
 
-/// What Moffer says with each "Proceed", or null where she says nothing.
+/// What Moffer says with each "Proceed", or null where he says nothing.
 GLOBAL_LIST_INIT(weird_route_proceed_lines, list(
 	null,
 	null,
@@ -514,7 +514,7 @@ GLOBAL_LIST_INIT(weird_route_proceed_lines, list(
 	null,
 ))
 
-/// What she says when they say "Stop": the first time, the second, and so on.
+/// What he says when they say "Stop": the first time, the second, and so on.
 GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	list("* No.../", "* You're supposed to say \"Proceed,^1\" right?/", "* Just like all the other times./%"),
 	list("* Stop pretending./", "* I know you remember^1, too!/%"),
@@ -540,7 +540,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	// their heads, gone a couple of steps on.
 	var/going = weird_route_submerged(x)
 	var/depth = going * 22 + clamp((x - 928) / (1024 - 928), 0, 1) * 12
-	// Their shadow (one between them, from her) shrinking as there's less of them above the water.
+	// Their shadow (one between them, from him) shrinking as there's less of them above the water.
 	var/shadow_left = going >= 1 ? 22 + round(clamp((x - 928) / (1066 - 928), 0, 1) * 7) : round(going * 47 / 2)
 	give_shadow(moffer, shadow_length = floor(58 * (1 - clamp(shadow_left / 33, 0, 1))))
 	player.underlays.Cut()
@@ -706,7 +706,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		whiteness.alpha = whiteness_alpha * 255
 		sun_whitens(whiteness_alpha)
 
-		// Once she's under, they can't hesitate long.
+		// Once he's under, they can't hesitate long.
 		var/fail_progress = 0
 		if(textind >= WEIRD_ROUTE_DROWN_INDEX)
 			fail_limit = 450
@@ -824,7 +824,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	if(choices)
 		update_choices()
 
-/// They hesitated too long: white, going to black, and then she's wrong about it all.
+/// They hesitated too long: white, going to black, and then he's wrong about it all.
 /datum/weird_route/proc/fail()
 	stop_writing()
 	blur_box(0, 0)

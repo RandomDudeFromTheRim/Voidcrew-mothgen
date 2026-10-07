@@ -63,7 +63,7 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/atom/movable/screen/weird_route/heart/heart
 	/// All black, over everything but the box.
 	var/atom/movable/screen/weird_route/fill/blackout
-	/// The ominous fade while she remembers yesterday: the world going dark behind them but for a soft
+	/// The ominous fade while he remembers yesterday: the world going dark behind them but for a soft
 	/// patch up top, three times over, breathing.
 	var/list/atom/movable/screen/weird_route/pinwheel/clouds = list()
 	/// Whether the clouds are out (the game's fadecon: 1 while they are, 2 once they've gone).
@@ -261,13 +261,24 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/area/lake_area = origin && get_area(origin)
 	lake_area?.set_base_lighting(weird_route_blend("#ffb486", COLOR_WHITE, round(amount, 1 / 32)))
 
-/// Moffer: a moth, in Noelle's place.
+/// Moffer, in Noelle's place: a moth, as he is aboard (his wings, white comet hair and goatee).
 /datum/weird_route/proc/make_moffer()
 	var/mob/living/carbon/human/npc = new(origin)
+	npc.dna.features[FEATURE_MOTH_WINGS] = "Deathshead"
+	npc.dna.features[FEATURE_MOTH_ANTENNAE] = "Deathshead"
+	npc.dna.features[FEATURE_MOTH_MARKINGS] = "Deathshead"
 	npc.set_species(/datum/species/moth)
-	npc.gender = PLURAL
+	npc.gender = MALE
+	npc.physique = MALE
+	npc.age = 27
 	npc.fully_replace_character_name(npc.real_name, "Moffer")
-	npc.equip_to_slot_or_del(new /obj/item/clothing/under/color/black(npc), ITEM_SLOT_ICLOTHING)
+	npc.set_hairstyle("Comet", update = FALSE)
+	npc.set_haircolor("#f7f3f1", update = FALSE)
+	npc.set_facial_hairstyle("Beard (Goatee)", update = FALSE)
+	npc.set_facial_haircolor("#f7f3f1", update = FALSE)
+	npc.set_eye_color("#554422")
+	npc.update_body(is_creating = TRUE)
+	npc.equip_to_slot_or_del(new /obj/item/clothing/under/color/grey(npc), ITEM_SLOT_ICLOTHING)
 	npc.equip_to_slot_or_del(new /obj/item/clothing/shoes/sneakers/black(npc), ITEM_SLOT_FEET)
 	if(!npc.dna.species.limb_rig_shape?["always"])
 		npc.add_quirk(/datum/quirk/overanimated)
@@ -593,7 +604,7 @@ GLOBAL_LIST_EMPTY(weird_routes)
  * box gets to it (the game's c_wait_box()). With choices (two options), the last message waits on a
  * choice instead, and chosen is set. Out of the box (in_box FALSE), the text's wherever it's been put.
  *
- * * voice - "snd_txtnoe.wav" for Moffer (her own snd_moffer.ogg if it's there), "snd_text.wav" for
+ * * voice - "snd_txtnoe.wav" for Moffer (his own snd_moffer.ogg if it's there), "snd_text.wav" for
  *   nobody in particular
  * * rate - frames a letter: this scene's is 2 (its slow text, and text style 63), 4 slower still
  */

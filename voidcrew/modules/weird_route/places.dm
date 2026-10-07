@@ -1,8 +1,8 @@
 /**
  * The Weird Route: Deltarune Chapter 5's evening lake (obj_ch5_LW20W and its handoff), with Moffer
- * in Noelle's place and whoever's sent there in Kris's. She talks them into the lake, a "Proceed" at
+ * in Noelle's place and whoever's sent there in Kris's. He talks them into the lake, a "Proceed" at
  * a time. Walk all the way in and they come out in the Meat Factory: a white plane strewn with sprite
- * sheets. Hesitate too long once she's under and it's over.
+ * sheets. Hesitate too long once he's under and it's over.
  *
  * Admins send someone (Admin.Fun: "Weird Route"). The music and sounds are the game's own, so they
  * aren't shipped: put them in data/weird_route/ (see WEIRD_ROUTE_SOUNDS). Without them it plays silent.
