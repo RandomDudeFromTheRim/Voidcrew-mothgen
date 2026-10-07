@@ -240,7 +240,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 		var/atom/movable/screen/weird_route/pinwheel/cloud = new(null, null, src)
 		cloud.icon = 'voidcrew/modules/weird_route/icons/weird_route_fade.dmi'
 		cloud.icon_state = "fade"
-		cloud.screen_loc = "CENTER-9:19,CENTER-9:19"
+		// Small, inside the view, and scaled up (see /datum/weird_route/proc/shape_clouds()).
+		cloud.screen_loc = "CENTER,CENTER"
 		clouds += cloud
 		var/atom/movable/screen/weird_route/pinwheel/wedge = new(null, null, src)
 		wedge.icon_state = "wedge"

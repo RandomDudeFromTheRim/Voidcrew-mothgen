@@ -316,14 +316,15 @@
 		sleep(world.tick_lag)
 
 /**
- * Sizes the clouds to the player's screen as the game's are to its own (at 0.85, they just cover it),
- * breathing a frame's worth in: each scaled about the middle of its soft patch, which sits a third of
- * the way down the screen.
+ * Sizes the clouds to the player's screen as the game's are to its own 320x240 (the sprite drawn at
+ * 0.85 to 0.9, about the middle of its soft patch, which sits a third of the way down the screen),
+ * breathing a frame's worth in. Each axis the game leaves alone stays at 1.
  */
 /datum/weird_route/proc/shape_clouds(breath)
 	var/list/screen_size = view_pixels()
-	var/across = screen_size[1] / 480
-	var/down = screen_size[2] / 480
+	// Our icon is 96px for the sprite's 380.
+	var/across = screen_size[1] / 320 * 380 / 96
+	var/down = screen_size[2] / 240 * 380 / 96
 	var/list/breaths = list(
 		list(1, abs(sin(breath / 60 * 180 / PI) * 0.05) + 0.85),
 		list(abs(sin(breath / 90 * 180 / PI) * 0.05) + 0.85, 1),
@@ -331,12 +332,13 @@
 	)
 	for(var/number in 1 to 3)
 		var/list/scale = breaths[number]
-		// The first two only breathe one way: the other stays as the game leaves it, 1.
-		var/x_scale = across * (scale[1] == 1 ? 0.85 : scale[1])
-		var/y_scale = down * (scale[2] == 1 ? 0.85 : scale[2])
+		var/x_scale = across * scale[1]
+		var/y_scale = down * scale[2]
 		var/matrix/shape = matrix()
 		shape.Scale(x_scale, y_scale)
-		shape.Translate(0, screen_size[2] / 6 - 120 * y_scale)
+		// Its middle to the screen's (it's placed by its bottom left corner on the middle tile), then up
+		// so the soft patch (20 of its 96px above its middle) is a third of the way down.
+		shape.Translate(-32, -32 + screen_size[2] / 6 - (190 - 110) * 96 / 380 * y_scale)
 		var/atom/movable/screen/weird_route/pinwheel/cloud = clouds[number]
 		cloud.transform = shape
 
