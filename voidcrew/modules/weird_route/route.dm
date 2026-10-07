@@ -261,7 +261,7 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/area/lake_area = origin && get_area(origin)
 	lake_area?.set_base_lighting(weird_route_blend("#ffb486", COLOR_WHITE, round(amount, 1 / 32)))
 
-/// Moffer, in Noelle's place: a moth, as he is aboard (his wings, white comet hair and goatee).
+/// Moffer, in Noelle's place: a bald moth, as he is aboard.
 /datum/weird_route/proc/make_moffer()
 	var/mob/living/carbon/human/npc = new(origin)
 	npc.dna.features[FEATURE_MOTH_WINGS] = "Deathshead"
@@ -272,10 +272,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	npc.physique = MALE
 	npc.age = 27
 	npc.fully_replace_character_name(npc.real_name, "Moffer")
-	npc.set_hairstyle("Comet", update = FALSE)
-	npc.set_haircolor("#f7f3f1", update = FALSE)
-	npc.set_facial_hairstyle("Beard (Goatee)", update = FALSE)
-	npc.set_facial_haircolor("#f7f3f1", update = FALSE)
+	npc.set_hairstyle("Bald", update = FALSE)
+	npc.set_facial_hairstyle("Shaved", update = FALSE)
 	npc.set_eye_color("#554422")
 	npc.update_body(is_creating = TRUE)
 	npc.equip_to_slot_or_del(new /obj/item/clothing/under/color/grey(npc), ITEM_SLOT_ICLOTHING)
