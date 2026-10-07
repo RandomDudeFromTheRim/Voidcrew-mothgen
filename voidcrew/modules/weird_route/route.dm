@@ -105,6 +105,9 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/list/choices
 	/// The option the heart's beside, 1 or 2, or 0 before either's been picked (it starts between them).
 	var/selected = 0
+	/// Where the heart is across the box, and where it's gliding to.
+	var/heart_at = WEIRD_ROUTE_HEART_START
+	var/heart_target = WEIRD_ROUTE_HEART_START
 	/// The option chosen, or 0 while it's not.
 	var/chosen = 0
 	/// How far the text jitters, in pixels.
@@ -564,6 +567,10 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	right_option.alpha = shown ? 255 : 0
 	heart.alpha = shown ? 255 : 0
 	if(shown)
+		// Each time, between the two.
+		heart_at = WEIRD_ROUTE_HEART_START
+		heart_target = WEIRD_ROUTE_HEART_START
+		place_heart()
 		update_choices()
 
 /datum/weird_route/proc/update_choices()
@@ -571,13 +578,30 @@ GLOBAL_LIST_EMPTY(weird_routes)
 		return
 	left_option.maptext = weird_route_text(choices[1], selected == 1 ? highlight_colour : COLOR_WHITE, TRUE)
 	right_option.maptext = weird_route_text(choices[2], selected == 2 ? highlight_colour : COLOR_WHITE, TRUE)
-	// Beside the picked option's text, or between the two until one is.
-	var/heart_x = WEIRD_ROUTE_HEART_START
+	// Beside the picked option's text, or between the two until one is; gliding over.
+	var/target = WEIRD_ROUTE_HEART_START
 	if(selected)
 		var/centre = selected == 1 ? WEIRD_ROUTE_LEFT_OPTION : WEIRD_ROUTE_RIGHT_OPTION
-		heart_x = centre - length(choices[selected]) * 5 - 24
+		target = centre - length(choices[selected]) * 5 - 24
+	if(target == heart_target && heart_at == target)
+		return
+	var/already_gliding = heart_at != heart_target
+	heart_target = target
+	if(!already_gliding)
+		INVOKE_ASYNC(src, PROC_REF(glide_heart))
+
+/// Moves the heart most of the way to where it's going each frame, until it's there.
+/datum/weird_route/proc/glide_heart()
+	while(heart_at != heart_target && !QDELETED(src))
+		heart_at += (heart_target - heart_at) * 0.5
+		if(abs(heart_target - heart_at) < 1)
+			heart_at = heart_target
+		place_heart()
+		sleep(WEIRD_ROUTE_FRAME)
+
+/datum/weird_route/proc/place_heart()
 	// Scaled about its icon's middle, which isn't the heart's.
-	var/offset_x = round(heart_x - 16 - (WEIRD_ROUTE_HEART_MIDDLE_X - 16) * WEIRD_ROUTE_HEART_SCALE)
+	var/offset_x = round(heart_at - 16 - (WEIRD_ROUTE_HEART_MIDDLE_X - 16) * WEIRD_ROUTE_HEART_SCALE)
 	var/offset_y = round(WEIRD_ROUTE_OPTION_Y - 16 - (WEIRD_ROUTE_HEART_MIDDLE_Y - 16) * WEIRD_ROUTE_HEART_SCALE)
 	heart.screen_loc = "CENTER-7:[16 + offset_x],SOUTH:[6 + offset_y]"
 
