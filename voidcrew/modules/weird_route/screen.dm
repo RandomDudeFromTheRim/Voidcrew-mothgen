@@ -37,15 +37,13 @@
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	color = COLOR_WHITE
 
-/// Moffer's face, beside her lines once she's in the water: added on, its black let through.
+/// Moffer's face, beside her lines: added on, its black let through.
 /atom/movable/screen/weird_route/box/portrait
 	icon_state = "moffer"
 	layer = 3
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	color = null
 	blend_mode = BLEND_ADD
-	pixel_x = 18
-	pixel_y = -25
 
 /atom/movable/screen/weird_route/text
 	screen_loc = "CENTER-7:16,SOUTH:6"
@@ -58,8 +56,9 @@
 /// One of the choice's two options. Clicking it chooses it.
 /atom/movable/screen/weird_route/text/option
 	maptext_width = 140
-	maptext_height = 20
-	maptext_y = WEIRD_ROUTE_OPTION_Y - 6
+	// Room for a whole line of the font, or BYOND shows none of it.
+	maptext_height = 40
+	maptext_y = WEIRD_ROUTE_OPTION_Y - 26
 	mouse_opacity = MOUSE_OPACITY_OPAQUE
 	/// 1 for the left, 2 for the right.
 	var/index = 1
@@ -67,7 +66,8 @@
 /atom/movable/screen/weird_route/text/option/Click(location, control, params)
 	route?.choose(index)
 
-/// The heart beside whichever option's picked: an ordinary one, out of someone's chest.
+/// The heart beside whichever option's picked: an ordinary one, out of someone's chest. Placed by
+/// /datum/weird_route/proc/update_choices().
 /atom/movable/screen/weird_route/heart
 	icon = 'icons/obj/medical/organs/organs.dmi'
 	icon_state = "heart-on"
@@ -76,7 +76,8 @@
 
 /atom/movable/screen/weird_route/heart/Initialize(mapload, datum/hud/hud_owner, datum/weird_route/route)
 	. = ..()
-	transform = matrix() * 1.25
+	// Its 6x9 pixels as big as the game's heart is in its box.
+	transform = matrix() * WEIRD_ROUTE_HEART_SCALE
 
 /// A colour over the whole screen, under the box.
 /atom/movable/screen/weird_route/fill

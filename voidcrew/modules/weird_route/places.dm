@@ -7,8 +7,9 @@
  * Admins send someone (Admin.Fun: "Weird Route"). The music and sounds are the game's own, so they
  * aren't shipped: put them in data/weird_route/ (see WEIRD_ROUTE_SOUNDS). Without them it plays silent.
  *
- * Both places are built on reserved ground when someone's sent, and given back when they leave. Each
- * kind shares one area, however many are down there at once.
+ * Both places are built on reserved ground when someone's sent, before they're taken (the Meat
+ * Factory takes a minute or two), and given back when they leave. Each kind shares one area, however
+ * many are down there at once.
  */
 
 /// Where the Weird Route's sounds are looked for.
@@ -284,9 +285,8 @@ ADMIN_VERB(weird_route_send, R_FUN, "Weird Route", "Send someone to the evening 
 		return
 	var/datum/weird_route/route = new(chosen)
 	if(QDELETED(route))
-		to_chat(user, span_warning("There's no room for the lake right now."))
 		return
-	message_admins("[key_name_admin(user)] sent [ADMIN_LOOKUPFLW(chosen)] down the Weird Route.")
+	message_admins("[key_name_admin(user)] sent [ADMIN_LOOKUPFLW(chosen)] down the Weird Route. It's being built: they're taken once it's ready.")
 	log_admin("[key_name(user)] sent [key_name(chosen)] down the Weird Route.")
 	BLACKBOX_LOG_ADMIN_VERB("Weird Route")
 

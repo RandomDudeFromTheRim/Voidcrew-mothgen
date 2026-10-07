@@ -9,6 +9,8 @@
 	player.setDir(EAST)
 	put(moffer, 384)
 	moffer.setDir(EAST)
+	against_sun(player, TRUE)
+	against_sun(moffer, TRUE)
 	give_shadow(player)
 	give_shadow(moffer)
 	play_sound("ocean.ogg", 0, 0, music_channel, TRUE)
@@ -269,6 +271,18 @@
 /datum/weird_route/proc/set_waver(on)
 	voice_waver = on
 	text_shake = on ? 1 : 0
+	if(on)
+		INVOKE_ASYNC(src, PROC_REF(shake_text))
+
+/// Jitters the text a pixel either way while her voice wavers (the asking shakes it itself).
+/datum/weird_route/proc/shake_text()
+	while(voice_waver && !QDELETED(src))
+		writing.pixel_x = rand(-1, 1)
+		writing.pixel_y = rand(-1, 1)
+		sleep(2 * WEIRD_ROUTE_FRAME)
+	if(!QDELETED(src))
+		writing.pixel_x = 0
+		writing.pixel_y = 0
 
 /// Shakes her head, twice.
 /datum/weird_route/proc/shake_head(mob/living/carbon/who)
@@ -521,10 +535,11 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	put(player, x - 17)
 	camera_x = x + 170
 	update_camera()
-	// Into the water to their knees, then their waists, then gone, as the game's submerge object
-	// steps through its 47 frames of them going under between 240 and 928.
+	// Into the water to their knees, then their waists, then their chins, as the game's submerge
+	// object steps through its 47 frames of them going under between 240 and 928; then the tops of
+	// their heads, gone a couple of steps on.
 	var/going = weird_route_submerged(x)
-	var/depth = going * 48
+	var/depth = going * 22 + clamp((x - 928) / (1024 - 928), 0, 1) * 12
 	// Their shadow (one between them, from her) shrinking as there's less of them above the water.
 	var/shadow_left = going >= 1 ? 22 + round(clamp((x - 928) / (1066 - 928), 0, 1) * 7) : round(going * 47 / 2)
 	give_shadow(moffer, shadow_length = floor(58 * (1 - clamp(shadow_left / 33, 0, 1))))
@@ -676,7 +691,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		if(QDELETED(src))
 			return
 
-		// The box going red, then white; the heart white with it.
+		// The box going red, then back to white; the white over everything takes the rest.
 		var/border_progress = progress(textind, 22, 23) * 0.5
 		if(textind > 23)
 			border_progress = progress(textind, 23, 28) * 0.5 + 0.5
@@ -685,11 +700,11 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 		border_colour = weird_route_blend(COLOR_WHITE, COLOR_RED, border_progress)
 		inner_white = progress(textind, 28, 44)
 		highlight_colour = weird_route_blend(COLOR_YELLOW, COLOR_WHITE, inner_white)
-		heart_white = progress(textind, 44, 70) * 0.9
 		colour_box()
-		// The lake going white behind them.
+		// The lake going white behind them, its light with it (or the sunset's would tint the white).
 		whiteness_alpha += (progress(textind, 19, 28) - whiteness_alpha) * (1 - (1 - 1 / 120) ** frames)
 		whiteness.alpha = whiteness_alpha * 255
+		sun_whitens(whiteness_alpha)
 
 		// Once she's under, they can't hesitate long.
 		var/fail_progress = 0
@@ -801,12 +816,11 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 			part.modify_filter("weird_route_blur", list("x" = smear))
 			part.modify_filter("weird_route_soften", list("size" = soft))
 
-/// Colours the box and the heart as they are now.
+/// Colours the box as it is now.
 /datum/weird_route/proc/colour_box()
 	border.color = border_colour
 	// Its inside stays black: it's the white over the screen and the blur that take it.
 	box.color = COLOR_BLACK
-	heart.color = heart_white ? list(1 - heart_white, 0, 0, 0, 1 - heart_white, 0, 0, 0, 1 - heart_white, heart_white, heart_white, heart_white) : null
 	if(choices)
 		update_choices()
 
@@ -905,10 +919,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 
 /// They come out in the Meat Factory.
 /datum/weird_route/proc/meat_factory()
-	factory = weird_route_build_factory()
-	if(!factory)
-		qdel(src)
-		return
+	sun_whitens(0)
 	player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter(list("weird_route_blur", "weird_route_soften"))
 	blur_box(0, 0)
 	var/turf/factory_origin = factory.bottom_left_turfs[1]
@@ -916,7 +927,7 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	for(var/mob/living/carbon/human/who as anything in list(player, moffer))
 		who.remove_filter("weird_route_sink")
 		// Out of the sunset: lit by the white.
-		weird_route_silhouette(who, FALSE)
+		against_sun(who, FALSE)
 		who.pixel_w = who.base_pixel_w
 		who.limb_rig?.set_seated(null)
 		who.limb_rig?.play(list(list(list(), 1)))
@@ -931,7 +942,6 @@ GLOBAL_LIST_INIT(weird_route_stop_lines, list(
 	text_shake = 0
 	inner_white = 0
 	border_colour = COLOR_WHITE
-	heart_white = 0
 	colour_box()
 	animate(whiteout, alpha = 0, time = 60 * WEIRD_ROUTE_FRAME)
 	play_sound("meat_factory.ogg", 60, 0, music_channel, TRUE)

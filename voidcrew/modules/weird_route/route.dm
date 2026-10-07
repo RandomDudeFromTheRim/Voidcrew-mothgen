@@ -3,8 +3,14 @@
 #define WEIRD_ROUTE_LEFT_OPTION 96
 #define WEIRD_ROUTE_RIGHT_OPTION 354
 #define WEIRD_ROUTE_HEART_START 218
-/// How high the options sit in the box.
-#define WEIRD_ROUTE_OPTION_Y 30
+/// How high the middle of the options is in the box: halfway up, as the game has them.
+#define WEIRD_ROUTE_OPTION_Y 56
+/// How much bigger than its icon the heart's drawn, and where in its icon the heart itself is.
+#define WEIRD_ROUTE_HEART_SCALE 2.5
+#define WEIRD_ROUTE_HEART_MIDDLE_X 14
+#define WEIRD_ROUTE_HEART_MIDDLE_Y 18.5
+/// How many pixels of them the sun lights, on its side.
+#define WEIRD_ROUTE_SUNLIT 3
 
 /// Trait source for everything the Weird Route holds its player and Moffer to.
 #define WEIRD_ROUTE_TRAIT "weird_route"
@@ -41,6 +47,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/turf/origin
 	/// Where each of them is along the path, in the game's units, by mob.
 	var/list/positions = list()
+	/// Each of them against the sun, by mob (see /obj/effect/abstract/weird_route_silo).
+	var/list/silos = list()
 	/// Where the camera's centred, in the game's units, or null to follow the player.
 	var/camera_x
 	var/old_hud_version
@@ -107,8 +115,6 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	/// How far the box's inside has gone from black to white, 0 to 1.
 	var/inner_white = 0
 	var/highlight_colour = COLOR_YELLOW
-	/// How far the heart's gone white, 0 to 1.
-	var/heart_white = 0
 
 	// The sound.
 	var/music_channel
@@ -120,14 +126,28 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	if(!player?.client)
 		qdel(src)
 		return
-	lake = weird_route_build_lake()
-	if(!lake)
-		qdel(src)
-		return
-	origin = lake.bottom_left_turfs[1]
 	src.player = player
 	player.weird_route = src
 	GLOB.weird_routes += src
+	RegisterSignals(player, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT, COMSIG_LIVING_DEATH), PROC_REF(on_lost))
+	INVOKE_ASYNC(src, PROC_REF(prepare))
+
+/// Builds both places first (the Meat Factory takes a while), and only then takes them to the lake.
+/datum/weird_route/proc/prepare()
+	var/datum/turf_reservation/built_factory = weird_route_build_factory()
+	var/datum/turf_reservation/built_lake = built_factory && weird_route_build_lake()
+	if(QDELETED(src))
+		qdel(built_factory)
+		qdel(built_lake)
+		return
+	factory = built_factory
+	lake = built_lake
+	if(!lake || !player?.client)
+		message_admins("The Weird Route couldn't take [key_name_admin(player)]: [lake ? "they've gone" : "there's no room for it"].")
+		qdel(src)
+		return
+	message_admins("The Weird Route's ready: [key_name_admin(player)]'s at the lake.")
+	origin = lake.bottom_left_turfs[1]
 	came_from = get_turf(player)
 	music_channel = SSsounds.reserve_sound_channel(src)
 	chant_channel = SSsounds.reserve_sound_channel(src)
@@ -135,23 +155,23 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	moffer = make_moffer()
 	hold(player)
 	RegisterSignal(player, COMSIG_MOB_KEYDOWN, PROC_REF(on_key))
-	RegisterSignals(player, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT, COMSIG_LIVING_DEATH), PROC_REF(on_lost))
 	if(player.hud_used)
 		old_hud_version = player.hud_used.hud_version
 		player.hud_used.show_hud(HUD_STYLE_NOHUD)
 	make_screen()
-	// Sent ahead, so nothing waits on a download when it's due (the Meat Factory's music is big).
-	for(var/sound_name in flist(WEIRD_ROUTE_SOUNDS))
-		player << browse_rsc(file(WEIRD_ROUTE_SOUNDS + sound_name), sound_name)
-	INVOKE_ASYNC(src, PROC_REF(play_scene))
+	play_scene()
 
 /datum/weird_route/Destroy()
 	GLOB.weird_routes -= src
 	writer_token++
+	QDEL_LIST_ASSOC_VAL(silos)
+	sun_whitens(0)
 	if(player)
-		UnregisterSignal(player, list(COMSIG_MOB_KEYDOWN, COMSIG_QDELETING, COMSIG_MOB_LOGOUT, COMSIG_LIVING_DEATH))
+		UnregisterSignal(player, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT, COMSIG_LIVING_DEATH))
+	// Only once they've been taken (until then it's still building).
+	if(player && came_from)
+		UnregisterSignal(player, COMSIG_MOB_KEYDOWN)
 		let_go(player)
-		player.weird_route = null
 		for(var/channel in list(music_channel, chant_channel, static_channel))
 			SEND_SOUND(player, sound(null, channel = channel))
 		if(player.client)
@@ -162,7 +182,9 @@ GLOBAL_LIST_EMPTY(weird_routes)
 			player.hud_used?.show_hud(old_hud_version)
 		player.hud_used?.plane_master_controllers[PLANE_MASTERS_GAME]?.remove_filter(list("weird_route_blur", "weird_route_soften"))
 		if(!QDELETED(player))
-			player.forceMove(came_from || get_safe_random_station_turf())
+			player.forceMove(came_from)
+	if(player)
+		player.weird_route = null
 	player = null
 	if(moffer)
 		walk(moffer, 0)
@@ -179,25 +201,65 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	SIGNAL_HANDLER
 	qdel(src)
 
-/// Holds someone to the scene: nowhere to go, nothing in their hands, nothing to hurt them. And with
-/// the sun low over the far side of the lake, a silhouette against it (the game's "silo" sprites).
+/// Holds someone to the scene: nowhere to go, nothing in their hands, nothing to hurt them.
 /datum/weird_route/proc/hold(mob/living/carbon/human/who)
 	who.add_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_GODMODE), WEIRD_ROUTE_TRAIT)
-	weird_route_silhouette(who, TRUE)
-
-/// Darkens someone nearly to black, a little of the sunset's red still in them, or lets them be lit again.
-/proc/weird_route_silhouette(mob/living/who, dark)
-	who.remove_filter("weird_route_silo")
-	if(dark)
-		who.add_filter("weird_route_silo", 10, color_matrix_filter(list(0.12, 0.02, 0.01, 0.06, 0.04, 0.02, 0.03, 0.02, 0.03, 0.07, 0.015, 0.01)))
 
 /datum/weird_route/proc/let_go(mob/living/carbon/human/who)
 	who.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_GODMODE), WEIRD_ROUTE_TRAIT)
-	who.remove_filter(list("weird_route_sink", "weird_route_silo"))
+	who.remove_filter("weird_route_sink")
 	who.underlays.Cut()
 	who.pixel_w = who.base_pixel_w
 	who.pixel_z = who.base_pixel_z
 	who.limb_rig?.set_seated(null)
+
+/**
+ * Someone against the sun, low over the far side of the lake (the game's "silo" sprites): dark red
+ * all over but for the few pixels on the sun's side, which it lights as they are. Drawn over them,
+ * as a copy of them with a dark copy of them laid in on top, shifted away from the sun.
+ */
+/obj/effect/abstract/weird_route_silo
+	appearance_flags = KEEP_TOGETHER | PIXEL_SCALE
+	layer = MOB_LAYER + 0.01
+	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	var/obj/effect/abstract/weird_route_silo/shade/shade
+
+/obj/effect/abstract/weird_route_silo/Initialize(mapload, mob/living/who)
+	. = ..()
+	if(!who)
+		return
+	shade = new(null)
+	shade.vis_contents += who
+	vis_contents += list(who, shade)
+
+/obj/effect/abstract/weird_route_silo/Destroy()
+	vis_contents.Cut()
+	QDEL_NULL(shade)
+	return ..()
+
+/// The dark copy: only drawn where they are.
+/obj/effect/abstract/weird_route_silo/shade
+	blend_mode = BLEND_INSET_OVERLAY
+	vis_flags = VIS_INHERIT_PLANE
+	layer = MOB_LAYER + 0.02
+	pixel_w = -WEIRD_ROUTE_SUNLIT
+
+/obj/effect/abstract/weird_route_silo/shade/Initialize(mapload, mob/living/who)
+	. = ..()
+	// The game's silhouettes' dark red, a little of what's underneath showing through.
+	add_filter("weird_route_silo", 1, color_matrix_filter(list(0.06, 0.02, 0.01, 0.04, 0.02, 0.01, 0.02, 0.01, 0.01, 0.24, 0.05, 0.03)))
+
+/// Puts someone against the sun, or (dark FALSE) back in the light.
+/datum/weird_route/proc/against_sun(mob/living/who, dark)
+	qdel(silos[who])
+	silos -= who
+	if(dark)
+		silos[who] = new /obj/effect/abstract/weird_route_silo(get_turf(who), who)
+
+/// The lake's light going from the sunset's to white with the white behind them, 0 to 1.
+/datum/weird_route/proc/sun_whitens(amount)
+	var/area/lake_area = origin && get_area(origin)
+	lake_area?.set_base_lighting(weird_route_blend("#ffb486", COLOR_WHITE, round(amount, 1 / 32)))
 
 /// Moffer: a moth, in Noelle's place.
 /datum/weird_route/proc/make_moffer()
@@ -326,6 +388,9 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	var/turf/spot = locate(origin.x + WEIRD_ROUTE_LAKE_LEFT + floor(pixels / 32), origin.y + row - 1, origin.z)
 	if(spot && who.loc != spot)
 		who.forceMove(spot)
+	var/obj/effect/abstract/weird_route_silo/silo = silos[who]
+	if(spot && silo && silo.loc != spot)
+		silo.forceMove(spot)
 	who.pixel_w = who.base_pixel_w + pixels - floor(pixels / 32) * 32 - 16
 	if(who == player)
 		update_camera()
@@ -480,8 +545,8 @@ GLOBAL_LIST_EMPTY(weird_routes)
 	box.alpha = shown ? 255 : 0
 	border.alpha = shown ? 255 : 0
 	portrait.alpha = shown && with_portrait ? 255 : 0
-	writing.maptext_x = with_portrait ? 90 : 18
-	writing.maptext_width = with_portrait ? 340 : 410
+	writing.maptext_x = with_portrait ? 112 : 18
+	writing.maptext_width = with_portrait ? 322 : 410
 	if(!shown)
 		writing.maptext = null
 
@@ -497,12 +562,15 @@ GLOBAL_LIST_EMPTY(weird_routes)
 		return
 	left_option.maptext = weird_route_text(choices[1], selected == 1 ? highlight_colour : COLOR_WHITE, TRUE)
 	right_option.maptext = weird_route_text(choices[2], selected == 2 ? highlight_colour : COLOR_WHITE, TRUE)
-	// Beside the picked option's text, or between the two until one is; gliding over.
+	// Beside the picked option's text, or between the two until one is.
 	var/heart_x = WEIRD_ROUTE_HEART_START
 	if(selected)
 		var/centre = selected == 1 ? WEIRD_ROUTE_LEFT_OPTION : WEIRD_ROUTE_RIGHT_OPTION
-		heart_x = centre - length(choices[selected]) * 5 - 20
-	animate(heart, pixel_x = heart_x - 16, pixel_y = WEIRD_ROUTE_OPTION_Y - 10, time = 1)
+		heart_x = centre - length(choices[selected]) * 5 - 24
+	// Scaled about its icon's middle, which isn't the heart's.
+	var/offset_x = round(heart_x - 16 - (WEIRD_ROUTE_HEART_MIDDLE_X - 16) * WEIRD_ROUTE_HEART_SCALE)
+	var/offset_y = round(WEIRD_ROUTE_OPTION_Y - 16 - (WEIRD_ROUTE_HEART_MIDDLE_Y - 16) * WEIRD_ROUTE_HEART_SCALE)
+	heart.screen_loc = "CENTER-7:[16 + offset_x],SOUTH:[6 + offset_y]"
 
 /// The text's colour. White, always, as the game's text style 63 is: even once the box has gone white.
 /datum/weird_route/proc/text_colour()
