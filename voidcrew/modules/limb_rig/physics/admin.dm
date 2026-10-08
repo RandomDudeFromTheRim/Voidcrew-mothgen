@@ -29,6 +29,10 @@ ADMIN_VERB(spawn_physics_ragdoll, R_DEBUG, "Spawn Physics Ragdoll", "Spawns a te
 	BLACKBOX_LOG_ADMIN_VERB("Spawn Physics Ragdoll")
 
 ADMIN_VERB_AND_CONTEXT_MENU(toggle_limb_physics, R_DEBUG, "Limb Physics: Toggle", "Turns Box2D physics on or off for a mob's limb rig.", ADMIN_CATEGORY_DEBUG, mob/living/carbon/target in world)
+	// The context menu offers it on any mob.
+	if(!iscarbon(target))
+		to_chat(user, span_warning("[target] has no limb rig."), confidential = TRUE)
+		return
 	var/on = target.set_limb_physics(!target.limb_rig?.physics)
 	if(!on && !target.limb_rig?.physics && !istype(target.limb_rig, /datum/limb_rig/sprites))
 		to_chat(user, span_warning("[target] has no sprite-built limb rig to simulate."), confidential = TRUE)
@@ -37,6 +41,10 @@ ADMIN_VERB_AND_CONTEXT_MENU(toggle_limb_physics, R_DEBUG, "Limb Physics: Toggle"
 	log_admin("[key_name(user)] turned limb physics [on ? "on" : "off"] for [key_name(target)].")
 
 ADMIN_VERB_AND_CONTEXT_MENU(push_limb_physics, R_DEBUG, "Limb Physics: Push", "Gives one of a ragdoll's segments an impulse or a spin.", ADMIN_CATEGORY_DEBUG, mob/living/carbon/target in world)
+	// The context menu offers it on any mob.
+	if(!iscarbon(target))
+		to_chat(user, span_warning("[target] has no limb rig."), confidential = TRUE)
+		return
 	var/datum/limb_physics/physics = target.limb_rig?.physics
 	if(!physics)
 		to_chat(user, span_warning("[target] isn't physical. Toggle limb physics on first."), confidential = TRUE)
@@ -67,6 +75,10 @@ ADMIN_VERB_AND_CONTEXT_MENU(push_limb_physics, R_DEBUG, "Limb Physics: Push", "G
 			physics.twist(part_id, strength / 10)
 
 ADMIN_VERB_AND_CONTEXT_MENU(inspect_limb_physics, R_DEBUG, "Limb Physics: Inspect", "Shows a ragdoll's simulation: every body, and the last calls made to the library.", ADMIN_CATEGORY_DEBUG, mob/living/carbon/target in world)
+	// The context menu offers it on any mob.
+	if(!iscarbon(target))
+		to_chat(user, span_warning("[target] has no limb rig."), confidential = TRUE)
+		return
 	var/datum/limb_physics/physics = target.limb_rig?.physics
 	var/list/lines = list("<b>Limb physics: [target]</b>")
 	lines += "Library: [vcphys_available() ? "[GLOB.vcphys_library] ([vcphys_call("version")])" : "not loaded"]"

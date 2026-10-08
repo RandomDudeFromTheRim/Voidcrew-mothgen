@@ -15,9 +15,10 @@
  * LIMB_PHYSICS_PPM pixels, the floor is the bottom of the tile, and a wall stands a tile and a half
  * out on either side. The mob itself doesn't move.
  *
- * Only Box2D handles are kept here. The simulation is stepped a fixed LIMB_PHYSICS_STEPS_PER_FIRE
- * steps of LIMB_PHYSICS_DT every time SSlimb_physics fires, so it runs the same every time, however
- * the server's doing.
+ * Only Box2D handles are kept here. The simulation is stepped LIMB_PHYSICS_STEPS_PER_FIRE steps of
+ * LIMB_PHYSICS_DT every time SSlimb_physics fires, so it runs the same every time, however the
+ * server's doing; fewer if they're costing more than LIMB_PHYSICS_STEP_BUDGET, so it slows down
+ * rather than the server.
  */
 /datum/limb_physics
 	/// The rig being simulated.
@@ -85,6 +86,14 @@
 	var/last_growth_joint
 	/// Serverblight's hunt, moving the body about, while it has one.
 	var/datum/serverblight_chase/chase
+	/// When Serverblight's body can next start over, having come apart (see is_torn()).
+	COOLDOWN_DECLARE(rebuild_cooldown)
+	/// Fires so far. A Serverblighted body, with all it's grown, is drawn every other one.
+	var/fires = 0
+	/// How many steps it takes a fire: fewer while they're costing too much (see LIMB_PHYSICS_STEP_BUDGET).
+	var/steps_per_fire = LIMB_PHYSICS_STEPS_PER_FIRE
+	/// How long its steps have been taking each fire, in milliseconds, on average.
+	var/step_cost = 0
 
 /datum/limb_physics/New(datum/limb_rig/sprites/rig)
 	src.rig = rig
@@ -96,13 +105,16 @@
 
 /datum/limb_physics/Destroy()
 	STOP_PROCESSING(SSlimb_physics, src)
+	// Let go of the rig first: ending the hunt can kill the body, which takes the rig (and this) away.
+	var/was_driving = rig?.physics == src
+	if(was_driving)
+		rig.physics = null
 	QDEL_NULL(chase)
 	merged.Cut()
 	if(blighted && !QDELETED(rig?.owner))
 		REMOVE_TRAITS_IN(rig.owner, SERVERBLIGHT_TRAIT)
 	destroy_world()
-	if(rig?.physics == src)
-		rig.physics = null
+	if(was_driving)
 		if(!QDELETED(rig) && !QDELETED(rig.owner))
 			// Let go of everything physics placed first: a pose doesn't place every piece (the torso
 			// moves with its pivot, not by itself), and anything it skips would stay where the
@@ -210,20 +222,37 @@
 		walk_legs()
 		pull_tips()
 		push_apart()
-	// Always the same number of equal steps: the tick's actual length never comes into it.
-	if(!vcphys_call("world_step", world_handle, LIMB_PHYSICS_DT, velocity_iterations, position_iterations, LIMB_PHYSICS_STEPS_PER_FIRE))
+	// Equal steps, the same number every fire (the tick's actual length never comes into it), unless
+	// they're costing too much: then fewer, and it runs slow.
+	var/started = TICK_USAGE_REAL
+	if(!vcphys_call("world_step", world_handle, LIMB_PHYSICS_DT, velocity_iterations, position_iterations, steps_per_fire))
 		qdel(src)
 		return PROCESS_KILL
-	steps += LIMB_PHYSICS_STEPS_PER_FIRE
+	steps += steps_per_fire
+	step_cost = step_cost * 0.8 + TICK_USAGE_TO_MS(started) * 0.2
+	if(step_cost > LIMB_PHYSICS_STEP_BUDGET && steps_per_fire > 1)
+		steps_per_fire--
+	else if(step_cost < LIMB_PHYSICS_STEP_BUDGET / 2 && steps_per_fire < LIMB_PHYSICS_STEPS_PER_FIRE)
+		steps_per_fire++
 	var/list/states = read_states()
 	if(!states)
 		qdel(src)
 		return PROCESS_KILL
-	draw(states, SSlimb_physics.wait)
+	if(blighted && is_torn(states))
+		if(COOLDOWN_FINISHED(src, rebuild_cooldown))
+			COOLDOWN_START(src, rebuild_cooldown, SERVERBLIGHT_REBUILD_COOLDOWN)
+			rebuild()
+		return
+	fires++
+	if(!blighted)
+		draw(states, SSlimb_physics.wait)
+	else if(fires % 2)
+		draw(states, SSlimb_physics.wait * 2)
 
 /**
  * Every body's state, by handle: list(x, y, angle, vx, vy, spin). Null if the reply was garbled,
- * or anything has gone NaN or flown off (which would mean the simulation blew up).
+ * or anything has gone NaN or flown off (which would mean the simulation blew up). The angle isn't
+ * bounded: a body that keeps turning one way just keeps adding to it.
  */
 /datum/limb_physics/proc/read_states()
 	var/reply = vcphys_call("world_read", world_handle)
@@ -238,7 +267,7 @@
 		var/list/state = list()
 		for(var/i in 2 to 7)
 			var/value = text2num(fields[i])
-			if(!isnum(value) || value != value || abs(value) > 1000)
+			if(!isnum(value) || value != value || (i != 4 && abs(value) > 1000))
 				stack_trace("vcphys: body [fields[1]] blew up: [entry]")
 				return null
 			state += value

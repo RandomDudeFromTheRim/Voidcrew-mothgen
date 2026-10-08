@@ -68,9 +68,10 @@
 	if(!states)
 		return FALSE
 	blighted = TRUE
-	// Too few iterations to ever solve all of it: what's left over each step is the shaking.
+	// Too few iterations to ever solve all of it: what's left over each step is the shaking. Enough
+	// position iterations, though, that its joints hold together.
 	velocity_iterations = 4
-	position_iterations = 2
+	position_iterations = 3
 	var/mirror = facing == WEST ? -1 : 1
 	var/side_on = facing & (EAST|WEST)
 
@@ -259,11 +260,14 @@
 
 /**
  * Pushback, as physics engines do for props stuck inside each other: every glued pair lying less
- * than SERVERBLIGHT_PUSHBACK_REACH apart is shoved apart, harder the deeper in they are. The glue
- * holds, so they never get anywhere: they shake. And a governor: nothing goes faster than
- * SERVERBLIGHT_TOP_SPEED, so the shaking never blows the simulation apart.
+ * than SERVERBLIGHT_PUSHBACK_REACH apart is pushed apart, faster the deeper in they are, up to
+ * SERVERBLIGHT_PUSHBACK metres a second. The glue holds, so they never get anywhere: they shake. A
+ * change in speed rather than a shove, so it's the same for a fingertip as for a torso (a shove that
+ * would nudge a torso sends a fingertip flying, and the body comes apart). And a governor: nothing
+ * goes faster than SERVERBLIGHT_TOP_SPEED or spins faster than SERVERBLIGHT_TOP_SPIN.
  */
 /datum/limb_physics/proc/push_apart()
+	var/list/pushes = list()
 	for(var/list/pair as anything in glued)
 		var/list/first = last_states["[pair[1]]"]
 		var/list/second = last_states["[pair[2]]"]
@@ -279,14 +283,24 @@
 			dx = cos(direction)
 			dy = sin(direction)
 			distance = 1
-		var/push = SERVERBLIGHT_PUSHBACK * (SERVERBLIGHT_PUSHBACK_REACH - min(distance, SERVERBLIGHT_PUSHBACK_REACH)) / SERVERBLIGHT_PUSHBACK_REACH
-		vcphys_call("body_impulse", world_handle, pair[2], push * dx / distance, push * dy / distance)
-		vcphys_call("body_impulse", world_handle, pair[1], -push * dx / distance, -push * dy / distance)
+		var/push = SERVERBLIGHT_PUSHBACK * (SERVERBLIGHT_PUSHBACK_REACH - distance) / SERVERBLIGHT_PUSHBACK_REACH
+		for(var/index in 1 to 2)
+			var/key = "[pair[index]]"
+			var/sign = index == 2 ? 1 : -1
+			var/list/change = pushes[key] || list(0, 0)
+			change[1] += sign * push * dx / distance
+			change[2] += sign * push * dy / distance
+			pushes[key] = change
 	for(var/handle in last_states)
 		var/list/state = last_states[handle]
-		var/speed = sqrt(state[4] ** 2 + state[5] ** 2)
-		if(speed > SERVERBLIGHT_TOP_SPEED)
-			vcphys_call("body_set_velocity", world_handle, handle, state[4] * SERVERBLIGHT_TOP_SPEED / speed, state[5] * SERVERBLIGHT_TOP_SPEED / speed, clamp(state[6], -40, 40))
+		var/list/change = pushes[handle]
+		var/velocity_x = state[4] + (change ? change[1] : 0)
+		var/velocity_y = state[5] + (change ? change[2] : 0)
+		var/speed = sqrt(velocity_x ** 2 + velocity_y ** 2)
+		if(!change && speed <= SERVERBLIGHT_TOP_SPEED && abs(state[6]) <= SERVERBLIGHT_TOP_SPIN)
+			continue
+		var/scale = speed > SERVERBLIGHT_TOP_SPEED ? SERVERBLIGHT_TOP_SPEED / speed : 1
+		vcphys_call("body_set_velocity", world_handle, handle, velocity_x * scale, velocity_y * scale, clamp(state[6], -SERVERBLIGHT_TOP_SPIN, SERVERBLIGHT_TOP_SPIN))
 
 /**
  * Grows copies of some of a rig's segments, jointed to each other as the rig has them, and the
@@ -314,7 +328,10 @@
 		// The torso stands nearly upright in the host's; everything else bends the wrong way.
 		var/list/band = part_id == RIG_CHEST ? list(-15, 15) : serverblight_joint_band(segment["joint"], facing)
 		var/layer = -2.55 + from.parts[part_id].layer / 100
-		var/body = grow(from, part_id, segment, joint_to, at[1], at[2], turn, length_scale, 1, part_id == RIG_CHEST ? 8 : 30, part_id == RIG_CHEST ? 300 : 100, band[1], band[2], layer, layer + 0.0005)
+		// In the ragdoll's own group, so the bodies taken in don't collide with each other or the
+		// body's own frame: with every one of them colliding with every other, the cost of a step
+		// runs away and it comes apart.
+		var/body = grow(from, part_id, segment, joint_to, at[1], at[2], turn, length_scale, 1, part_id == RIG_CHEST ? 8 : 30, part_id == RIG_CHEST ? 300 : 100, band[1], band[2], layer, layer + 0.0005, LIMB_PHYSICS_RAGDOLL_GROUP)
 		if(!body)
 			return
 		.[part_id] = body
@@ -403,9 +420,10 @@
  * Grows a copy of one of a rig's segments off a body, pinned at (x, y), its sprite turned angle
  * and stretched, and drawn as that rig draws it (clothes too). Its joint turns between lower and
  * upper degrees (freely if they're equal), seizing at up to motor_speed with motor_torque. It
- * never sleeps, so it never stops. Returns the new body's handle.
+ * never sleeps, so it never stops. It collides with everything, unless it's given a group (see
+ * Box2D's group_index). Returns the new body's handle.
  */
-/datum/limb_physics/proc/grow(datum/limb_rig/sprites/from, part_id, list/segment, parent, x, y, angle, length_scale, width_scale, motor_speed, motor_torque, lower, upper, layer, cloth_layer)
+/datum/limb_physics/proc/grow(datum/limb_rig/sprites/from, part_id, list/segment, parent, x, y, angle, length_scale, width_scale, motor_speed, motor_torque, lower, upper, layer, cloth_layer, group = 0)
 	var/list/origin = segment["origin"]
 	var/list/end = segment["end"]
 	var/body = vcphys_call("body_create", world_handle, LIMB_PHYSICS_DYNAMIC, x, y, angle, 0.05, 0.2, 0)
@@ -413,7 +431,7 @@
 		return null
 	// The box as build() makes it, stretched with the sprite.
 	var/length = segment_length(segment) * length_scale / LIMB_PHYSICS_PPM
-	vcphys_call("fixture_box", world_handle, body, segment["width"] * abs(width_scale) / 2 / LIMB_PHYSICS_PPM, length / 2, ((origin[1] + end[1]) / 2 - origin[1]) * width_scale / LIMB_PHYSICS_PPM, ((origin[2] + end[2]) / 2 - origin[2]) * length_scale / LIMB_PHYSICS_PPM, 0, 12, 0.7, 0.05, 0)
+	vcphys_call("fixture_box", world_handle, body, segment["width"] * abs(width_scale) / 2 / LIMB_PHYSICS_PPM, length / 2, ((origin[1] + end[1]) / 2 - origin[1]) * width_scale / LIMB_PHYSICS_PPM, ((origin[2] + end[2]) / 2 - origin[2]) * length_scale / LIMB_PHYSICS_PPM, 0, 12, 0.7, 0.05, group)
 	last_growth_joint = vcphys_call("joint_revolute", world_handle, parent, body, x, y, TORADIANS(lower), TORADIANS(upper), 0)
 	if(last_growth_joint)
 		vcphys_call("joint_set_motor", world_handle, last_growth_joint, motor_speed, motor_torque)
@@ -447,10 +465,11 @@
 		if(growth[2])
 			animate(growth[2], transform = growth[7] * segment, time = time)
 
-/// Every joint that's seizing lurches one way or the other, most ticks.
+/// Every joint that's seizing lurches one way or the other, every few ticks (its motor keeps going the
+/// way it last lurched in between).
 /datum/limb_physics/proc/seize()
 	for(var/list/spasm as anything in spasms)
-		if(prob(60))
+		if(prob(30))
 			vcphys_call("joint_set_motor", world_handle, spasm[1], spasm[2] * pick(-1, 1) * rand(50, 150) / 100, spasm[3])
 
 /**
@@ -549,6 +568,18 @@
 			var/handle = vcphys_call("body_create", world_handle, LIMB_PHYSICS_STATIC, dx * tile, (dy + 0.5) * tile, 0, 0, 0)
 			if(handle && vcphys_call("fixture_box", world_handle, handle, half, half, 0, 0, 0, 0, 0.8, 0, 0))
 				surroundings += handle
+
+/// Whether any piece has come away from the torso further than it ever should (see SERVERBLIGHT_TORN_REACH).
+/datum/limb_physics/proc/is_torn(list/states)
+	var/list/chest = states["[body_by_part[RIG_CHEST]]"]
+	if(!chest)
+		return FALSE
+	// (The walls and floor it's simulated in are all well inside that.)
+	for(var/handle in states)
+		var/list/state = states[handle]
+		if((state[1] - chest[1]) ** 2 + (state[2] - chest[2]) ** 2 > SERVERBLIGHT_TORN_REACH ** 2)
+			return TRUE
+	return FALSE
 
 /// Takes away everything Serverblight grew.
 /datum/limb_physics/proc/clear_growths()

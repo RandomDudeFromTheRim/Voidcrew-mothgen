@@ -7,6 +7,9 @@
 #define LIMB_PHYSICS_DT (1 / 60)
 /// Steps taken each time the subsystem fires (every decisecond): a tenth of a second's worth.
 #define LIMB_PHYSICS_STEPS_PER_FIRE 6
+/// How long a body's steps may take each fire, in milliseconds, on average. Past that it takes
+/// fewer steps a fire (down to one), and runs slow rather than the server does.
+#define LIMB_PHYSICS_STEP_BUDGET 5
 #define LIMB_PHYSICS_VELOCITY_ITERATIONS 8
 #define LIMB_PHYSICS_POSITION_ITERATIONS 3
 /// Earth's.
@@ -41,12 +44,19 @@
 #define SERVERBLIGHT_GRIP_MAX_SLOWDOWN 6
 /// How many of the pieces nearest it each piece of someone taken in is glued to.
 #define SERVERBLIGHT_GLUE_PER_PIECE 3
-/// How hard glued pieces lying in each other are shoved apart, at most, in newton-seconds a fire...
-#define SERVERBLIGHT_PUSHBACK 12
+/// How fast glued pieces lying in each other are pushed apart, at most, in metres a second a fire...
+#define SERVERBLIGHT_PUSHBACK 1
 /// ...and how close, in metres, they have to be for it.
 #define SERVERBLIGHT_PUSHBACK_REACH 0.9
-/// The fastest any piece of a Serverblighted body is let go, in metres a second.
-#define SERVERBLIGHT_TOP_SPEED 20
+/// The fastest any piece of a Serverblighted body is let go, in metres a second...
+#define SERVERBLIGHT_TOP_SPEED 10
+/// ...and spun, in radians a second. Unchecked, its pieces spin at Box2D's own limit (thirty pi)
+/// and the body comes apart.
+#define SERVERBLIGHT_TOP_SPIN 15
+/// How far from its torso, in metres, any piece of a Serverblighted body is ever meant to get. Past
+/// that it's coming apart, and it starts over (no more than every SERVERBLIGHT_REBUILD_COOLDOWN).
+#define SERVERBLIGHT_TORN_REACH 5
+#define SERVERBLIGHT_REBUILD_COOLDOWN (3 SECONDS)
 /// How long a killed Serverblight lies dead before it gets back up.
 #define SERVERBLIGHT_DEATH_TIME (1 MINUTES)
 /// With no gravity, how many fires between Serverblight throwing itself off things.
