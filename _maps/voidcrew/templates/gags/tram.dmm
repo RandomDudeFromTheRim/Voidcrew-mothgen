@@ -86,14 +86,12 @@
 /turf/open/floor/plating,
 /area/gag_room)
 "m" = (
-
 /obj/effect/turf_decal/tile/neutral/tram,
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/tram,
 /turf/open/indestructible/tram/plate,
 /area/gag_room)
 "n" = (
-
 /obj/effect/turf_decal/tile/neutral/tram,
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/thermoplastic,
@@ -103,7 +101,6 @@
 /turf/open/indestructible/tram/plate,
 /area/gag_room)
 "o" = (
-
 /obj/effect/turf_decal/tile/neutral/tram,
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/thermoplastic/light,
@@ -112,20 +109,13 @@
 "p" = (
 /obj/effect/turf_decal/tile/neutral/tram,
 /obj/effect/gag_scenery/tram_subfloor,
-/obj/structure/thermoplastic/light,
-/turf/open/indestructible/tram/plate,
-/area/gag_room)
-"q" = (
-
-/obj/effect/turf_decal/tile/neutral/tram,
-/obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/thermoplastic,
 /obj/structure/chair/sofa/bench/tram/left{
 	dir = 8
 	},
 /turf/open/indestructible/tram/plate,
 /area/gag_room)
-"r" = (
+"q" = (
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/thermoplastic,
 /obj/structure/chair/sofa/bench/tram/right{
@@ -133,7 +123,7 @@
 	},
 /turf/open/floor/plating,
 /area/gag_room)
-"s" = (
+"r" = (
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/thermoplastic,
 /obj/structure/chair/sofa/bench/tram/left{
@@ -148,7 +138,7 @@
 	},
 /turf/open/floor/plating,
 /area/gag_room)
-"t" = (
+"s" = (
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/thermoplastic,
 /obj/structure/chair/sofa/bench/tram{
@@ -156,7 +146,7 @@
 	},
 /turf/open/floor/plating,
 /area/gag_room)
-"u" = (
+"t" = (
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/thermoplastic,
 /obj/structure/chair/sofa/bench/tram/right{
@@ -164,18 +154,18 @@
 	},
 /turf/open/floor/plating,
 /area/gag_room)
-"v" = (
+"u" = (
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/thermoplastic,
 /obj/structure/sign/tram_plate/directional/south,
 /turf/open/floor/plating,
 /area/gag_room)
-"w" = (
+"v" = (
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/tram/spoiler,
 /turf/open/floor/plating,
 /area/gag_room)
-"x" = (
+"w" = (
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/tram/split,
 /obj/effect/gag_scenery/standing{
@@ -185,7 +175,7 @@
 	},
 /turf/open/floor/plating,
 /area/gag_room)
-"y" = (
+"x" = (
 /obj/effect/gag_scenery/tram_subfloor,
 /obj/structure/tram/spoiler{
 	dir = 4
@@ -198,14 +188,14 @@ a
 b
 m
 b
-w
+v
 "}
 
 (2,1,1) = {"
 b
 h
 n
-r
+q
 b
 "}
 
@@ -220,7 +210,7 @@ c
 (4,1,1) = {"
 d
 d
-p
+o
 d
 d
 "}
@@ -229,15 +219,15 @@ d
 e
 i
 o
-s
-x
+r
+w
 "}
 
 (6,1,1) = {"
 e
 j
 o
-t
+s
 e
 "}
 
@@ -245,14 +235,14 @@ e
 f
 k
 o
-u
+t
 e
 "}
 
 (8,1,1) = {"
 c
 d
-p
+o
 d
 c
 "}
@@ -268,8 +258,8 @@ d
 (10,1,1) = {"
 b
 l
-q
-v
+p
+u
 b
 "}
 
@@ -278,5 +268,5 @@ g
 b
 m
 b
-y
+x
 "}
