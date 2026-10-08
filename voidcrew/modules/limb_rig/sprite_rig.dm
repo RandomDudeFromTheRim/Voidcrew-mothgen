@@ -99,6 +99,9 @@
 /// Makes a body piece showing its sprite, and a cloth piece to go with it (the tail wears nothing).
 /datum/limb_rig/sprites/proc/add_piece(part_id, obj/effect/abstract/limb_rig_part/container)
 	var/obj/effect/abstract/limb_rig_part/part = new_part(part_id)
+	// Just a sprite (and its marks), nothing cut out of it: drawn straight on, not first as a group of
+	// its own, which every viewer pays for, every frame, for every piece of every body in sight.
+	part.appearance_flags &= ~KEEP_TOGETHER
 	parts[part_id] = part
 	refresh_sprite_image(part_id)
 	var/obj/effect/abstract/limb_rig_part/cloth
