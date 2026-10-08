@@ -6,7 +6,7 @@
  *
  * In trains.dmm the track runs along y 7 to 11; they stand in the middle of it, on y 9, the kids at
  * x 12 and 13 and them at 14. The tram's tramstation's own car (tram.dmm), loaded somewhere out of
- * the way and shown sliding through (its turfs, by vis_contents).
+ * the way and copied onto one thing that slides through.
  */
 /datum/smite/i_like_trains
 	name = "I Like Trains"
@@ -20,7 +20,7 @@
 	new /datum/gag/trains(victim)
 
 /// How long into trains.ogg the tram hits (measured off the clip).
-#define TRAINS_HIT (2.28 SECONDS)
+#define TRAINS_HIT (1.55 SECONDS)
 /// How long the tram takes to cross the room, and how far into that its front reaches them.
 #define TRAINS_CROSSING 10
 #define TRAINS_REACH (TRAINS_CROSSING * 12 / 38)
@@ -34,11 +34,24 @@
 	/// Whether they've said it.
 	var/said = FALSE
 
-/// The tram going by: the car's turfs, wherever they're loaded, drawn as they're laid out there.
+/// The tram going by: how the car looks where it's loaded, every tile of it, turf and all.
 /obj/effect/abstract/gag_tram
 	layer = ABOVE_MOB_LAYER
 	appearance_flags = PIXEL_SCALE
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+
+/// Takes on the car's looks, laid out from this one tile as they are from the car's bottom left. Done
+/// once it's had time to settle (its walls join up a little after it's loaded).
+/obj/effect/abstract/gag_tram/proc/copy_car(datum/turf_reservation/car)
+	var/turf/corner = car.bottom_left_turfs[1]
+	var/list/parts = list()
+	for(var/turf/spot as anything in car.reserved_turfs)
+		for(var/atom/thing as anything in list(spot) + spot.contents)
+			var/mutable_appearance/part = new(thing.appearance)
+			part.pixel_w += (spot.x - corner.x) * world.icon_size
+			part.pixel_z += (spot.y - corner.y) * world.icon_size
+			parts += part
+	add_overlay(parts)
 
 /datum/gag/trains/act()
 	room = gag_load_room("trains.dmm")
@@ -61,11 +74,11 @@
 	var/list/sway_left = list(RIG_CHEST = list("lean" = 12), RIG_L_ARM = list("raise" = 120), RIG_R_ARM = list("raise" = 30), RIG_L_LEG = list("swing" = 20))
 	var/list/sway_right = list(RIG_CHEST = list("lean" = -12), RIG_L_ARM = list("raise" = 30), RIG_R_ARM = list("raise" = 120), RIG_R_LEG = list("swing" = 20))
 	dancer.limb_rig?.play(list(list(sway_left, 3), list(sway_right, 3)), loop = -1, settle_after = FALSE)
-	GAG_AT(6 SECONDS)
-	// Their turn.
+	// Their turn, once the dancer's done.
+	GAG_AT(6.5 SECONDS)
 	to_chat(victim, span_notice("They're both looking at you. What do <i>you</i> like?"))
 	RegisterSignal(victim, COMSIG_MOB_SAY, PROC_REF(on_say))
-	while(!said && world.time < started + 6 SECONDS + TRAINS_PATIENCE)
+	while(!said && world.time < started + 6.5 SECONDS + TRAINS_PATIENCE)
 		sleep(world.tick_lag)
 		if(QDELETED(src))
 			return
@@ -76,9 +89,9 @@
 	playsound(victim, 'voidcrew/modules/gags/sound/trains.ogg', 90, FALSE)
 	// From off the right of the room to off its left, front first.
 	GAG_AT(TRAINS_HIT - TRAINS_REACH)
+	// On their tile, so it's drawn while they can see it, wherever it's slid to.
 	tram = new(gag_room_turf(room, 14, 7))
-	for(var/turf/car as anything in tram_room.reserved_turfs)
-		tram.vis_contents += car
+	tram.copy_car(tram_room)
 	tram.pixel_w = (26 - 14) * 32
 	animate(tram, pixel_w = (-12 - 14) * 32, time = TRAINS_CROSSING)
 	// It takes them as it gets to them, a tile apart: the one who likes trains first. Their going
