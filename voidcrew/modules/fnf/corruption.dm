@@ -652,7 +652,7 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 			act_out(image_name, value)
 		if("shake")
 			for(var/mob/listener as anything in battle.listeners)
-				shake_camera(listener, max(round(value * 10), 1), 1)
+				shake_camera(listener, max(round(value * 10), 1), 0.5)
 		if("drain")
 			drain(value)
 		if("health_drain")

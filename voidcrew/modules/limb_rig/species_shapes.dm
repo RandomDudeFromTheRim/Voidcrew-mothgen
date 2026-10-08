@@ -10,6 +10,7 @@
 /// The generated body: its sprites, bones, and how clothes are stretched onto it.
 #define HUMANOID_RIG_BODY \
 	"always" = TRUE, \
+	"optional" = TRUE, \
 	"rig_type" = /datum/limb_rig/sprites/humanoid, \
 	"sprites" = 'voidcrew/modules/limb_rig/icons/humanoid.dmi', \
 	"cloth_masks" = 'voidcrew/modules/limb_rig/icons/humanoid_cloth_masks.dmi', \

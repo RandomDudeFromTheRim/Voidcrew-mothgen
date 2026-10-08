@@ -7258,6 +7258,7 @@
 #include "voidcrew\modules\limb_rig\physics\serverblight.dm"
 #include "voidcrew\modules\limb_rig\physics\serverblight_chase.dm"
 #include "voidcrew\modules\limb_rig\physics\vcphys.dm"
+#include "voidcrew\modules\limb_rig\preference.dm"
 #include "voidcrew\modules\limb_rig\quirk.dm"
 #include "voidcrew\modules\limb_rig\species_shapes.dm"
 #include "voidcrew\modules\limb_rig\sprite_rig.dm"

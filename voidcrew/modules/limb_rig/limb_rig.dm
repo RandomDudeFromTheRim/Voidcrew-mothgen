@@ -454,7 +454,9 @@
 	if(QDELETED(src) || stat == DEAD || !ishuman(src) || istype(src, /mob/living/carbon/human/dummy))
 		return FALSE
 	var/mob/living/carbon/human/human_self = src
-	if(!has_quirk(/datum/quirk/overanimated) && !human_self.dna?.species?.limb_rig_shape?["always"])
+	var/list/shape = human_self.dna?.species?.limb_rig_shape
+	// Some species can do without it, if whoever plays them would rather (see preference.dm).
+	if(!has_quirk(/datum/quirk/overanimated) && (!shape?["always"] || (shape["optional"] && !human_self.limb_rig_wanted)))
 		return FALSE
 	var/obj/item/bodypart/chest/chest = get_bodypart(BODY_ZONE_CHEST)
 	// The masks are cut for a human-shaped body. Monkeys and xenos are built differently.
@@ -490,6 +492,7 @@
 	 * - "arm_stretch", "leg_stretch": how much longer than the sprite
 	 * - "head_scale": how much bigger than the sprite the head is drawn, hats and all
 	 * - "always": the species is always rigged, quirk or not, because it only looks right rigged
+ * - "optional": with "always", players can still turn it off for themselves (see preference.dm)
 	 * - "sprites", "skeleton", "leg_rest", "cloth_masks", "hat_scale", "torso_width", "cloth_widths", "paw_height",
 	 *   "damage":
 	 *   a body built from its own piece sprites (see sprite_rig.dm)

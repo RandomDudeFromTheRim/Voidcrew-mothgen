@@ -219,7 +219,7 @@
 
 /datum/fnf_stage/proc/train_rushes()
 	for(var/mob/listener as anything in battle.listeners)
-		shake_camera(listener, 12, 1)
+		shake_camera(listener, 12, 0.5)
 	if(girlfriend && !QDELETED(girlfriend))
 		girlfriend.fnf_act("dodge_high", RIG_R_ARM, SOUTH, null, 10)
 
@@ -679,7 +679,7 @@
 	bang.pixel_z = 31 - 16
 	bang.transform = matrix() * 0.55
 	playsound(pico.singer, 'sound/effects/pop_expl.ogg', 70, TRUE)
-	shake_camera(pico.singer, 3, 2)
+	shake_camera(pico.singer, 3, 1)
 	pico.singer.fnf_flash("#2a3470", 8)
 	pico.act("hit_high", 4)
 	battle.adjust_health(-32, pico)
@@ -787,7 +787,7 @@
 /datum/fnf_stage/proc/punch_sound(datum/fnf_side/struck, big = FALSE)
 	if(struck.singer)
 		playsound(struck.singer, "sound/items/weapons/punch[rand(1, 4)].ogg", big ? 70 : 50, TRUE)
-		shake_camera(struck.singer, big ? 3 : 1, big ? 2 : 1)
+		shake_camera(struck.singer, big ? 3 : 1, big ? 1 : 0.5)
 
 #undef FNF_SOLDIER_RUN_MS
 #undef FNF_MAX_SOLDIERS
