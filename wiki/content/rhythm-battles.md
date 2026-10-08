@@ -53,7 +53,7 @@ Some moments get acted out: Boyfriend's "hey!" in Bopeebo, Tankman's "ugh" in Ug
 
 The bar hangs between the singers with each singer's head on it, facing the other and bobbing to the beat. A singer who's losing badly goes pale. Your hits push the split toward the other singer's side, and your misses let it slide back toward yours.
 
-- **Against a person**, running the other singer's colour off the bar wins on the spot. The loser gets blue-balled and falls over.
+- **Against a person**, nobody can be run off the bar, and Corruption+ songs don't drain you when the other singer hits a note. The song plays to the end, and whoever has more of the bar then wins, or the better score if the bar is even.
 - **Against the game**, its notes never move the bar, so you can't lose to it by sitting still. But if your own misses empty the bar, you're blue-balled all the same.
 
 ## Game over

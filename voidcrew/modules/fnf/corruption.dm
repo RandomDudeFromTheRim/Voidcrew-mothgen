@@ -831,7 +831,8 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 
 /// One piece of an opponent's note (see opponent_hit()).
 /datum/fnf_corruption/proc/opponent_piece()
-	if(!battle || battle.state != FNF_STATE_PLAYING)
+	// The drains are the song's character pushing back; a person singing it doesn't get them.
+	if(!battle || battle.state != FNF_STATE_PLAYING || battle.is_pvp())
 		return
 	var/step = battle.get_song_time() / (battle.crochet / 4)
 	for(var/list/rule as anything in GLOB.fnf_corruption_drains[battle.song.id])
@@ -854,12 +855,14 @@ GLOBAL_LIST_INIT(fnf_corruption_drains, list(
 
 /// One piece of the player's note (see player_hit()).
 /datum/fnf_corruption/proc/player_piece()
-	if(!battle || battle.state != FNF_STATE_PLAYING || !player_bonus)
+	if(!battle || battle.state != FNF_STATE_PLAYING || !player_bonus || battle.is_pvp())
 		return
 	battle.adjust_health(-player_bonus * FNF_HEALTH_MAX / 2, battle.right)
 
 /// The mod's "Drain" event: takes 0.02 more than its value (a negative value gives health back), unless that would finish the player.
 /datum/fnf_corruption/proc/drain(value)
+	if(battle.is_pvp())
+		return
 	var/damage = (0.02 + value) * FNF_HEALTH_MAX / 2
 	if(battle.health > damage)
 		battle.adjust_health(-damage, battle.right)

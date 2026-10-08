@@ -399,13 +399,19 @@
 /datum/fnf_battle/proc/adjust_health(amount, datum/fnf_side/side)
 	if(state == FNF_STATE_OVER)
 		return
-	health = clamp(health + (side == right ? amount : -amount), 0, FNF_HEALTH_MAX)
+	// Between two people nobody's run off the bar: it's settled at the end, by the bar and then the score.
+	var/edge = is_pvp() ? 1 : 0
+	health = clamp(health + (side == right ? amount : -amount), edge, FNF_HEALTH_MAX - edge)
 	healthbar?.update(health)
 	if(health <= 0)
 		finish(left, right)
 	else if(health >= FNF_HEALTH_MAX && !left.is_cpu)
 		// Against a person, running them off the bar wins outright. The CPU can't be beaten early.
 		finish(right, left)
+
+/// Whether it's two people singing, not someone against the CPU.
+/datum/fnf_battle/proc/is_pvp()
+	return !left.is_cpu && !right.is_cpu
 
 /datum/fnf_battle/proc/forfeit(datum/fnf_side/quitter, reason)
 	if(state == FNF_STATE_OVER)
