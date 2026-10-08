@@ -34,24 +34,34 @@
 	/// Whether they've said it.
 	var/said = FALSE
 
-/// The tram going by: how the car looks where it's loaded, every tile of it, turf and all.
+/// The tram going by: how the car looks where it's loaded, a tile at a time (one thing can only carry
+/// so many overlays), all of them sliding together.
 /obj/effect/abstract/gag_tram
 	layer = ABOVE_MOB_LAYER
 	appearance_flags = PIXEL_SCALE
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	var/list/obj/effect/abstract/gag_tram/tiles = list()
 
 /// Takes on the car's looks, laid out from this one tile as they are from the car's bottom left. Done
 /// once it's had time to settle (its walls join up a little after it's loaded).
 /obj/effect/abstract/gag_tram/proc/copy_car(datum/turf_reservation/car)
 	var/turf/corner = car.bottom_left_turfs[1]
-	var/list/parts = list()
 	for(var/turf/spot as anything in car.reserved_turfs)
-		for(var/atom/thing as anything in list(spot) + spot.contents)
-			var/mutable_appearance/part = new(thing.appearance)
-			part.pixel_w += (spot.x - corner.x) * world.icon_size
-			part.pixel_z += (spot.y - corner.y) * world.icon_size
-			parts += part
-	add_overlay(parts)
+		var/obj/effect/abstract/gag_tram/tile = new(null)
+		tile.pixel_w = (spot.x - corner.x) * world.icon_size
+		tile.pixel_z = (spot.y - corner.y) * world.icon_size
+		// Not the floor under it all: the car's own floor covers it.
+		var/list/parts = list()
+		for(var/atom/movable/thing as anything in spot)
+			parts += new /mutable_appearance(thing.appearance)
+		tile.add_overlay(parts)
+		tiles += tile
+		vis_contents += tile
+
+/obj/effect/abstract/gag_tram/Destroy()
+	vis_contents.Cut()
+	QDEL_LIST(tiles)
+	return ..()
 
 /datum/gag/trains/act()
 	room = gag_load_room("trains.dmm")
