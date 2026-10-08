@@ -446,6 +446,7 @@
 #include "voidcrew_zone_logging.dm"
 #include "washing.dm"
 #include "weather_mob_targeting.dm"
+#include "../../../voidcrew/modules/unit_tests/gags.dm" // VOIDCREW EDIT ADDITION
 #include "../../../voidcrew/modules/unit_tests/weird_route.dm" // VOIDCREW EDIT ADDITION
 #include "weird_food.dm"
 #include "wizard_loadout.dm"
