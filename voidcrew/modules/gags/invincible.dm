@@ -1,15 +1,21 @@
 /**
- * *invincible: the Invincible wobble edit. The whole spessman bends about like a cut-out picture,
- * badly tweened: leaning, squashing and swinging about the feet, overshooting every move and
- * snapping between some, with a rubbery wave running up them all the while. A rigged body strikes
- * the edit's poses as well. They're invincible while it lasts, and held where they are.
+ * *invincible: the Invincible wobble edit. The whole spessman is a cut-out picture on a spring:
+ * every move flicks it, and it overshoots and wobbles back and forth about its feet, leaning,
+ * squashing and swinging, each swing smaller, until it settles or the next flick comes. A rigged
+ * body strikes the edit's poses as well. They're held where they are while it lasts, and invincible
+ * if they were fit to be (see run_emote()).
  *
  * The edit, as it goes: a fighting crouch, lunging twice; flying, fists up, swaying; zipping
  * across and back, one fist up; and a punch at whoever's watching, drawn half again as big.
  */
-/// How long it lasts (invincible.ogg's length), and how long until they can again.
+/// How long it lasts (invincible.ogg's length), how long until they can again, and how long until
+/// they can be invincible in it again (until then they just wobble).
 #define GAG_INVINCIBLE_LENGTH (11.3 SECONDS)
-#define GAG_INVINCIBLE_COOLDOWN (3 MINUTES)
+#define GAG_INVINCIBLE_COOLDOWN (10 SECONDS)
+#define GAG_INVINCIBLE_GODMODE_COOLDOWN (3 MINUTES)
+/// How many times it swings back and forth after a flick, and how much of each swing the next keeps.
+#define GAG_INVINCIBLE_RINGS 7
+#define GAG_INVINCIBLE_DECAY 0.62
 
 /datum/emote/living/carbon/human/invincible
 	key = "invincible"
@@ -19,76 +25,64 @@
 
 /datum/emote/living/carbon/human/invincible/can_run_emote(mob/user, status_check = TRUE, intentional, params)
 	var/mob/living/carbon/human/human_user = user
-	// Only on purpose, only when nothing's wrong, and not again for a while: it isn't a way out of
-	// a fight. They can't do anything while it lasts, either.
-	if(!intentional || !istype(human_user) || human_user.current_gag || human_user.stat != CONSCIOUS || human_user.body_position == LYING_DOWN || human_user.buckled || !isturf(human_user.loc))
-		return FALSE
-	if(human_user.health < human_user.maxHealth * 0.9 || HAS_TRAIT(human_user, TRAIT_RESTRAINED) || human_user.pulledby || human_user.on_fire)
-		return FALSE
-	if(world.time < human_user.next_invincible)
+	if(!intentional || !istype(human_user) || human_user.current_gag || human_user.stat != CONSCIOUS || human_user.body_position == LYING_DOWN || human_user.buckled || !isturf(human_user.loc) || HAS_TRAIT(human_user, TRAIT_RESTRAINED))
 		return FALSE
 	return ..()
 
 /datum/emote/living/carbon/human/invincible/run_emote(mob/user, params, type_override, intentional = FALSE)
 	. = ..()
 	var/mob/living/carbon/human/human_user = user
-	human_user.next_invincible = world.time + GAG_INVINCIBLE_COOLDOWN
-	human_user.log_message("became invincible for [DisplayTimeText(GAG_INVINCIBLE_LENGTH)] (*invincible).", LOG_EMOTE)
-	new /datum/gag/invincible(user)
+	// Invincible only when nothing's wrong, and only every so often: it's never a way out of a fight,
+	// nor chained into a godmode. Otherwise they just wobble, held still and as hittable as ever.
+	var/invincible = world.time >= human_user.next_invincible && human_user.health >= human_user.maxHealth * 0.9 && !human_user.pulledby && !human_user.on_fire
+	if(invincible)
+		human_user.next_invincible = world.time + GAG_INVINCIBLE_GODMODE_COOLDOWN
+		human_user.log_message("became invincible for [DisplayTimeText(GAG_INVINCIBLE_LENGTH)] (*invincible).", LOG_EMOTE)
+	new /datum/gag/invincible(user, invincible)
 
 /mob/living/carbon/human
 	/// When they can next be invincible (see *invincible).
 	var/next_invincible = 0
 
 /**
- * The wobble, beat by beat, in time with invincible.ogg: list(when, in seconds into the clip; how
- * long it takes to get there, in deciseconds, 0 snapping; shear; squash; turn, in degrees; size;
- * pixel_w; pixel_z; easing). Shear leans the top over (1 being a pixel across for every pixel up),
- * squash below 1 squashes and above stretches, and all of it is about their feet. Leaning goes
- * the way they turn, so the two add up rather than cancel out.
+ * The wobble, flick by flick, in time with invincible.ogg: list(when, in seconds into the clip; how
+ * long the move takes, in deciseconds (0 snaps); where it settles: shear, squash, turn (degrees),
+ * size, pixel_w, pixel_z; how hard it's flicked: shear, squash, turn; and how long one swing back
+ * and forth takes, in deciseconds). It moves to where it settles plus the flick, then swings to the
+ * other side and back (see GAG_INVINCIBLE_RINGS and GAG_INVINCIBLE_DECAY) and settles. A flick of
+ * nothing just moves. Shear leans the top over (1 being a pixel across for every pixel up), squash
+ * below 1 squashes and above stretches, and all of it is about their feet.
  */
 GLOBAL_LIST_INIT(gag_invincible_beats, list(
-	// A fighting crouch, swaying, lunging twice.
-	list(0, 1, 0.1, 0.95, 0, 1, 0, 0, SINE_EASING),
-	list(0.2, 1.5, 0.4, 0.78, 5, 1, 6, 0, LINEAR_EASING),
-	list(0.45, 4, -0.1, 1.05, 0, 1, 0, 0, ELASTIC_EASING),
-	list(0.8, 2, 0.15, 0.95, 0, 1, 0, 0, SINE_EASING),
-	list(1, 1.5, 0.42, 0.75, 6, 1, 7, 0, LINEAR_EASING),
-	list(1.25, 4, -0.15, 1.08, -4, 1, 0, 0, ELASTIC_EASING),
-	list(1.7, 3, 0.2, 0.92, 3, 1, 0, 0, ELASTIC_EASING),
-	list(2.1, 3, -0.18, 1.06, -3, 1, 0, 0, ELASTIC_EASING),
-	list(2.5, 3, 0.22, 0.9, 4, 1, 0, 0, ELASTIC_EASING),
-	list(2.85, 1.5, -0.1, 1.1, 0, 1, 0, 3, LINEAR_EASING),
-	// Flying, fists up, swaying from side to side.
-	list(3, 0, 0, 1, 45, 1.1, -4, 10, LINEAR_EASING),
-	list(3.05, 4, -0.15, 1.05, -6, 1.1, 0, 10, ELASTIC_EASING),
-	list(3.5, 3, 0.2, 0.92, 12, 1.1, 0, 8, ELASTIC_EASING),
-	list(3.95, 3, -0.2, 1.06, -12, 1.1, 0, 11, ELASTIC_EASING),
-	list(4.4, 3, 0.22, 0.9, 14, 1.1, 0, 8, ELASTIC_EASING),
-	list(4.85, 2, -0.25, 1, -18, 1.1, 0, 10, LINEAR_EASING),
-	list(5.2, 0, 0.05, 1, 6, 1.1, 0, 10, LINEAR_EASING),
-	list(5.3, 3, -0.15, 1.04, -10, 1.1, 0, 9, ELASTIC_EASING),
-	list(5.75, 3, 0.2, 0.94, 12, 1.1, 0, 10, ELASTIC_EASING),
-	list(6.2, 2, -0.1, 1, -6, 1.1, 0, 9, ELASTIC_EASING),
-	// Zipping across, one fist up, and back.
-	list(6.5, 0, 0, 1, 90, 1, -20, 4, LINEAR_EASING),
-	list(6.52, 3, 0, 1, 80, 1, 20, 4, LINEAR_EASING),
-	list(6.85, 0, 0, 1, -10, 1, 0, 10, LINEAR_EASING),
-	list(6.9, 3, 0.15, 1.04, 8, 1, 0, 10, ELASTIC_EASING),
-	list(7.25, 3, -0.15, 0.96, -10, 1, 0, 9, ELASTIC_EASING),
-	list(7.6, 0, 0, 1, -95, 1, 20, 4, LINEAR_EASING),
-	list(7.62, 3, 0, 1, -85, 1, -20, 4, LINEAR_EASING),
-	list(7.95, 0, 0, 1, 10, 1, 0, 10, LINEAR_EASING),
-	list(8, 3, -0.15, 1.04, -8, 1, 0, 10, ELASTIC_EASING),
-	list(8.35, 3, 0.18, 0.95, 10, 1, 0, 9, ELASTIC_EASING),
-	// The punch at the camera, rocking.
-	list(8.75, 0, 0, 1, 0, 1.7, 0, 0, LINEAR_EASING),
-	list(8.8, 3, -0.15, 1.05, -8, 1.55, 0, 0, ELASTIC_EASING),
-	list(9.25, 3, 0.15, 0.95, 8, 1.55, 0, 0, ELASTIC_EASING),
-	list(9.7, 3, -0.12, 1.04, -8, 1.55, 0, 0, ELASTIC_EASING),
-	list(10.15, 3, 0.15, 0.95, 9, 1.55, 0, 0, ELASTIC_EASING),
-	list(10.6, 3, -0.1, 1.03, -6, 1.55, 0, 0, ELASTIC_EASING),
-	list(11.1, 1.5, 0, 1, 0, 1, 0, 0, LINEAR_EASING),
+	// A fighting crouch, lunging twice.
+	list(0, 1.5, 0.1, 0.95, 0, 1, 0, 0, 0.5, 0.25, 15, 2.6),
+	list(0.2, 1.2, 0.35, 0.8, 5, 1, 6, 0, 0.6, 0.3, 20, 2.2),
+	list(0.55, 1.2, 0.05, 1, 0, 1, 0, 0, -0.6, -0.25, -18, 2.6),
+	list(1, 1.2, 0.35, 0.8, 5, 1, 7, 0, 0.7, 0.3, 22, 2.2),
+	list(1.35, 1.2, 0.05, 1, 0, 1, 0, 0, -0.6, -0.25, -18, 2.6),
+	list(2, 1, 0.1, 0.95, 0, 1, 0, 0, 0.4, 0.15, 12, 2.4),
+	list(2.45, 1, 0.1, 0.95, 0, 1, 0, 0, -0.45, -0.2, -14, 2.4),
+	list(2.85, 1, 0, 0.8, 0, 1, 0, 0, 0, 0.3, 0, 1.6),
+	// Flying, fists up, flung from side to side.
+	list(3, 0.8, 0, 1, 0, 1.1, 0, 10, 0.8, 0.3, 35, 3),
+	list(3.6, 1, 0, 1, 0, 1.1, 0, 10, -0.6, 0.2, -25, 2.8),
+	list(4.2, 1, 0, 1, 0, 1.1, 0, 10, 0.65, -0.2, 25, 2.8),
+	list(4.8, 1, 0, 1, 0, 1.1, 0, 10, -0.7, 0.25, -28, 2.6),
+	list(5.4, 1, 0, 1, 0, 1.1, 0, 10, 0.6, -0.2, 24, 2.8),
+	list(6, 1, 0, 1, 0, 1.1, 0, 10, -0.5, 0.2, -20, 2.6),
+	// Zipping across, landing with one fist up, and back.
+	list(6.5, 0, 0, 1, 90, 1, -20, 4, 0, 0, 0, 0),
+	list(6.52, 3, 0, 1, 85, 1, 20, 4, 0, 0, 0, 0),
+	list(6.85, 0.5, 0, 1, 0, 1, 0, 10, 0.8, 0.3, 30, 2.6),
+	list(7.6, 0, 0, 1, -95, 1, 20, 4, 0, 0, 0, 0),
+	list(7.62, 3, 0, 1, -85, 1, -20, 4, 0, 0, 0, 0),
+	list(7.95, 0.5, 0, 1, 0, 1, 0, 10, -0.8, 0.3, -30, 2.6),
+	// The punch at the camera, shaken about.
+	list(8.75, 0.5, 0, 1, 0, 1.6, 0, 0, 0.3, 0.4, 10, 3),
+	list(9.4, 1, 0, 1, 0, 1.6, 0, 0, -0.6, 0.2, -20, 2.8),
+	list(10.1, 1, 0, 1, 0, 1.6, 0, 0, 0.6, -0.2, 20, 2.8),
+	list(10.7, 1, 0, 1, 0, 1.6, 0, 0, -0.4, 0.15, -12, 2.6),
+	list(11.1, 1.5, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0),
 ))
 
 /// When a rigged body strikes each pose: list(when, in seconds; facing; pose; how long it takes, in deciseconds).
@@ -123,9 +117,10 @@ GLOBAL_LIST_INIT(gag_invincible_smears, list(list(6.5, 6.85), list(7.6, 7.95)))
 	/// Ends it come what may, invincibility and all.
 	var/failsafe
 
-/datum/gag/invincible/New(mob/living/carbon/human/victim)
+/datum/gag/invincible/New(mob/living/carbon/human/victim, invincible = FALSE)
 	. = ..()
-	ADD_TRAIT(victim, TRAIT_GODMODE, GAG_TRAIT)
+	if(invincible)
+		ADD_TRAIT(victim, TRAIT_GODMODE, GAG_TRAIT)
 	// Whatever happens to the rest of it, this ends when the clip does, and the invincibility with it
 	// (see /datum/gag/Destroy()).
 	failsafe = QDEL_IN_STOPPABLE(src, GAG_INVINCIBLE_LENGTH + 1 SECONDS)
@@ -134,11 +129,6 @@ GLOBAL_LIST_INIT(gag_invincible_smears, list(list(6.5, 6.85), list(7.6, 7.95)))
 
 /datum/gag/invincible/act()
 	playsound(victim, 'voidcrew/modules/gags/sound/invincible.ogg', 80, FALSE)
-	// Rubbery all the way through: a wave running up them, bending them from side to side.
-	victim.add_filter("gag_invincible_wave", 1, wave_filter(x = 0, y = 20, size = 2, flags = WAVE_SIDEWAYS))
-	var/wave = victim.get_filter("gag_invincible_wave")
-	animate(wave, offset = 1, time = 7, loop = -1)
-	animate(offset = 0, time = 0)
 	var/list/beats = GLOB.gag_invincible_beats
 	var/list/posing = GLOB.gag_invincible_posing
 	var/list/smears = GLOB.gag_invincible_smears
@@ -166,16 +156,27 @@ GLOBAL_LIST_INIT(gag_invincible_smears, list(list(6.5, 6.85), list(7.6, 7.95)))
 			gag_pose(victim, GLOB.gag_invincible_poses[pose[3]], pose[4])
 			next_pose++
 		if(beat[1] == at)
-			animate(victim,
-				transform = old_transform * gag_invincible_matrix(beat[3], beat[4], beat[5], beat[6]),
-				pixel_w = victim.base_pixel_w + beat[7],
-				pixel_z = victim.base_pixel_z + beat[8],
-				time = beat[2],
-				easing = beat[9],
-			)
+			flick_to(beat)
 			next_beat++
 	GAG_AT(GAG_INVINCIBLE_LENGTH)
 	qdel(src)
+
+/**
+ * One flick (see GLOB.gag_invincible_beats): over to where it settles plus the flick, then swinging
+ * to the other side and back, smaller each time, and settling. Cuts off whatever swinging came before.
+ */
+/datum/gag/invincible/proc/flick_to(list/beat)
+	var/pixel_w = victim.base_pixel_w + beat[7]
+	var/pixel_z = victim.base_pixel_z + beat[8]
+	var/half_swing = beat[12] / 2
+	var/swing = 1
+	animate(victim, transform = old_transform * gag_invincible_matrix(beat[3] + beat[9], beat[4] + beat[10], beat[5] + beat[11], beat[6]), pixel_w = pixel_w, pixel_z = pixel_z, time = beat[2], easing = SINE_EASING | EASE_OUT)
+	if(!beat[9] && !beat[10] && !beat[11])
+		return
+	for(var/ring in 1 to GAG_INVINCIBLE_RINGS)
+		swing *= -GAG_INVINCIBLE_DECAY
+		animate(transform = old_transform * gag_invincible_matrix(beat[3] + beat[9] * swing, beat[4] + beat[10] * swing, beat[5] + beat[11] * swing, beat[6]), time = half_swing, easing = SINE_EASING)
+	animate(transform = old_transform * gag_invincible_matrix(beat[3], beat[4], beat[5], beat[6]), time = half_swing, easing = SINE_EASING)
 
 /datum/gag/invincible/proc/on_moved(datum/source)
 	SIGNAL_HANDLER
@@ -187,7 +188,7 @@ GLOBAL_LIST_INIT(gag_invincible_smears, list(list(6.5, 6.85), list(7.6, 7.95)))
 		UnregisterSignal(victim, COMSIG_MOVABLE_MOVED)
 		// Stops the wobble where it is, before they're put back.
 		animate(victim)
-		victim.remove_filter(list("gag_invincible_wave", "gag_invincible_smear"))
+		victim.remove_filter("gag_invincible_smear")
 		victim.limb_rig?.settle()
 	return ..()
 
@@ -202,3 +203,6 @@ GLOBAL_LIST_INIT(gag_invincible_smears, list(list(6.5, 6.85), list(7.6, 7.95)))
 
 #undef GAG_INVINCIBLE_LENGTH
 #undef GAG_INVINCIBLE_COOLDOWN
+#undef GAG_INVINCIBLE_GODMODE_COOLDOWN
+#undef GAG_INVINCIBLE_RINGS
+#undef GAG_INVINCIBLE_DECAY
