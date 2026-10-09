@@ -1,7 +1,7 @@
 /**
  * *springlock: the springlocks give. They're laughing (the clip's laugh, not theirs), it creaks, and
  * then the suit's parts snap into where their insides were, one after another: every crunch a
- * spasm and blood out of them, gibs and the suit's metal thrown off, their organs pushed out onto
+ * spasm and blood out of them, gibs and the suit's metal thrown off every which way, their organs pushed out onto
  * the floor, the puddle under them growing. Their knees go; they reach out for something; they
  * fold over. They don't get up.
  */
@@ -87,11 +87,12 @@ GLOBAL_LIST_INIT(gag_springlock_spills, list(11.46, 16.42, 22.4))
 		victim.limb_rig?.set_seated("crouch")
 	gag_pose(victim, spasm, 0.5)
 	shake(2)
-	victim.spray_blood(pick(GLOB.alldirs), rand(2, 4))
 	var/turf/here = get_turf(victim)
+	for(var/spurt in 1 to rand(1, 2))
+		spurt(here, rand(2, 4))
 	var/obj/effect/decal/cleanable/blood/gibs/thrown = prob(50) ? new /obj/effect/decal/cleanable/blood/gibs(here) : new /obj/effect/decal/cleanable/blood/gibs/robot_debris(here)
 	if(!QDELETED(thrown))
-		INVOKE_ASYNC(thrown, TYPE_PROC_REF(/obj/effect/decal/cleanable/blood/gibs, streak), GLOB.alldirs)
+		fling(thrown, here, rand(1, 3))
 	playsound(victim, 'sound/effects/wounds/crack1.ogg', 40, TRUE)
 	if(!spill)
 		return
@@ -101,8 +102,29 @@ GLOBAL_LIST_INIT(gag_springlock_spills, list(11.46, 16.42, 22.4))
 			continue
 		organ.Remove(victim)
 		organ.forceMove(here)
-		organ.throw_at(get_ranged_target_turf(victim, pick(GLOB.alldirs), 3), 3, 2)
+		organ.throw_at(get_turf_in_angle(rand(0, 359), here, rand(2, 4)) || here, 4, 2)
 		return
+
+// Everything thrown off goes any which way, not just along the eight directions (which leaves a star).
+
+/// Blood out of them, off at any angle, this many tiles.
+/datum/gag/springlock/proc/spurt(turf/here, distance)
+	if(victim.can_bleed(BLOOD_COVER_TURFS) != BLEED_SPLATTER)
+		return
+	var/obj/effect/decal/cleanable/blood/hitsplatter/splatter = new(here, victim.get_static_viruses(), victim.get_blood_dna_list(), distance)
+	if(!QDELETED(splatter))
+		splatter.fly_towards(get_turf_in_angle(rand(0, 359), here, distance) || here, distance)
+
+/// Sends some gibs sliding off at any angle, this many tiles, smearing as they go, and lands them anywhere on the tile.
+/datum/gag/springlock/proc/fling(obj/effect/decal/cleanable/blood/gibs/thrown, turf/here, distance)
+	thrown.pixel_w = rand(-10, 10)
+	thrown.pixel_z = rand(-10, 10)
+	var/turf/target = get_turf_in_angle(rand(0, 359), here, distance)
+	if(!target || target == here)
+		return
+	var/datum/move_loop/loop = GLOB.move_manager.move_towards(thrown, target, 2, timeout = distance * 2 + 1, priority = MOVEMENT_ABOVE_SPACE_PRIORITY)
+	if(loop && thrown.leave_blood)
+		thrown.RegisterSignal(loop, COMSIG_MOVELOOP_POSTPROCESS, TYPE_PROC_REF(/obj/effect/decal/cleanable/blood/gibs, spread_movement_effects))
 
 /// Jolts them where they stand, a few times, this many pixels each way.
 /datum/gag/springlock/proc/shake(pixels)

@@ -1,28 +1,71 @@
-/// The song that ships with the game loads, with both singers' vocals and some long notes.
+/// Where the tests put the song they make (see make_fnf_test_song()): no song ships with the game.
+#define FNF_TEST_SONGS "data/unit_test_fnf/"
+
+/**
+ * Makes a song to test with, in Funkin's format, and adds its folder to the song list: an
+ * Experiment against an Experiment, the two taking turns every 0.4 seconds for 26 seconds, every
+ * eighth note held. Its audio is the countdown's. Returns its name; take_fnf_test_song() clears it up.
+ */
+/proc/make_fnf_test_song()
+	var/folder = FNF_TEST_SONGS + "testsong/"
+	fdel(FNF_TEST_SONGS)
+	var/list/notes = list()
+	for(var/index in 0 to 63)
+		var/hold = index % 8 == 0 ? 300 : 0
+		notes += list(list("t" = 1000 + index * 400, "d" = 4 + index % 4, "l" = hold))
+		notes += list(list("t" = 1200 + index * 400, "d" = index % 4, "l" = hold))
+	text2file(json_encode(list("version" = "2.0.0", "scrollSpeed" = list("normal" = 1.4), "events" = list(), "notes" = list("normal" = notes))), folder + "testsong-chart.json")
+	text2file(json_encode(list(
+		"songName" = "Test Song",
+		"artist" = "the unit tests",
+		"timeChanges" = list(list("t" = 0, "bpm" = 150)),
+		"playData" = list(
+			"difficulties" = list("normal"),
+			"characters" = list("player" = "expie", "opponent" = "expie", "playerVocals" = list("player"), "opponentVocals" = list("opponent")),
+		),
+	)), folder + "testsong-metadata.json")
+	for(var/audio in list("Inst.ogg", "Voices-player.ogg", "Voices-opponent.ogg"))
+		fcopy('voidcrew/modules/fnf/sound/count1.ogg', folder + audio)
+	GLOB.fnf_song_dirs |= FNF_TEST_SONGS
+	return "Test Song"
+
+/proc/take_fnf_test_song()
+	GLOB.fnf_song_dirs -= FNF_TEST_SONGS
+	fdel(FNF_TEST_SONGS)
+	get_fnf_songs(refresh = TRUE)
+
+/// A song loads, with both singers' vocals and its long notes.
 /datum/unit_test/fnf_song
 
 /datum/unit_test/fnf_song/Run()
+	var/name = make_fnf_test_song()
 	var/list/songs = get_fnf_songs(refresh = TRUE)
-	var/datum/fnf_song/song = songs["Yip Yap"]
-	TEST_ASSERT_NOTNULL(song, "The bundled song did not load.")
-	TEST_ASSERT_NOTNULL(song.player_voice_file, "The bundled song has no player vocals.")
-	TEST_ASSERT_NOTNULL(song.opponent_voice_file, "The bundled song has no opponent vocals.")
+	var/datum/fnf_song/song = songs[name]
+	TEST_ASSERT_NOTNULL(song, "The test song did not load.")
+	TEST_ASSERT_NOTNULL(song.player_voice_file, "The test song has no player vocals.")
+	TEST_ASSERT_NOTNULL(song.opponent_voice_file, "The test song has no opponent vocals.")
 	var/list/chart = song.load_chart("normal")
-	TEST_ASSERT(length(chart["player"]) > 50, "The bundled chart has too few player notes.")
-	TEST_ASSERT(length(chart["opponent"]) > 50, "The bundled chart has too few opponent notes.")
+	TEST_ASSERT_EQUAL(length(chart["player"]), 64, "The test chart's player notes didn't all load.")
+	TEST_ASSERT_EQUAL(length(chart["opponent"]), 64, "The test chart's opponent notes didn't all load.")
 	var/holds = 0
 	for(var/list/note as anything in chart["player"])
 		if(note[3] > 0)
 			holds++
-	TEST_ASSERT(holds > 0, "The bundled chart has no long notes.")
+	TEST_ASSERT_EQUAL(holds, 8, "The test chart's long notes didn't load.")
+
+/datum/unit_test/fnf_song/Destroy()
+	take_fnf_test_song()
+	return ..()
 
 /// A lone challenger gets an Experiment to sing against, the game plays both sides when nobody's
 /// at the keys, and the summoned singer goes when the battle does.
 /datum/unit_test/fnf_battle
 
 /datum/unit_test/fnf_battle/Run()
+	var/name = make_fnf_test_song()
 	var/list/songs = get_fnf_songs(refresh = TRUE)
-	var/datum/fnf_song/song = songs["Yip Yap"]
+	var/datum/fnf_song/song = songs[name]
+	TEST_ASSERT_NOTNULL(song, "The test song did not load.")
 	var/mob/living/carbon/human/consistent/challenger = allocate(/mob/living/carbon/human/consistent)
 	var/datum/fnf_battle/battle = new(song, "normal")
 	battle.start(challenger, null)
@@ -42,6 +85,10 @@
 
 	qdel(battle)
 	TEST_ASSERT(QDELETED(npc), "The summoned opponent stayed after the battle.")
+
+/datum/unit_test/fnf_battle/Destroy()
+	take_fnf_test_song()
+	return ..()
 
 /// Songs are picked by week, in Funkin's order, and lyrics are read from SubRip timings.
 /datum/unit_test/fnf_weeks
@@ -183,3 +230,5 @@
 	TEST_ASSERT(("scary_top" in overlay_states) && ("scary_bottom" in overlay_states), "The overlays have no edges to fill a taller view with.")
 	var/list/first = changes[1]
 	TEST_ASSERT(first[1] == 1000 && first[2] == "opponent" && first[3] == "kapi", "A chart's character changes are out of order, or their roles are wrong.")
+
+#undef FNF_TEST_SONGS

@@ -17,13 +17,12 @@
  * normal and <id>-<difficulty>.json for the rest, each {"song": {"notes": [sections]}}, with
  * Inst.ogg and either Voices.ogg or separate Voices-Player.ogg and Voices-Opponent.ogg.
  *
- * One song ships with the game. Real Funkin' songs can't, but tools/fnf/fetch_funkin.py
- * downloads them into data/fnf/songs/, and any song folder in there (a mod's included) shows up
- * in the song list.
+ * No songs ship with the game: Funkin's can't, but tools/fnf/fetch_funkin.py downloads them into
+ * data/fnf/songs/, and any song folder in there (a mod's included) shows up in the song list.
  */
 
 /// Folders to look for songs in.
-GLOBAL_LIST_INIT(fnf_song_dirs, list("voidcrew/modules/fnf/songs/", "data/fnf/songs/"))
+GLOBAL_LIST_INIT(fnf_song_dirs, list("data/fnf/songs/"))
 
 /// Every playable song, by name. Filled the first time a microphone asks.
 GLOBAL_LIST(fnf_songs)
