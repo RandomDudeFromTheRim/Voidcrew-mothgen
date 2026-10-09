@@ -102,8 +102,7 @@
 	var/turf/drop = get_turf(host)
 	for(var/mob/living/carbon/taken as anything in absorbed)
 		if(!QDELETED(taken) && taken.loc == host)
-			taken.forceMove(drop)
-			REMOVE_TRAITS_IN(taken, SERVERBLIGHT_TRAIT)
+			let_go(taken, drop)
 	absorbed.Cut()
 	if(!QDELETED(host))
 		host.maxHealth -= bonus_health
@@ -355,7 +354,10 @@
 	playsound(host, 'sound/effects/wounds/crackandbleed.ogg', 100, TRUE)
 	taken.visible_message(span_danger("[host] folds [taken] into itself."), span_userdanger("Every hand closes. You aren't in there any more."))
 	log_admin("Serverblight ([key_name(host)]) took [key_name(taken)] at [AREACOORD(host)].")
-	taken.ghostize(can_reenter_corpse = FALSE)
+	// Out of their body, and kept out of it for now, but still its owner: they're put back when it's let go.
+	var/mob/dead/observer/ghost = taken.ghostize(can_reenter_corpse = TRUE)
+	if(ghost)
+		ghost.can_reenter_corpse = FALSE
 	taken.set_limb_physics(FALSE)
 	absorbed += taken
 	bonus_health += SERVERBLIGHT_HEALTH_PER_BODY
@@ -366,6 +368,24 @@
 	// Drawn from how they look before they're out of sight.
 	physics.merge(taken)
 	taken.forceMove(host)
+	// Held as they are in there, not suffocating in it.
+	taken.apply_status_effect(/datum/status_effect/grouped/stasis, SERVERBLIGHT_TRAIT)
+
+/**
+ * Lets someone it took go, out onto drop: out of stasis, dead (nobody comes out of it alive), and
+ * whoever played them back in their body, to be revived like anyone dead.
+ */
+/datum/serverblight_chase/proc/let_go(mob/living/carbon/taken, turf/drop)
+	taken.forceMove(drop)
+	REMOVE_TRAITS_IN(taken, SERVERBLIGHT_TRAIT)
+	taken.remove_status_effect(/datum/status_effect/grouped/stasis, SERVERBLIGHT_TRAIT)
+	if(taken.stat != DEAD)
+		taken.death()
+	var/mob/dead/observer/ghost = taken.get_ghost(even_if_they_cant_reenter = TRUE)
+	if(ghost)
+		ghost.can_reenter_corpse = TRUE
+		ghost.reenter_corpse()
+	taken.visible_message(span_danger("[taken] slides out of [host], limp."))
 
 /// Slows someone down for every hand on them, letting go of whoever it was holding before.
 /datum/serverblight_chase/proc/hold(mob/living/carbon/who, hands)
