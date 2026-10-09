@@ -7231,6 +7231,7 @@
 #include "voidcrew\modules\fnf\stage.dm"
 #include "voidcrew\modules\food_and_drinks\drinks\bottles.dm"
 #include "voidcrew\modules\gags\gags.dm"
+#include "voidcrew\modules\gags\invincible.dm"
 #include "voidcrew\modules\gags\skibidi.dm"
 #include "voidcrew\modules\gags\springlock.dm"
 #include "voidcrew\modules\gags\stairs.dm"
