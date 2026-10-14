@@ -45,6 +45,10 @@
 	switch(slot_id)
 		if(ITEM_SLOT_BACK)
 			return back
+		// VOIDCREW EDIT ADDITION START - Ponies
+		if(ITEM_SLOT_BACK_ALT)
+			return back_alt
+		// VOIDCREW EDIT ADDITION END
 		if(ITEM_SLOT_MASK)
 			return wear_mask
 		if(ITEM_SLOT_NECK)
@@ -61,6 +65,11 @@
 /mob/living/carbon/get_slot_by_item(obj/item/looking_for)
 	if(looking_for == back)
 		return ITEM_SLOT_BACK
+
+	// VOIDCREW EDIT ADDITION START - Ponies
+	if(looking_for == back_alt)
+		return ITEM_SLOT_BACK_ALT
+	// VOIDCREW EDIT ADDITION END
 
 	if(looking_for == wear_mask)
 		return ITEM_SLOT_MASK
@@ -173,6 +182,13 @@
 				return
 			back = equipping
 			update_worn_back()
+		// VOIDCREW EDIT ADDITION START - Ponies
+		if(ITEM_SLOT_BACK_ALT)
+			if(back_alt)
+				return
+			back_alt = equipping
+			update_worn_back()
+		// VOIDCREW EDIT ADDITION END
 		if(ITEM_SLOT_MASK)
 			if(wear_mask)
 				return
@@ -230,6 +246,12 @@
 		back = null
 		if(!QDELETED(src))
 			update_worn_back()
+	// VOIDCREW EDIT ADDITION START - Ponies
+	else if(item_dropping == back_alt)
+		back_alt = null
+		if(!QDELETED(src))
+			update_worn_back()
+	// VOIDCREW EDIT ADDITION END
 	else if(item_dropping == wear_mask)
 		wear_mask = null
 		if(!QDELETED(src))

@@ -77,7 +77,7 @@
 	var/can_help_themselves = !INCAPACITATED_IGNORING(src, INCAPABLE_RESTRAINTS)
 	if(levels <= 1 && can_help_themselves)
 		var/obj/item/organ/wings/gliders = get_organ_by_type(/obj/item/organ/wings)
-		if(HAS_TRAIT(src, TRAIT_FREERUNNING) || gliders?.can_soften_fall()) // the power of parkour or wings allows falling short distances unscathed
+		if(HAS_TRAIT(src, TRAIT_FREERUNNING) || HAS_TRAIT(src, TRAIT_SOFT_FALL) || gliders?.can_soften_fall()) // the power of parkour or wings allows falling short distances unscathed // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: if(HAS_TRAIT(src, TRAIT_FREERUNNING) || gliders?.can_soften_fall())
 			var/graceful_landing = HAS_TRAIT(src, TRAIT_CATLIKE_GRACE)
 
 			if(graceful_landing)

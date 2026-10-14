@@ -8,6 +8,10 @@
 ///Updates every item slot passed into it.
 /mob/proc/update_clothing(slot_flags)
 	if(slot_flags & ITEM_SLOT_BACK)
+		// VOIDCREW EDIT ADDITION START - Ponies
+		update_worn_back()
+	if(slot_flags & ITEM_SLOT_BACK_ALT)
+		// VOIDCREW EDIT ADDITION END
 		update_worn_back()
 	if(slot_flags & ITEM_SLOT_MASK)
 		update_worn_mask()

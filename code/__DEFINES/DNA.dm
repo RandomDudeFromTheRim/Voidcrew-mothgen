@@ -77,6 +77,12 @@
 #define FEATURE_TAIL_XENO "tail_xeno"
 #define FEATURE_TAILSPINES "tailspines" // Different from regular spines, these appear on tails
 #define FEATURE_LEGS "legs"
+// VOIDCREW EDIT ADDITION START - Ponies
+#define FEATURE_PONY_EARS "pony_ears"
+#define FEATURE_PONY_TAIL "pony_tail"
+#define FEATURE_PONY_ARCHETYPE "pony_archetype"
+#define FEATURE_PONY_TK_COLOR "pony_unicorn_tk_color"
+// VOIDCREW EDIT ADDITION END
 
 ///flag for the transfer_flag argument from dna/proc/copy_dna(). This one makes it so the SE is copied too.
 #define COPY_DNA_SE (1<<0)
@@ -113,6 +119,7 @@
 #define ORGAN_SLOT_TONGUE "tongue"
 #define ORGAN_SLOT_VOICE "vocal_cords"
 #define ORGAN_SLOT_ZOMBIE "zombie_infection"
+#define ORGAN_SLOT_PONY_EARTH "pony_earth" // VOIDCREW EDIT ADDITION - Ponies
 
 /// Organ slot external
 #define ORGAN_SLOT_EXTERNAL_TAIL "tail"
@@ -123,6 +130,11 @@
 #define ORGAN_SLOT_EXTERNAL_WINGS "wings"
 #define ORGAN_SLOT_EXTERNAL_ANTENNAE "antennae"
 #define ORGAN_SLOT_EXTERNAL_POD_HAIR "pod_hair"
+
+// VOIDCREW EDIT ADDITION START - Ponies
+#define ORGAN_SLOT_EXTERNAL_PONY_HORN "pony_horn"
+#define ORGAN_SLOT_EXTERNAL_PONY_WINGS "pony_wings"
+// VOIDCREW EDIT ADDITION END
 
 /// Xenomorph organ slots
 #define ORGAN_SLOT_XENO_ACIDGLAND "acid_gland"
@@ -186,6 +198,11 @@ GLOBAL_LIST_INIT(organ_process_order, list(
 	ORGAN_SLOT_XENO_ACIDGLAND,
 	ORGAN_SLOT_XENO_NEUROTOXINGLAND,
 	ORGAN_SLOT_XENO_EGGSAC,
+	// VOIDCREW EDIT ADDITION START - Ponies
+	ORGAN_SLOT_PONY_EARTH,
+	ORGAN_SLOT_EXTERNAL_PONY_HORN,
+	ORGAN_SLOT_EXTERNAL_PONY_WINGS,
+	// VOIDCREW EDIT ADDITION END
 ))
 
 // Defines for used in creating "perks" for the species preference pages.

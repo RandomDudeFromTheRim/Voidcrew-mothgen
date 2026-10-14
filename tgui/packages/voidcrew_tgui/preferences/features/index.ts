@@ -5,3 +5,4 @@ export * from './autotranslate';
 export * from './bark_voice';
 export * from './intents';
 export * from './limb_rig';
+export * from './ponies';

@@ -179,6 +179,14 @@ const SLOTS: Record<
     image: 'inventory-shoes.png',
   },
 
+  // VOIDCREW EDIT ADDITION START - Ponies' second back slot (tgstation/tgstation#90387)
+  back_alt: {
+    displayName: 'back alt',
+    gridSpot: getGridSpotKey([3, 3]),
+    image: 'inventory-back.png',
+  },
+  // VOIDCREW EDIT ADDITION END
+
   suit_storage: {
     displayName: 'suit storage item',
     gridSpot: getGridSpotKey([4, 0]),

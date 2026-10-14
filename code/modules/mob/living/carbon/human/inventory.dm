@@ -93,6 +93,7 @@
 /mob/living/carbon/human/proc/get_body_slots()
 	return list(
 		back,
+		back_alt, // VOIDCREW EDIT ADDITION - Ponies
 		s_store,
 		handcuffed,
 		legcuffed,
@@ -118,6 +119,7 @@
 /mob/living/carbon/human/proc/get_storage_slots()
 	return list(
 		back,
+		back_alt, // VOIDCREW EDIT ADDITION - Ponies
 		belt,
 		l_store,
 		r_store,

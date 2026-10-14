@@ -40,18 +40,38 @@
 		return
 	switch(choice)
 		if("Underwear")
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(HAS_TRAIT(dressing_human, TRAIT_NO_UNDERWEAR_ONLY))
+				to_chat(dressing_human, span_warning("You are not capable of wearing underwear."))
+				return
+			// VOIDCREW EDIT ADDITION END
 			var/new_undies = tgui_input_list(user, "Select your underwear", "Changing", SSaccessories.underwear_list)
 			if(new_undies)
 				dressing_human.underwear = new_undies
 		if("Underwear Color")
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(HAS_TRAIT(dressing_human, TRAIT_NO_UNDERWEAR_ONLY))
+				to_chat(dressing_human, span_warning("You are not capable of wearing underwear."))
+				return
+			// VOIDCREW EDIT ADDITION END
 			var/new_underwear_color = input(dressing_human, "Choose your underwear color", "Underwear Color", dressing_human.underwear_color) as color|null
 			if(new_underwear_color)
 				dressing_human.underwear_color = sanitize_hexcolor(new_underwear_color)
 		if("Undershirt")
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(HAS_TRAIT(dressing_human, TRAIT_NO_UNDERSHIRT_ONLY))
+				to_chat(dressing_human, span_warning("You are not capable of wearing underwear."))
+				return
+			// VOIDCREW EDIT ADDITION END
 			var/new_undershirt = tgui_input_list(user, "Select your undershirt", "Changing", SSaccessories.undershirt_list)
 			if(new_undershirt)
 				dressing_human.undershirt = new_undershirt
 		if("Socks")
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(HAS_TRAIT(dressing_human, TRAIT_NO_SOCKS_ONLY))
+				to_chat(dressing_human, span_warning("You are not capable of wearing underwear."))
+				return
+			// VOIDCREW EDIT ADDITION END
 			var/new_socks = tgui_input_list(user, "Select your socks", "Changing", SSaccessories.socks_list)
 			if(new_socks)
 				dressing_human.socks = new_socks

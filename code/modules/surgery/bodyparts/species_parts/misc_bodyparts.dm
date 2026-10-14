@@ -517,6 +517,13 @@
 		feature_key = OFFSET_FACE,
 		offset_x = list("north" = 1, "south" = -1, "east" = 1, "west" = -1),
 	)
+	// VOIDCREW EDIT ADDITION START - Ponies
+	eye_offset = new(
+		attached_part = src,
+		feature_key = OFFSET_EYES,
+		offset_x = list("north" = 1, "south" = -1, "east" = 1, "west" = -1),
+	)
+	// VOIDCREW EDIT ADDITION END
 	return ..()
 
 /obj/item/bodypart/chest/golem

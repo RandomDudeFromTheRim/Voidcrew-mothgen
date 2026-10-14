@@ -709,6 +709,10 @@ GLOBAL_LIST_INIT(skin_tone_names, list(
 		slot_strings += "hand"
 	if(slot_flags & ITEM_SLOT_DEX_STORAGE)
 		slot_strings += "dextrous storage"
+	// VOIDCREW EDIT ADDITION START - Ponies
+	if(slot_flags & ITEM_SLOT_BACK_ALT)
+		slot_strings += "back_alt"
+	// VOIDCREW EDIT ADDITION END
 	return slot_strings
 
 ///Returns the direction that the initiator and the target are facing

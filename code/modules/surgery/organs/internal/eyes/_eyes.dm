@@ -255,6 +255,12 @@
 	// Always show if we have an appendix
 	return ..() || (owner.stat != DEAD && !HAS_TRAIT(owner, TRAIT_KNOCKEDOUT) && (owner.is_blind() || owner.is_nearsighted()))
 
+// VOIDCREW EDIT ADDITION START - Ponies
+/// Overlays drawn under the eyelids, like pony irises
+/obj/item/organ/eyes/proc/generate_body_overlay_before_eyelids(mob/living/carbon/human/parent)
+	return list()
+// VOIDCREW EDIT ADDITION END
+
 /// This proc generates a list of overlays that the eye should be displayed using for the given parent
 /obj/item/organ/eyes/proc/generate_body_overlay(mob/living/carbon/human/parent)
 	if(!istype(parent) || parent.get_organ_by_type(/obj/item/organ/eyes) != src)
@@ -277,6 +283,12 @@
 	if(!my_head)
 		return overlays
 
+	// VOIDCREW EDIT ADDITION START - Ponies
+	var/list/before_eyelids = generate_body_overlay_before_eyelids(parent)
+	if(LAZYLEN(before_eyelids))
+		overlays += before_eyelids
+	// VOIDCREW EDIT ADDITION END
+
 	if(my_head.head_flags & HEAD_EYECOLOR)
 		eye_right.color = parent.get_right_eye_color()
 		eye_left.color = parent.get_left_eye_color()
@@ -294,9 +306,11 @@
 		left_scar.color = my_head.draw_color
 		overlays += left_scar
 
-	if(my_head.worn_face_offset)
+	// VOIDCREW EDIT CHANGE START - Ponies - ORIGINAL: worn_face_offset
+	if(my_head.eye_offset)
 		for (var/mutable_appearance/overlay as anything in overlays)
-			my_head.worn_face_offset.apply_offset(overlay)
+			my_head.eye_offset.apply_offset(overlay)
+	// VOIDCREW EDIT CHANGE END
 
 	return overlays
 

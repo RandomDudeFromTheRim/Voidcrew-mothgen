@@ -548,8 +548,9 @@
 	var/slot_priority = W.slot_equipment_priority
 
 	if(!slot_priority)
+		// VOIDCREW EDIT CHANGE START - Ponies - added ITEM_SLOT_BACK_ALT
 		slot_priority = list( \
-			ITEM_SLOT_BACK, ITEM_SLOT_ID,\
+			ITEM_SLOT_BACK, ITEM_SLOT_BACK_ALT, ITEM_SLOT_ID,\
 			ITEM_SLOT_ICLOTHING, ITEM_SLOT_OCLOTHING,\
 			ITEM_SLOT_MASK, ITEM_SLOT_HEAD, ITEM_SLOT_NECK,\
 			ITEM_SLOT_FEET, ITEM_SLOT_GLOVES,\
@@ -558,6 +559,7 @@
 			ITEM_SLOT_LPOCKET, ITEM_SLOT_RPOCKET,\
 			ITEM_SLOT_DEX_STORAGE\
 		)
+		// VOIDCREW EDIT CHANGE END
 
 	for(var/slot in slot_priority)
 		if(equip_to_slot_if_possible(W, slot, disable_warning = TRUE, redraw_mob = TRUE, indirect_action = indirect_action))

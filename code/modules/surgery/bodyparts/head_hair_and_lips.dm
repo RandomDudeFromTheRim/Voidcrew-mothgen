@@ -127,13 +127,16 @@
 				if(blocks_emissive != EMISSIVE_BLOCK_NONE)
 					hair_overlay.overlays += emissive_blocker(hair_overlay.icon, hair_overlay.icon_state, location, alpha = hair_alpha)
 				//Offsets
-				worn_face_offset?.apply_offset(hair_overlay)
+				// VOIDCREW EDIT CHANGE START - Ponies
+				if(!pony_hair_fits(hair_sprite_accessory))
+					worn_face_offset?.apply_offset(hair_overlay)
+				// VOIDCREW EDIT CHANGE END
 				. += hair_overlay
 				//Gradients
 				var/hair_gradient_style = gradient_styles[GRADIENT_HAIR_KEY]
 				if(hair_gradient_style != "None")
 					var/hair_gradient_color = gradient_colors[GRADIENT_HAIR_KEY]
-					var/image/hair_gradient_overlay = get_gradient_overlay(base_icon, hair_overlay.layer, SSaccessories.hair_gradients_list[hair_gradient_style], hair_gradient_color)
+					var/image/hair_gradient_overlay = get_gradient_overlay(base_icon, hair_overlay.layer, SSaccessories.hair_gradients_list[hair_gradient_style], hair_gradient_color, hair_sprite_accessory) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: var/image/hair_gradient_overlay = get_gradient_overlay(base_icon, hair_overlay.layer, SSaccessories.hair_gradients_list[hair_gradient_style], hair_gradient_color)
 					hair_gradient_overlay.pixel_z = hair_sprite_accessory.y_offset
 					. += hair_gradient_overlay
 
@@ -192,7 +195,7 @@
 	return eyeless_overlay
 
 /// Returns an appropriate hair/facial hair gradient overlay
-/obj/item/bodypart/head/proc/get_gradient_overlay(icon/base_icon, layer, datum/sprite_accessory/gradient, grad_color)
+/obj/item/bodypart/head/proc/get_gradient_overlay(icon/base_icon, layer, datum/sprite_accessory/gradient, grad_color, datum/sprite_accessory/base_sprite) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: /obj/item/bodypart/head/proc/get_gradient_overlay(icon/base_icon, layer, datum/sprite_accessory/gradient, grad_color)
 	RETURN_TYPE(/mutable_appearance)
 
 	var/mutable_appearance/gradient_overlay = mutable_appearance(layer = layer)
@@ -201,7 +204,10 @@
 	temp.Blend(temp_hair, ICON_ADD)
 	gradient_overlay.icon = temp
 	gradient_overlay.color = grad_color
-	worn_face_offset?.apply_offset(gradient_overlay)
+	// VOIDCREW EDIT CHANGE START - Ponies
+	if(!pony_hair_fits(base_sprite))
+		worn_face_offset?.apply_offset(gradient_overlay)
+	// VOIDCREW EDIT CHANGE END
 	return gradient_overlay
 
 /**

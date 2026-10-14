@@ -210,6 +210,18 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_NO_BLOOD_OVERLAY "no_blood_overlay"
 /// Humans with this trait cannot have underwear
 #define TRAIT_NO_UNDERWEAR "no_underwear"
+// VOIDCREW EDIT ADDITION START - Ponies
+/// Humans with this trait cannot have underwear only
+#define TRAIT_NO_UNDERWEAR_ONLY "no_underwear_only"
+/// Humans with this trait cannot have underwear
+#define TRAIT_NO_UNDERSHIRT_ONLY "no_undershirt_only"
+/// Humans with this trait cannot have underwear
+#define TRAIT_NO_SOCKS_ONLY "no_socks_only"
+/// Species with this trait have access to the pony horn/wings/earth preference
+#define TRAIT_PONY_PREFS "pony_prefs"
+// makes it so held items float by their head
+#define TRAIT_FLOATING_HELD "held_items_float"
+// VOIDCREW EDIT ADDITION END
 /// This carbon doesn't show an overlay when they have no brain
 #define TRAIT_NO_DEBRAIN_OVERLAY "no_debrain_overlay"
 /// Humans with this trait cannot get augmentation surgery
@@ -984,6 +996,11 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 
 /// This mob always lands on their feet when they fall, for better or for worse.
 #define TRAIT_CATLIKE_GRACE "catlike_grace"
+
+// VOIDCREW EDIT ADDITION START - Ponies
+/// This mob always initiates a soft landing.
+#define TRAIT_SOFT_FALL "soft_fall"
+// VOIDCREW EDIT ADDITION END
 
 ///Won't show up on cameras when they snap a photo.
 #define TRAIT_INVISIBLE_TO_CAMERA "invisible_to_camera"

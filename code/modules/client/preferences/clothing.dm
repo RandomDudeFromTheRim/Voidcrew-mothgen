@@ -205,7 +205,7 @@
 
 	var/species_type = preferences.read_preference(/datum/preference/choiced/species)
 	var/datum/species/species = GLOB.species_prototypes[species_type]
-	return !(TRAIT_NO_UNDERWEAR in species.inherent_traits)
+	return !(TRAIT_NO_UNDERWEAR in species.inherent_traits) && !(TRAIT_NO_UNDERWEAR_ONLY in species.inherent_traits) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: return !(TRAIT_NO_UNDERWEAR in species.inherent_traits)
 
 /datum/preference/choiced/underwear/compile_constant_data()
 	var/list/data = ..()

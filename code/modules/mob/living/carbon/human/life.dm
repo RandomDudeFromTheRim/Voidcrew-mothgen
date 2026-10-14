@@ -63,6 +63,10 @@
 			hands_covered = TRUE
 		if(!feet_covered && (equipped.body_parts_covered & FEET|LEGS) && (equipped.clothing_flags & STOPSPRESSUREDAMAGE))
 			feet_covered = TRUE
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(bodyshape & BODYSHAPE_PONY) // ponies wear two pairs of shoes
+				hands_covered = TRUE
+			// VOIDCREW EDIT ADDITION END
 
 	if(chest_covered && head_covered && hands_covered && feet_covered)
 		return ONE_ATMOSPHERE
@@ -196,12 +200,28 @@
 			thermal_protection += THERMAL_PROTECTION_GROIN
 		if(thermal_protection_flags & LEG_LEFT)
 			thermal_protection += THERMAL_PROTECTION_LEG_LEFT
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(bodyshape & BODYSHAPE_PONY)
+				thermal_protection += THERMAL_PROTECTION_ARM_LEFT
+			// VOIDCREW EDIT ADDITION END
 		if(thermal_protection_flags & LEG_RIGHT)
 			thermal_protection += THERMAL_PROTECTION_LEG_RIGHT
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(bodyshape & BODYSHAPE_PONY)
+				thermal_protection += THERMAL_PROTECTION_ARM_RIGHT
+			// VOIDCREW EDIT ADDITION END
 		if(thermal_protection_flags & FOOT_LEFT)
 			thermal_protection += THERMAL_PROTECTION_FOOT_LEFT
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(bodyshape & BODYSHAPE_PONY)
+				thermal_protection += THERMAL_PROTECTION_HAND_LEFT
+			// VOIDCREW EDIT ADDITION END
 		if(thermal_protection_flags & FOOT_RIGHT)
 			thermal_protection += THERMAL_PROTECTION_FOOT_RIGHT
+			// VOIDCREW EDIT ADDITION START - Ponies
+			if(bodyshape & BODYSHAPE_PONY)
+				thermal_protection += THERMAL_PROTECTION_HAND_RIGHT
+			// VOIDCREW EDIT ADDITION END
 		if(thermal_protection_flags & ARM_LEFT)
 			thermal_protection += THERMAL_PROTECTION_ARM_LEFT
 		if(thermal_protection_flags & ARM_RIGHT)

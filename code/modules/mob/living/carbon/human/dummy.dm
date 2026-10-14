@@ -42,6 +42,14 @@ INITIALIZE_IMMEDIATE(/mob/living/carbon/human/dummy)
 			current_organ.Remove(src, special = TRUE) //Please don't somehow kill our dummy
 			SSwardrobe.stash_object(current_organ)
 
+	// VOIDCREW EDIT ADDITION START - Ponies
+	for(var/organ_path in current_species.conditional_mutant_organs)
+		var/obj/item/organ/current_organ = get_organ_by_type(organ_path)
+		if(current_organ)
+			current_organ.Remove(src, special = TRUE) //Please don't somehow kill our dummy
+			SSwardrobe.stash_object(current_organ)
+	// VOIDCREW EDIT ADDITION END
+
 //Instead of just deleting our equipment, we save what we can and reinsert it into SSwardrobe's store
 //Hopefully this makes preference reloading not the worst thing ever
 /mob/living/carbon/human/dummy/delete_equipment()
@@ -109,6 +117,10 @@ INITIALIZE_IMMEDIATE(/mob/living/carbon/human/dummy)
 	target.dna.features[FEATURE_ETHEREAL_COLOR] = COLOR_WHITE
 	target.dna.features[FEATURE_LIZARD_MARKINGS] = get_consistent_feature_entry(SSaccessories.lizard_markings_list)
 	target.dna.features[FEATURE_EARS] = get_consistent_feature_entry(SSaccessories.ears_list)
+	// VOIDCREW EDIT ADDITION START - Ponies
+	target.dna.features[FEATURE_PONY_EARS] = get_consistent_feature_entry(SSaccessories.pony_ears_list)
+	target.dna.features[FEATURE_PONY_TAIL] = get_consistent_feature_entry(SSaccessories.pony_tail_list)
+	// VOIDCREW EDIT ADDITION END
 	target.dna.features[FEATURE_FRILLS] = get_consistent_feature_entry(SSaccessories.frills_list)
 	target.dna.features[FEATURE_HORNS] = get_consistent_feature_entry(SSaccessories.horns_list)
 	target.dna.features[FEATURE_MOTH_ANTENNAE] = get_consistent_feature_entry(SSaccessories.moth_antennae_list)

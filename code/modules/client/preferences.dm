@@ -229,7 +229,9 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 			remove_current_slot()
 			return TRUE
 		if ("rotate")
+			character_preview_view.body.setDir(turn(character_preview_view.body.dir, -90)) // VOIDCREW EDIT ADDITION - Ponies
 			character_preview_view.setDir(turn(character_preview_view.dir, -90))
+			character_preview_view.update_body() // VOIDCREW EDIT ADDITION - Ponies
 			return TRUE
 		if ("set_preference")
 			var/requested_preference_key = params["preference"]

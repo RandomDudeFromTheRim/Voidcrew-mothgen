@@ -92,6 +92,8 @@
 	var/datum/worn_feature_offset/worn_head_offset
 	/// Offset to apply to overlays placed on the face
 	var/datum/worn_feature_offset/worn_face_offset
+	/// Offset to apply to the eye overlays
+	var/datum/worn_feature_offset/eye_offset // VOIDCREW EDIT ADDITION - Ponies
 
 	VAR_PROTECTED
 		/// Draw this head as "debrained"
@@ -109,6 +111,7 @@
 	QDEL_NULL(worn_mask_offset)
 	QDEL_NULL(worn_head_offset)
 	QDEL_NULL(worn_face_offset)
+	QDEL_NULL(eye_offset) // VOIDCREW EDIT ADDITION - Ponies
 	return ..()
 
 /obj/item/bodypart/head/examine(mob/user)
@@ -194,14 +197,15 @@
 				var/atom/location = loc || owner || src
 				eye_left.overlays += emissive_blocker(eye_left.icon, eye_left.icon_state, location, alpha = eye_left.alpha)
 				eye_right.overlays += emissive_blocker(eye_right.icon, eye_right.icon_state, location, alpha = eye_right.alpha)
-			if(worn_face_offset)
-				worn_face_offset.apply_offset(eye_left)
-				worn_face_offset.apply_offset(eye_right)
+			// VOIDCREW EDIT CHANGE START - Ponies - ORIGINAL: worn_face_offset
+			eye_offset?.apply_offset(eye_left)
+			eye_offset?.apply_offset(eye_right)
+			// VOIDCREW EDIT CHANGE END
 			. += eye_left
 			. += eye_right
 		else if(!eyes && (head_flags & HEAD_EYEHOLES))
 			var/image/no_eyes = image('icons/mob/human/human_face.dmi', "eyes_missing", -EYES_LAYER, SOUTH)
-			worn_face_offset?.apply_offset(no_eyes)
+			eye_offset?.apply_offset(no_eyes) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: worn_face_offset?.apply_offset(no_eyes)
 			. += no_eyes
 
 	return

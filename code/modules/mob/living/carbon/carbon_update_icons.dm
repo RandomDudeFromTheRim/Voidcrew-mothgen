@@ -491,6 +491,11 @@
 
 		if(icon_render_keys[limb.body_zone] != old_key) //If the keys match, that means the limb doesn't need to be redrawn
 			needs_update += limb
+		// VOIDCREW EDIT ADDITION START - Ponies
+		// Pony heads offset human hair per direction, which the render key doesn't track
+		else if(istype(limb, /obj/item/bodypart/head) && (bodyshape & BODYSHAPE_PONY))
+			needs_update += limb
+		// VOIDCREW EDIT ADDITION END
 
 	limb_count_update += length(needs_update)
 	var/list/missing_bodyparts = get_missing_limbs()
@@ -547,6 +552,10 @@
 	for(var/datum/bodypart_overlay/overlay as anything in bodypart_overlays)
 		if(!overlay.can_draw_on_bodypart(src, owner))
 			continue
+		// VOIDCREW EDIT ADDITION START - Ponies
+		if(overlay.use_feature_offset)
+			. += "-[owner ? owner.dir : SOUTH]"
+		// VOIDCREW EDIT ADDITION END
 		. += "-[jointext(overlay.generate_icon_cache(), "-")]"
 	if(ishuman(owner))
 		var/mob/living/carbon/human/human_owner = owner

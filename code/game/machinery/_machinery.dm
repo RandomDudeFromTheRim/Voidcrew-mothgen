@@ -681,6 +681,11 @@
 		if(!(living_user.mobility_flags & MOBILITY_MOVE))
 			return FALSE
 
+	// VOIDCREW EDIT ADDITION START - Ponies
+	if((interaction_flags_machine & INTERACT_MACHINE_PONY_REQUIRES_SITTING) && !pony_can_reach(user))
+		return FALSE
+	// VOIDCREW EDIT ADDITION END
+
 	return TRUE // If we passed all of those checks, woohoo! We can interact with this machine.
 
 /**

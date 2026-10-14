@@ -71,6 +71,10 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	)
 	///Internal organs that are unique to this race, like a tail or other cosmetic organs. list(typepath of organ 1, typepath of organ 2 = "Round").
 	var/list/mutant_organs = list()
+	// VOIDCREW EDIT ADDITION START - Ponies
+	///Internal organs that might be present that we want to remove when regenerating the dummy.
+	var/list/conditional_mutant_organs = list()
+	// VOIDCREW EDIT ADDITION END
 	///Replaces default brain with a different organ
 	var/obj/item/organ/brain/mutantbrain = /obj/item/organ/brain
 	///Replaces default heart with a different organ
@@ -514,7 +518,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	// Underwear, Undershirts & Socks
 	var/list/standing = list()
-	if(species_human.underwear)
+	if(species_human.underwear && !HAS_TRAIT(species_human, TRAIT_NO_UNDERWEAR_ONLY)) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: if(species_human.underwear)
 		var/datum/sprite_accessory/underwear/underwear = SSaccessories.underwear_list[species_human.underwear]
 		var/mutable_appearance/underwear_overlay
 		if(underwear)
@@ -526,7 +530,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 				underwear_overlay.color = species_human.underwear_color
 			standing += underwear_overlay
 
-	if(species_human.undershirt)
+	if(species_human.undershirt && !HAS_TRAIT(species_human, TRAIT_NO_UNDERSHIRT_ONLY)) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: if(species_human.undershirt)
 		var/datum/sprite_accessory/undershirt/undershirt = SSaccessories.undershirt_list[species_human.undershirt]
 		if(undershirt)
 			var/mutable_appearance/working_shirt
@@ -536,10 +540,15 @@ GLOBAL_LIST_EMPTY(features_by_species)
 				working_shirt = mutable_appearance(undershirt.icon, undershirt.icon_state, layer = -BODY_LAYER)
 			standing += working_shirt
 
-	if(species_human.socks && species_human.num_legs >= 2 && !(species_human.bodyshape & BODYSHAPE_DIGITIGRADE))
+	if(species_human.socks && species_human.num_legs >= 2 && !(species_human.bodyshape & BODYSHAPE_DIGITIGRADE) && !HAS_TRAIT(species_human, TRAIT_NO_SOCKS_ONLY)) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: if(species_human.socks && species_human.num_legs >= 2 && !(species_human.bodyshape & BODYSHAPE_DIGITIGRADE))
 		var/datum/sprite_accessory/socks/socks = SSaccessories.socks_list[species_human.socks]
 		if(socks)
-			standing += mutable_appearance(socks.icon, socks.icon_state, -BODY_LAYER)
+			// VOIDCREW EDIT CHANGE START - Ponies - ORIGINAL: standing += mutable_appearance(socks.icon, socks.icon_state, -BODY_LAYER)
+			if(species_human.bodyshape & BODYSHAPE_PONY)
+				standing += mutable_appearance(pony_socks_icon(socks), socks.icon_state, -BODY_LAYER)
+			else
+				standing += mutable_appearance(socks.icon, socks.icon_state, -BODY_LAYER)
+			// VOIDCREW EDIT CHANGE END
 
 	if(standing.len)
 		species_human.overlays_standing[BODY_LAYER] = standing
@@ -641,6 +650,10 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			excused = TRUE
 		else if(slot & (ITEM_SLOT_SUITSTORE|ITEM_SLOT_HANDS))
 			excused = TRUE
+		// VOIDCREW EDIT ADDITION START - Ponies
+		else if((slot & ITEM_SLOT_BACK_ALT) && (I.slot_flags & ITEM_SLOT_BACK)) // let us put back items in BACK_ALT if we have it
+			excused = TRUE
+		// VOIDCREW EDIT ADDITION END
 		if(!excused)
 			return FALSE
 
@@ -659,6 +672,12 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			return TRUE
 		if(ITEM_SLOT_BACK)
 			return equip_delay_self_check(I, H, bypass_equip_delay_self)
+		// VOIDCREW EDIT ADDITION START - Ponies
+		if(ITEM_SLOT_BACK_ALT) // the second saddlebag side
+			if(!(H.bodyshape & BODYSHAPE_PONY))
+				return FALSE
+			return equip_delay_self_check(I, H, bypass_equip_delay_self)
+		// VOIDCREW EDIT ADDITION END
 		if(ITEM_SLOT_OCLOTHING)
 			return equip_delay_self_check(I, H, bypass_equip_delay_self)
 		if(ITEM_SLOT_GLOVES)

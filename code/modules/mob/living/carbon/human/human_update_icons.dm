@@ -337,7 +337,7 @@ There are several things that need to be remembered:
 
 		var/icon_file = DEFAULT_SHOES_FILE
 
-		var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file)
+		var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, override_file = (bodyshape & BODYSHAPE_PONY) ? pony_shoes_icon(shoes, icon_file) : null) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file)
 		if(!shoes_overlay)
 			return
 
@@ -373,7 +373,7 @@ There are several things that need to be remembered:
 		if(HAS_TRAIT(worn_item, TRAIT_NO_WORN_ICON) || (check_obscured_slots() & ITEM_SLOT_SUITSTORE))
 			return
 
-		var/mutable_appearance/s_store_overlay = worn_item.build_worn_icon(default_layer = SUIT_STORE_LAYER, default_icon_file = 'icons/mob/clothing/belt_mirror.dmi')
+		var/mutable_appearance/s_store_overlay = worn_item.build_worn_icon(default_layer = SUIT_STORE_LAYER, default_icon_file = 'icons/mob/clothing/belt_mirror.dmi', override_file = (bodyshape & BODYSHAPE_PONY) ? pony_front_back_icon(worn_item, 'icons/mob/clothing/belt_mirror.dmi') : null) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: var/mutable_appearance/s_store_overlay = worn_item.build_worn_icon(default_layer = SUIT_STORE_LAYER, default_icon_file = 'icons/mob/clothing/belt_mirror.dmi')
 		var/obj/item/bodypart/chest/my_chest = get_bodypart(BODY_ZONE_CHEST)
 		my_chest?.worn_suit_storage_offset?.apply_offset(s_store_overlay)
 		overlays_standing[SUIT_STORE_LAYER] = s_store_overlay
@@ -424,7 +424,7 @@ There are several things that need to be remembered:
 
 		var/icon_file = 'icons/mob/clothing/belt.dmi'
 
-		var/mutable_appearance/belt_overlay = belt.build_worn_icon(default_layer = BELT_LAYER, default_icon_file = icon_file)
+		var/mutable_appearance/belt_overlay = belt.build_worn_icon(default_layer = BELT_LAYER, default_icon_file = icon_file, override_file = (bodyshape & BODYSHAPE_PONY) ? pony_front_back_icon(belt, icon_file) : null) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: var/mutable_appearance/belt_overlay = belt.build_worn_icon(default_layer = BELT_LAYER, default_icon_file = icon_file)
 		var/obj/item/bodypart/chest/my_chest = get_bodypart(BODY_ZONE_CHEST)
 		my_chest?.worn_belt_offset?.apply_offset(belt_overlay)
 		overlays_standing[BELT_LAYER] = belt_overlay
@@ -450,9 +450,12 @@ There are several things that need to be remembered:
 
 		var/icon_file = DEFAULT_SUIT_FILE
 
-		var/mutable_appearance/suit_overlay = wear_suit.build_worn_icon(default_layer = SUIT_LAYER, default_icon_file = icon_file)
+		var/mutable_appearance/suit_overlay = wear_suit.build_worn_icon(default_layer = SUIT_LAYER, default_icon_file = icon_file, override_file = (bodyshape & BODYSHAPE_PONY) ? pony_suit_icon(wear_suit, icon_file) : null) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: var/mutable_appearance/suit_overlay = wear_suit.build_worn_icon(default_layer = SUIT_LAYER, default_icon_file = icon_file)
 		var/obj/item/bodypart/chest/my_chest = get_bodypart(BODY_ZONE_CHEST)
-		my_chest?.worn_suit_offset?.apply_offset(suit_overlay)
+		// VOIDCREW EDIT CHANGE START - Ponies - pony suit sprites are already fitted
+		if(!(bodyshape & BODYSHAPE_PONY) || !(wear_suit.supports_variations_flags & CLOTHING_PONY_MASK))
+			my_chest?.worn_suit_offset?.apply_offset(suit_overlay)
+		// VOIDCREW EDIT CHANGE END
 		overlays_standing[SUIT_LAYER] = suit_overlay
 
 	apply_overlay(SUIT_LAYER)
@@ -529,17 +532,19 @@ There are several things that need to be remembered:
 
 		var/icon_file = 'icons/mob/clothing/back.dmi'
 
-		back_overlay = back.build_worn_icon(default_layer = BACK_LAYER, default_icon_file = icon_file)
+		back_overlay = back.build_worn_icon(default_layer = BACK_LAYER, default_icon_file = icon_file, override_file = (bodyshape & BODYSHAPE_PONY) ? pony_back_icon(back, icon_file) : null) // VOIDCREW EDIT CHANGE - Ponies - ORIGINAL: back_overlay = back.build_worn_icon(default_layer = BACK_LAYER, default_icon_file = icon_file)
 
 		if(!back_overlay)
 			return
 		var/obj/item/bodypart/chest/my_chest = get_bodypart(BODY_ZONE_CHEST)
 		my_chest?.worn_back_offset?.apply_offset(back_overlay)
 		overlays_standing[BACK_LAYER] = back_overlay
+	update_worn_back_alt(update_obscured) // VOIDCREW EDIT ADDITION - Ponies
 	apply_overlay(BACK_LAYER)
 
 /mob/living/carbon/human/get_held_overlays()
 	var/list/hands = list()
+	clear_floating_held() // VOIDCREW EDIT ADDITION - Ponies
 	for(var/obj/item/worn_item in held_items)
 		var/held_index = get_held_index_of_item(worn_item)
 		if(client && hud_used && hud_used.hud_version != HUD_STYLE_NOHUD)
@@ -564,9 +569,14 @@ There are several things that need to be remembered:
 		var/icon_file = IS_RIGHT_INDEX(held_index) ? worn_item.righthand_file : worn_item.lefthand_file
 		hand_overlay = worn_item.build_worn_icon(default_layer = HANDS_LAYER, default_icon_file = icon_file, isinhands = TRUE)
 		var/obj/item/bodypart/arm/held_in_hand = hand_bodyparts[held_index]
+		// VOIDCREW EDIT CHANGE START - Ponies - ORIGINAL: held_in_hand?.held_hand_offset?.apply_offset(hand_overlay) / hands += hand_overlay
+		if(HAS_TRAIT(src, TRAIT_FLOATING_HELD))
+			hands += float_held_item(hand_overlay, held_index, held_in_hand)
+			continue
 		held_in_hand?.held_hand_offset?.apply_offset(hand_overlay)
 
 		hands += hand_overlay
+		// VOIDCREW EDIT CHANGE END
 	return hands
 
 /// Modifies a sprite slightly to conform to female body shapes
@@ -811,6 +821,7 @@ generate/load female uniform sprites matching all previously decided variables
 
 	var/mob/living/carbon/wearer = loc
 	var/is_digi = istype(wearer) && (wearer.bodyshape & BODYSHAPE_DIGITIGRADE) && !wearer.is_digitigrade_squished()
+	var/is_pony = istype(wearer) && (wearer.bodyshape & BODYSHAPE_PONY) // VOIDCREW EDIT ADDITION - Ponies
 
 	var/mutable_appearance/draw_target // MA of the item itself, not the final result
 	var/icon/building_icon // used to construct an icon across multiple procs before converting it to MA
@@ -828,6 +839,15 @@ generate/load female uniform sprites matching all previously decided variables
 			key = "[t_state]-[file2use]-[female_uniform]",
 			greyscale_colors = greyscale_colors,
 		)
+	// VOIDCREW EDIT ADDITION START - Ponies
+	if(!isinhands && is_pony && (supports_variations_flags & CLOTHING_PONY_MASK))
+		building_icon = wear_pony_version(
+			base_icon = building_icon || icon(file2use, t_state),
+			item = src,
+			key = "[t_state]-[file2use]-[female_uniform]",
+			greyscale_colors = greyscale_colors,
+		)
+	// VOIDCREW EDIT ADDITION END
 	if(building_icon)
 		draw_target = mutable_appearance(building_icon, layer = -layer2use)
 	else
