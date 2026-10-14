@@ -5,8 +5,9 @@
  * or the Apple Bloom part (stepped on before the title, and watching the rest from under the foot).
  *
  * The cast are ponies of our own, coloured after their parts, with names off the pony list.
- * shed.dmm has five sets, left to right: the woods with the shed's outside, the white of the
- * flashbacks, the prom, the shed's inside and the asylum.
+ * shed.dmm has six sets, left to right: Ponyville's main street, the woods with the shed's
+ * outside, the white of the flashbacks, the prom, the shed's inside and the asylum. The episode's
+ * close-ups are zooms on whoever they're of; nothing of the episode's own pictures is shown.
  */
 /datum/smite/ponymov_shed
 	name = "pony.mov: SHED.MOV"
@@ -57,7 +58,7 @@
 
 /datum/ponymov/shed
 	episode = "shed"
-	set_names = list("woods", "memory", "prom", "shed", "asylum")
+	set_names = list("town", "woods", "memory", "prom", "shed", "asylum")
 	length = 283
 	parts = list(
 		// part = list(name, species, coat, mane, hairstyle, eyes, pony archetype)
@@ -81,137 +82,177 @@
 		"crowd4" = list(null, /datum/species/pony, "#9070c0", "#304080", "Bookworm (Equestrian)", "#5030a0", "Unicorn"),
 		"crowd5" = list(null, /datum/species/pony, "#70c0e0", "#f0f0f0", "Timid (Equestrian)", "#406080", "Pegasus"),
 		"crowd6" = list(null, /datum/species/pony, "#c09060", "#603020", "Punk Rocker (Equestrian)", "#204020", "Earth"),
+		"discord" = list("Discord", /datum/species/lizard, "#8a6a4a", "#f0f0f0", "Bald", "#ffd000", null),
 	)
+	// Timed to the episode's own sound: who says what, when, is where the soundtrack has it.
 	screenplay = list(
-		// The quest begins.
-		list(0, "flip", "discord_open"),
+		// Ponyville, on fire, Discord stood over it.
 		list(0, "beat", "dress_sets"),
-		list(2.5, "cut", "woods", 8, 9),
-		list(2.5, "place", "applebloom", "woods", 7, 8, SOUTH),
-		list(2.5, "place", "sweetie", "woods", 8, 9, WEST),
-		list(2.5, "place", "scootaloo", "woods", 9, 9, WEST),
+		list(0, "cut", "town", 11, 11),
+		list(0, "beat", "discord_rampage"),
+		// The cutie mark, and the foot.
+		list(2.5, "cut", "town", 11, 9),
+		list(2.5, "place", "applebloom", "town", 11, 8, SOUTH),
+		list(2.5, "place", "sweetie", "town", 12, 9, WEST),
+		list(2.5, "place", "scootaloo", "town", 13, 9, WEST),
+		list(2.5, "zoom", 2, "applebloom", 0),
 		list(3.9, "beat", "cutie_mark"),
+		list(6, "zoom", 1, null, 0.5),
 		list(6.1, "walk", "sweetie", 1, 9, 3.5),
 		list(6.3, "walk", "scootaloo", 1, 9, 3.5),
-		list(8, "face", "applebloom", WEST),
-		list(9.8, "hide", "sweetie"),
-		list(10, "hide", "scootaloo"),
-		list(11.4, "flip", "foot"),
+		list(9.4, "face", "applebloom", WEST),
+		list(10, "hide", "sweetie"),
+		list(10.2, "hide", "scootaloo"),
+		list(11.4, "beat", "foot"),
 		list(13.6, "beat", "squash"),
-		list(13.7, "flip", "title"),
+		list(13.7, "card", "SHED.MOV", 4.4),
 		// Pinkie walks them in, Rainbow on her back and Spike on Rainbow's.
-		list(18.1, "flip", "spike_bah"),
+		list(18.1, "cut", "woods", 10, 9),
 		list(18.1, "place", "pinkie", "woods", 2, 8, EAST),
 		list(18.1, "place", "rainbow", "woods", 2, 8, EAST),
 		list(18.1, "carry", "rainbow", "pinkie"),
 		list(18.1, "place", "spike", "woods", 2, 8, EAST),
 		list(18.1, "carry", "spike", "rainbow"),
-		list(22, "cut", "woods", 8, 9),
-		list(22, "walk", "pinkie", 13, 8, 7.5),
-		list(26, "cut", "woods", 11, 9),
-		list(31, "drop", "rainbow"),
-		list(31, "drop", "pinkie"),
-		list(31, "place", "rainbow", "woods", 12, 9, EAST),
-		list(31, "place", "spike", "woods", 13, 9, NORTH),
-		list(31, "face", "pinkie", NORTH),
-		list(33, "beat", "read_arm"),
-		list(37.1, "cut", "woods", 13, 9),
+		list(18.1, "zoom", 3, "spike", 0),
+		list(18.2, "walk", "pinkie", 13, 8, 15),
+		list(22, "zoom", 1.5, "pinkie", 1),
+		list(29.5, "cut", "woods", 12, 9),
+		list(33.3, "drop", "rainbow"),
+		list(33.3, "drop", "pinkie"),
+		list(33.3, "place", "rainbow", "woods", 12, 9, EAST),
+		list(33.3, "place", "spike", "woods", 13, 9, NORTH),
+		list(33.3, "face", "pinkie", NORTH),
+		list(37.1, "zoom", 2, "spike", 0),
 		list(37.1, "beat", "smoke"),
-		list(40.5, "flip", "spike_arm"),
-		list(42.9, "flip", "pinkie_face"),
-		list(47.1, "cut", "woods", 13, 9),
+		list(37.5, "beat", "read_arm"),
+		list(42.9, "zoom", 2.5, "pinkie", 0),
+		list(47.1, "zoom", 1.5, "spike", 0),
 		list(47.1, "face", "spike", SOUTH),
 		// Flashback: spin the bottle, and the beating.
-		list(48, "vignette", TRUE),
-		list(49.5, "cut", "memory"),
-		list(49.5, "place", "fluttershy", "memory", 11, 11, SOUTH),
-		list(49.5, "place", "rainbow", "memory", 9, 9, EAST),
-		list(49.5, "place", "pinkie", "memory", 13, 9, WEST),
-		list(49.5, "place", "twilight", "memory", 11, 7, NORTH),
-		list(49.5, "beat", "bottle"),
-		list(52, "cut", "memory", 11, 10),
-		list(56, "emote", "fluttershy", "giggle"),
-		list(60, "unprop", "bottle"),
-		list(60, "hide", "twilight"),
-		list(60, "hide", "fluttershy"),
-		list(60, "place", "rainbow", "memory", 10, 9, EAST),
-		list(60, "lie", "rainbow"),
-		list(60, "place", "pinkie", "memory", 12, 9, WEST),
-		list(60, "lie", "pinkie"),
-		list(60, "cut", "memory", 11, 9),
-		list(63.7, "stand", "rainbow"),
-		list(63.7, "stand", "pinkie"),
+		list(48.5, "vignette", TRUE),
+		list(50.2, "cut", "memory"),
+		list(50.2, "place", "fluttershy", "memory", 11, 11, SOUTH),
+		list(50.2, "place", "rainbow", "memory", 9, 9, EAST),
+		list(50.2, "place", "pinkie", "memory", 13, 9, WEST),
+		list(50.2, "place", "twilight", "memory", 11, 7, NORTH),
+		list(50.2, "beat", "bottle"),
+		list(53.6, "zoom", 2, "fluttershy", 0.3),
+		list(55, "emote", "fluttershy", "giggle"),
+		list(60.4, "cut", "memory"),
+		list(60.4, "unprop", "bottle"),
+		list(60.4, "hide", "twilight"),
+		list(60.4, "hide", "fluttershy"),
+		list(60.4, "place", "rainbow", "memory", 10, 9, EAST),
+		list(60.4, "lie", "rainbow"),
+		list(60.4, "place", "pinkie", "memory", 12, 9, WEST),
+		list(60.4, "lie", "pinkie"),
+		list(60.4, "zoom", 1.5, null, 0),
+		list(62.7, "stand", "pinkie"),
+		list(62.8, "stand", "rainbow"),
 		list(63.7, "emote", "rainbow", "grin"),
-		list(64.5, "emote", "pinkie", "grin"),
-		list(68, "beat", "beating"),
+		list(64, "emote", "pinkie", "grin"),
+		list(64.6, "cut", "memory", 11, 10),
+		list(64.6, "beat", "beating"),
+		list(70.9, "zoom", 2, "fluttershy", 0.5),
 		// The prom.
-		list(81.8, "cut", "prom", 11, 10),
-		list(81.8, "beat", "prom"),
-		list(84.5, "flip", "fs_braces"),
-		list(87.2, "cut", "prom", 11, 12),
+		list(76.6, "cut", "prom", 11, 10),
+		list(76.6, "beat", "prom"),
+		list(77.4, "zoom", 1.5, "announcer", 0.5),
+		list(81.8, "zoom", 2.5, "fluttershy", 0.3),
+		list(87.2, "cut", "prom", 11, 10),
 		list(87.2, "beat", "rafters"),
+		list(87.2, "zoom", 1.5, "rainbow", 0),
+		list(91.1, "zoom", 2, "fluttershy", 0),
 		list(91.1, "beat", "bucket"),
-		list(94.4, "cut", "prom", 11, 8),
-		list(94.4, "beat", "laugh"),
-		list(100.5, "cut", "prom", 11, 12),
-		list(100.5, "face", "fluttershy", NORTH),
-		list(102.2, "beat", "peek"),
-		list(105.4, "flip", "fs_crying"),
+		list(94.3, "cut", "prom", 11, 8),
+		list(94.3, "beat", "laugh"),
+		list(100.5, "beat", "peek"),
+		list(100.5, "zoom", 2, "rainbow", 0),
+		list(105.4, "zoom", 3, "fluttershy", 0.2),
+		list(105.4, "face", "fluttershy", SOUTH),
+		list(110.3, "beat", "sob"),
 		// Back at the shed.
 		list(119.1, "vignette", FALSE),
-		list(119.1, "cut", "woods", 13, 9),
+		list(119.1, "cut", "woods", 12, 9),
 		list(119.1, "beat", "back_at_the_shed"),
+		list(119.1, "zoom", 2, "spike", 0),
 		list(126, "black", 2.1),
-		list(128.1, "flip", "shed_bucket"),
 		list(128.1, "cut", "shed", 11, 9),
-		list(128.1, "place", "spike", "shed", 10, 6, NORTH),
-		list(128.1, "place", "rainbow", "shed", 11, 6, NORTH),
-		list(128.1, "place", "pinkie", "shed", 12, 6, NORTH),
-		list(130.3, "walk", "spike", 10, 9, 2),
-		list(130.3, "walk", "rainbow", 11, 9, 2),
-		list(130.3, "walk", "pinkie", 12, 9, 2),
-		list(134.6, "beat", "magazine"),
-		list(141.7, "walk", "rainbow", 6, 12, 3),
-		list(141.7, "walk", "pinkie", 7, 12, 3),
-		list(149.7, "flip", "pinkie_scream"),
-		list(151.8, "walk", "spike", 7, 12, 2),
+		list(128.1, "beat", "bucket_eye"),
+		list(128.1, "place", "spike", "shed", 10, 5, NORTH),
+		list(128.1, "place", "rainbow", "shed", 11, 5, NORTH),
+		list(128.1, "place", "pinkie", "shed", 12, 5, NORTH),
+		list(130.3, "cut", "shed", 11, 9),
+		list(130.3, "walk", "spike", 10, 9, 2.5),
+		list(130.3, "walk", "rainbow", 11, 9, 2.5),
+		list(130.3, "walk", "pinkie", 12, 9, 2.5),
+		list(134.2, "beat", "magazine"),
+		list(134.2, "zoom", 2, "spike", 0.3),
+		list(141, "zoom", 1, null, 0.3),
+		list(141.8, "walk", "rainbow", 6, 12, 2.5),
+		list(141.8, "walk", "pinkie", 7, 12, 2.5),
+		list(144.7, "zoom", 2, "rainbow", 0.3),
+		list(149.4, "zoom", 3, "pinkie", 0.2),
+		list(151.2, "zoom", 1.5, "spike", 0.3),
+		list(151.3, "walk", "spike", 7, 12, 2),
 		list(154, "beat", "toaster_cozy"),
 		list(158, "walk", "rainbow", 8, 12, 1),
 		list(158, "walk", "pinkie", 9, 12, 1.5),
+		list(162.2, "zoom", 2.5, "rainbow", 0.2),
 		// The trap.
-		list(164.9, "cut", "shed", 11, 8),
-		list(164.9, "beat", "doorway"),
-		list(171.1, "beat", "chainsaw"),
+		list(164.5, "cut", "shed", 11, 8),
+		list(164.5, "beat", "doorway"),
+		list(164.5, "zoom", 1.5, "fluttershy", 0),
+		list(170.8, "beat", "chainsaw"),
+		list(171.1, "zoom", 2.5, "spike", 0),
 		list(172.2, "face", "spike", SOUTH),
-		list(175.2, "flip", "song_pelts"),
+		list(173, "zoom", 2.5, "fluttershy", 0),
+		// The song.
+		list(175.2, "cut", "shed", 11, 12),
 		list(175.2, "beat", "pelts_sing"),
-		list(186, "beat", "dance"),
+		list(175.2, "pan", 11, 10, 6),
+		list(181.1, "beat", "skull"),
+		list(184.2, "cut", "shed", 11, 9),
+		list(184.2, "beat", "dance"),
 		list(188, "beat", "windows"),
 		list(191, "walk", "fluttershy", 13, 13, 2),
-		list(193.3, "beat", "chair"),
+		list(194.4, "beat", "chair"),
+		list(194.4, "zoom", 2, "rainbow", 0.3),
+		list(199, "zoom", 1, null, 0.3),
 		list(199, "walk", "fluttershy", 11, 10, 1.5),
-		list(200.9, "flip", "fs_monster"),
-		list(201, "beat", "monster"),
-		list(206.7, "flip_end"),
-		list(208.6, "flip", "rd_scream"),
+		list(200.9, "beat", "monster"),
+		list(200.9, "zoom", 2.5, "fluttershy", 0.5),
+		list(205.1, "zoom", 1.5, null, 0.3),
+		list(206.3, "zoom", 3, "fluttershy", 0.2),
+		list(208.6, "zoom", 3, "rainbow", 0),
 		list(209.9, "beat", "saw"),
-		list(209.9, "cut", "shed", 8, 12),
+		list(209.9, "cut", "shed", 10, 11),
+		list(209.9, "zoom", 2, null, 0),
+		list(211.8, "pan", 13, 12, 1),
 		list(213, "tint", "#6070a0", 2),
 		// The police, and after.
-		list(215.2, "cut", "shed", 11, 6),
-		list(215.2, "beat", "police"),
+		list(215.2, "cut", "woods", 13, 9),
+		list(215.2, "beat", "police_outside"),
+		list(218.3, "cut", "shed", 11, 7),
+		list(218.3, "beat", "police"),
 		list(221.7, "cut", "shed", 11, 9),
 		list(221.7, "beat", "innocent"),
+		list(222.3, "zoom", 2, "fluttershy", 0.3),
+		list(226, "zoom", 2, "rainbow", 0.3),
 		list(226, "beat", "peel"),
+		list(230, "zoom", 1, null, 1),
 		list(235.8, "tint", null, 0),
 		list(235.8, "cut", "asylum", 11, 7),
 		list(235.8, "beat", "asylum"),
 		list(246.4, "cut", "asylum", 11, 11),
 		list(246.4, "place", "spike", "asylum", 10, 12, SOUTH),
 		list(246.4, "place", "pinkie", "asylum", 12, 12, SOUTH),
-		list(254.5, "walk", "spike", 4, 13, 3),
-		list(257.7, "flip", "discord_end"),
-		list(261.8, "flip", "end_card"),
+		list(246.4, "zoom", 1.5, null, 0),
+		list(254.4, "zoom", 1, null, 0.5),
+		list(255.2, "walk", "spike", 4, 13, 3),
+		list(257.7, "cut", "town", 11, 11),
+		list(257.7, "beat", "discord_end"),
+		list(261.8, "card", "SHED.MOV<br><span style='font-size:14px;color:#ffffff'>a pony.mov, by HotDiggedyDemon</span>"),
 	)
 
 /datum/ponymov/shed/pick_role()
@@ -302,8 +343,9 @@
 	var/mob/living/carbon/human/bloom = cast["applebloom"]
 	bloom.set_body_position(LYING_DOWN)
 	animate(bloom, transform = matrix(1.5, 0, 0, 0, 0.2, -12), time = 0.1 SECONDS)
-	splatter("woods", 7, 8, 6)
-	new /obj/effect/decal/cleanable/blood/gibs(set_turf("woods", 7, 8))
+	splatter("town", 11, 8, 6)
+	new /obj/effect/decal/cleanable/blood/gibs(set_turf("town", 11, 8))
+	shake_camera(victim, 4, 3)
 	playsound(bloom, 'sound/effects/splat.ogg', 70, FALSE)
 	if(bloom == victim)
 		to_chat(victim, span_userdanger("Something enormous steps on you."))
@@ -312,7 +354,14 @@
 /datum/ponymov/shed/proc/beat_read_arm()
 	var/mob/living/carbon/human/spike = cast["spike"]
 	spike.setDir(WEST)
-	spike.visible_message(span_notice("[spike] squints at something written on [spike.p_their()] arm."))
+	var/obj/effect/ponymov_scenery/writing/scrawl = new(null)
+	scrawl.maptext = MAPTEXT("<span style='font-size:6px;color:#301030'>HOLEMENTS of ARMORY</span>")
+	scrawl.maptext_width = 64
+	scrawl.maptext_x = -18
+	scrawl.maptext_y = 12
+	scrawl.vis_flags = VIS_INHERIT_ID
+	spike.vis_contents += scrawl
+	props["arm writing"] = scrawl
 
 /datum/ponymov/shed/proc/beat_smoke()
 	var/mob/living/carbon/human/spike = cast["spike"]
@@ -547,12 +596,9 @@
 	run_line(list(0, "place", "officer2", "shed", 12, 2, NORTH))
 	var/obj/structure/mineral_door/door = locate() in set_turf("shed", 11, 3)
 	door?.Open()
-	INVOKE_ASYNC(src, PROC_REF(police_lights))
-	sleep(3.2 SECONDS)
-	if(QDELETED(src))
-		return
-	run_line(list(0, "walk", "officer1", 10, 6, 1.5))
-	run_line(list(0, "walk", "officer2", 12, 6, 1.5))
+	// They burst in.
+	run_line(list(0, "walk", "officer1", 10, 6, 0.8))
+	run_line(list(0, "walk", "officer2", 12, 6, 0.8))
 
 /datum/ponymov/shed/proc/police_lights()
 	for(var/i in 1 to 6)
@@ -611,6 +657,86 @@
 	run_line(list(0, "hide", "doctor1"))
 	run_line(list(0, "hide", "doctor2"))
 	door?.Close()
+
+/// Ponyville burning, Discord stood in the middle of it, three times bigger than anyone.
+/datum/ponymov/shed/proc/beat_discord_rampage()
+	set_fires(TRUE)
+	run_line(list(0, "place", "discord", "town", 11, 13, SOUTH))
+	var/mob/living/carbon/human/discord = cast["discord"]
+	discord.transform = matrix(3, 0, 0, 0, 3, 32)
+	discord.layer = ABOVE_MOB_LAYER
+	animate(discord, pixel_w = 4, time = 0.4 SECONDS, loop = 3, easing = SINE_EASING)
+	animate(pixel_w = -4, time = 0.4 SECONDS, easing = SINE_EASING)
+	addtimer(CALLBACK(src, PROC_REF(beat_put_out)), 2.5 SECONDS)
+
+/// Ponyville before it burns: the fires out, Discord gone.
+/datum/ponymov/shed/proc/beat_put_out()
+	set_fires(FALSE)
+	run_line(list(0, "hide", "discord"))
+
+/datum/ponymov/shed/proc/set_fires(on)
+	var/static/list/spots = list(list(3, 14), list(5, 13), list(9, 15), list(11, 13), list(15, 14), list(18, 13), list(5, 3), list(14, 2), list(16, 4))
+	for(var/i in 1 to length(spots))
+		var/name = "fire [i]"
+		if(!on)
+			var/atom/movable/fire = props[name]
+			props -= name
+			qdel(fire)
+			continue
+		var/list/spot = spots[i]
+		var/obj/effect/ponymov_scenery/fire = scenery(name, 'icons/effects/fire.dmi', pick("heavy", "medium"), "town", spot[1], spot[2])
+		fire.layer = ABOVE_MOB_LAYER
+
+/// A huge green foot comes down out of the sky on Apple Bloom.
+/datum/ponymov/shed/proc/beat_foot()
+	var/mob/living/carbon/human/bloom = cast["applebloom"]
+	var/obj/effect/ponymov_scenery/foot = scenery("foot", 'icons/mob/human/species/lizard/bodyparts.dmi', "digitigrade_l_leg", "town", 11, 8)
+	foot.color = "#4f8a34"
+	foot.layer = ABOVE_ALL_MOB_LAYER
+	foot.transform = matrix(6, 0, 0, 0, 6, 80)
+	foot.pixel_z = 480
+	bloom.setDir(NORTH)
+	animate(foot, pixel_z = 0, time = 2.2 SECONDS, easing = QUAD_EASING | EASE_IN)
+	addtimer(CALLBACK(src, PROC_REF(lift_foot)), 4.3 SECONDS)
+
+/datum/ponymov/shed/proc/lift_foot()
+	var/atom/movable/foot = props["foot"]
+	props -= "foot"
+	qdel(foot)
+
+/// Fluttershy sobbing, blood all down her, the screen shaking with it.
+/datum/ponymov/shed/proc/beat_sob()
+	var/mob/living/carbon/human/shy = cast["fluttershy"]
+	shy.emote("cry", forced = TRUE)
+	shy.Shake(1, 1, 8 SECONDS)
+
+/// The eye in the bucket, up close.
+/datum/ponymov/shed/proc/beat_bucket_eye()
+	camera.forceMove(set_turf("shed", 5, 13))
+	victim.reset_perspective(camera)
+	zoom(2.5, 0)
+
+/// One of the pelts up close, singing.
+/datum/ponymov/shed/proc/beat_skull()
+	camera.forceMove(set_turf("shed", 11, 14))
+	victim.reset_perspective(camera)
+	zoom(3, 0.3)
+
+/// The police pull up outside the shed in the night, lights going.
+/datum/ponymov/shed/proc/beat_police_outside()
+	run_line(list(0, "place", "officer1", "woods", 6, 8, EAST))
+	run_line(list(0, "place", "officer2", "woods", 6, 9, EAST))
+	run_line(list(0, "walk", "officer1", 14, 8, 2.8))
+	run_line(list(0, "walk", "officer2", 14, 9, 2.8))
+	INVOKE_ASYNC(src, PROC_REF(police_lights))
+
+/// Back to Ponyville, burning, where Discord's having his way with a house.
+/datum/ponymov/shed/proc/beat_discord_end()
+	set_fires(TRUE)
+	run_line(list(0, "place", "discord", "town", 10, 12, NORTH))
+	var/mob/living/carbon/human/discord = cast["discord"]
+	animate(discord, pixel_z = discord.base_pixel_z + 6, time = 0.15 SECONDS, loop = 14)
+	animate(pixel_z = discord.base_pixel_z, time = 0.15 SECONDS)
 
 /// The Rainbow part ends sawn in half.
 /datum/ponymov/shed/victim_fate()

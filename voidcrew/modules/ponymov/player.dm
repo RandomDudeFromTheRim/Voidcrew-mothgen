@@ -3,10 +3,11 @@
  * given a part in it. Only they see it: the sets are a map of their own, on reserved ground.
  *
  * An episode is a screenplay, a list of timed lines (see /datum/ponymov/proc/run_line()), played
- * against the host's own copy of its soundtrack. Nothing of the episode itself ships: its sound,
- * its subtitles and the frames shown full screen for its gross-up shots are cut from a copy of
- * the episode by tools/ponymov/extract.py into data/ponymov/<episode>/ (gitignored), and it plays
- * without whichever of those aren't there.
+ * against the host's own copy of its soundtrack. Everything seen is acted out in the game, the
+ * episode's close-ups done by zooming the victim's screen in on whoever they're of, as the rhythm
+ * battles do. Nothing of the episode itself ships: its sound and subtitles are cut from a copy of
+ * it by tools/ponymov/extract.py into data/ponymov/<episode>/ (gitignored), and it plays without
+ * whichever of those aren't there.
  */
 
 #define PONYMOV_TRAIT "ponymov"
@@ -61,13 +62,14 @@
 	layer = 2
 	alpha = 0
 
-/// Where flip clips play: over the world, under the subtitles, on black.
-/atom/movable/screen/ponymov/flip
+/// Big words over the blackout: the title, the end.
+/atom/movable/screen/ponymov/card
 	icon = null
 	layer = 3
-
-/atom/movable/screen/ponymov/blackout/backdrop
-	layer = 2.5
+	maptext_width = 480
+	maptext_height = 160
+	maptext_x = -224
+	maptext_y = -64
 
 /// A flashback's soft white edge.
 /atom/movable/screen/ponymov/vignette
@@ -119,15 +121,16 @@
 	var/datum/species/old_species
 
 	var/atom/movable/screen/ponymov/blackout/blackout
-	var/atom/movable/screen/ponymov/flip/flip
-	var/atom/movable/screen/ponymov/blackout/backdrop/backdrop
+	var/atom/movable/screen/ponymov/card/card
 	var/atom/movable/screen/ponymov/vignette/vignette
 	var/atom/movable/screen/ponymov/subtitle/subtitle
 	/// The host's subtitles: list(start, end, speaker, text), seconds.
 	var/list/cues = list()
-	/// Flip clips found in the episode's data, by name: their icons.
-	var/list/flips = list()
 	var/sound/soundtrack
+	/// How far the victim's screen is zoomed in (see zoom()).
+	var/zoomed = 1
+	/// Their HUD before it was hidden, to give back.
+	var/old_hud_version
 
 /datum/ponymov/New(mob/living/carbon/human/victim, role)
 	. = ..()
@@ -167,21 +170,21 @@
 	blackout.alpha = 255
 	cast_everyone()
 	victim.reset_perspective(camera)
-	sleep(3 SECONDS) // the flips' frames get sent meanwhile
+	if(victim.hud_used)
+		old_hud_version = victim.hud_used.hud_version
+		victim.hud_used.show_hud(HUD_STYLE_NOHUD)
+	sleep(2 SECONDS) // everyone's sprites get sent meanwhile
 	if(QDELETED(src))
 		return
 	run_screenplay()
 
-/// Reads what the host has cut from the episode: soundtrack, subtitles and flip clips.
+/// Reads what the host has cut from the episode: soundtrack and subtitles.
 /datum/ponymov/proc/load_data()
 	var/path = PONYMOV_DATA + "[episode]/"
 	if(fexists(path + "soundtrack.ogg"))
 		soundtrack = sound(file(path + "soundtrack.ogg"), channel = CHANNEL_ADMIN, volume = 80)
 	if(fexists(path + "subtitles.srt"))
 		cues = ponymov_read_srt(file2text(path + "subtitles.srt"))
-	for(var/clip in flist(path + "flips/"))
-		if(copytext(clip, -4) == ".dmi")
-			flips[copytext(clip, 1, -4)] = icon(file(path + "flips/" + clip))
 	if(!soundtrack)
 		message_admins("pony.mov: there's no [path]soundtrack.ogg, so [episode] plays silent (see tools/ponymov/extract.py).")
 
@@ -199,31 +202,37 @@
 
 /datum/ponymov/proc/make_screen()
 	blackout = new(null, null)
-	flip = new(null, null)
-	backdrop = new(null, null)
+	card = new(null, null)
 	vignette = new(null, null)
 	subtitle = new(null, null)
-	// The flips sent ahead, unseen, so they're there when they're wanted.
-	for(var/clip in flips)
-		var/atom/movable/screen/ponymov/preload = new(null, null)
-		preload.icon = flips[clip]
-		preload.alpha = 0
-		preload.screen_loc = "1,1"
-		victim.client.screen += preload
-		QDEL_IN(preload, 10 SECONDS)
-	victim.client.screen += list(blackout, backdrop, flip, vignette, subtitle)
+	victim.client.screen += list(blackout, card, vignette, subtitle)
 	fit_to_view(blackout, 32, 32)
-	fit_to_view(backdrop, 32, 32)
 	fit_to_view(vignette, 304, 240)
 
-/// Stretches a screen object of this many pixels to cover the victim's whole view, or, not to
-/// cover, to fit inside it.
-/datum/ponymov/proc/fit_to_view(atom/movable/screen/thing, width, height, cover = TRUE)
+/// Stretches a screen object of this many pixels to cover the victim's whole view.
+/datum/ponymov/proc/fit_to_view(atom/movable/screen/thing, width, height)
 	var/list/view = getviewsize(victim.client.view)
-	var/across = view[1] * world.icon_size / width
-	var/up = view[2] * world.icon_size / height
-	var/scale = cover ? max(across, up) : min(across, up)
+	var/scale = max(view[1] * world.icon_size / width, view[2] * world.icon_size / height)
 	thing.transform = matrix(scale, 0, (width - world.icon_size) / -2, 0, scale, (height - world.icon_size) / -2)
+
+/**
+ * Zooms the victim's screen in on whatever it's looking at, by scaling the world's planes as the
+ * rhythm battles do (see /datum/fnf_side/proc/zoom_screen()). Their HUD planes, which hold the
+ * episode's blackout, card and subtitles, stay as they are.
+ */
+/datum/ponymov/proc/zoom(scale, seconds)
+	zoomed = scale
+	var/atom/movable/plane_master_controller/screen = victim.hud_used?.plane_master_controllers[PLANE_MASTERS_NON_MASTER]
+	if(!screen)
+		return
+	for(var/atom/movable/screen/plane_master/plate as anything in screen.get_planes())
+		if(plate.plane >= HUD_PLANE)
+			continue
+		if(scale == 1)
+			plate.appearance_flags = (plate.appearance_flags & ~PIXEL_SCALE) | (initial(plate.appearance_flags) & PIXEL_SCALE)
+		else
+			plate.appearance_flags |= PIXEL_SCALE
+		animate(plate, transform = matrix() * scale, time = seconds * 10, easing = SINE_EASING)
 
 /// Everyone in their places: the victim made a pony and put in their part, the rest new.
 /datum/ponymov/proc/cast_everyone()
@@ -286,9 +295,12 @@
 /**
  * One line of the screenplay, list(seconds, verb, args...). The verbs:
  *
- * * "cut", set, [x, y]: the camera's put on the set (on its middle, or this spot), any flip over.
- * * "flip", clip: a clip of the episode's own frames, full screen. "flip_end" ends it early.
+ * * "cut", set, [x, y]: the camera's put on the set (on its middle, or this spot), zoomed out.
+ * * "zoom", scale, [part], [seconds]: zooms in (or back out, at 1), held on one of the cast if given,
+ *   who it then follows about. A close-up.
+ * * "pan", x, y, seconds: the camera glides to there in its set.
  * * "black", seconds: the view goes black for that long.
+ * * "card", text, [seconds]: big words on black, for that long (or until the next card, with none).
  * * "place", part, set, x, y, [dir]: puts one of the cast somewhere and shows them.
  * * "walk", part, x, y, seconds: they walk there in their set, x first.
  * * "carry", part, under: they ride on top of another of the cast, who'll take them along.
@@ -307,17 +319,19 @@
 			var/x = clamp(length(line) >= 5 ? line[4] : 11, 10, PONYMOV_SET_WIDTH - 9)
 			var/y = clamp(length(line) >= 5 ? line[5] : 9, 8, PONYMOV_SET_HEIGHT - 7)
 			camera.forceMove(set_turf(line[3], x, y))
-			end_flip()
-		if("flip")
-			var/icon/frames = flips[line[3]]
-			if(!frames)
-				return
-			flip.icon = frames
-			flip.icon_state = "clip"
-			fit_to_view(flip, frames.Width(), frames.Height(), cover = FALSE)
-			backdrop.alpha = 255
-		if("flip_end")
-			end_flip()
+			victim.reset_perspective(camera)
+			if(zoomed != 1)
+				zoom(1, 0)
+		if("zoom")
+			var/mob/living/carbon/human/subject = length(line) >= 4 ? cast[line[4]] : null
+			if(subject)
+				victim.reset_perspective(subject)
+			zoom(line[3], length(line) >= 5 ? line[5] : 0.5)
+		if("pan")
+			victim.reset_perspective(camera)
+			INVOKE_ASYNC(src, PROC_REF(walk), camera, line[3], line[4], line[5])
+		if("card")
+			show_card(line[3], length(line) >= 4 ? line[4] : null)
 		if("black")
 			blackout.alpha = 255
 			animate(blackout, alpha = 255, time = line[3] * 10)
@@ -370,12 +384,20 @@
 		else
 			stack_trace("pony.mov: [episode]'s screenplay has an unknown verb, [verb].")
 
-/datum/ponymov/proc/end_flip()
-	flip.icon = null
-	backdrop.alpha = 0
+/datum/ponymov/proc/show_card(text, seconds)
+	blackout.alpha = 255
+	card.maptext = MAPTEXT("<div align='center'><span style='font-size:36px;color:#c01818;-dm-text-outline:2px #300000'>[text]</span></div>")
+	card.alpha = 0
+	animate(card, alpha = 255, time = 0.5 SECONDS)
+	if(seconds)
+		addtimer(CALLBACK(src, PROC_REF(hide_card)), seconds * 10)
 
-/// Walks one of the cast to x, y in their set: along first, then up or down, gliding.
-/datum/ponymov/proc/walk(mob/living/carbon/human/actor, x, y, seconds)
+/datum/ponymov/proc/hide_card()
+	card.maptext = null
+	blackout.alpha = 0
+
+/// Walks one of the cast (or the camera) to x, y in their set: along first, then up or down, gliding.
+/datum/ponymov/proc/walk(atom/movable/actor, x, y, seconds)
 	var/list/at = where(actor)
 	var/steps = abs(x - at[2]) + abs(y - at[3])
 	if(!steps)
@@ -425,10 +447,14 @@
 /datum/ponymov/Destroy()
 	if(victim)
 		UnregisterSignal(victim, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT))
-		victim.client?.screen -= list(blackout, backdrop, flip, vignette, subtitle)
+		victim.client?.screen -= list(blackout, card, vignette, subtitle)
 		if(victim.client)
 			victim.client.color = null
 			victim.stop_sound_channel(CHANNEL_ADMIN)
+		if(zoomed != 1)
+			zoom(1, 0)
+		if(old_hud_version)
+			victim.hud_used?.show_hud(old_hud_version)
 		victim.reset_perspective()
 		victim.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_GODMODE), PONYMOV_TRAIT)
 		victim.buckled?.unbuckle_mob(victim, force = TRUE)
@@ -449,8 +475,7 @@
 	QDEL_LIST_ASSOC_VAL(props)
 	QDEL_NULL(camera)
 	QDEL_NULL(blackout)
-	QDEL_NULL(flip)
-	QDEL_NULL(backdrop)
+	QDEL_NULL(card)
 	QDEL_NULL(vignette)
 	QDEL_NULL(subtitle)
 	// Nobody's left behind when the sets go, living or not.
