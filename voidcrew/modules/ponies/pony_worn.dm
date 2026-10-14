@@ -126,12 +126,12 @@
 /proc/pony_back_icon(obj/item/worn, icon_file, other_side = FALSE)
 	var/state = worn.worn_icon_state || worn.icon_state
 	var/file = worn.worn_icon || icon_file
-	var/static/list/sources = list(SOUTH = WEST, NORTH = EAST, EAST = SOUTH, WEST = NORTH)
-	var/static/list/other_sources = list(SOUTH = EAST, NORTH = WEST, EAST = NORTH, WEST = SOUTH)
-	var/list/use = other_side ? other_sources : sources
+	// list(dir drawn, dir of the sprite drawn there), for each of the four
+	var/static/list/sources = list(list(SOUTH, WEST), list(NORTH, EAST), list(EAST, SOUTH), list(WEST, NORTH))
+	var/static/list/other_sources = list(list(SOUTH, EAST), list(NORTH, WEST), list(EAST, NORTH), list(WEST, SOUTH))
 	var/icon/final_icon = icon('icons/testing/greyscale_error.dmi', "")
-	for(var/dir in use)
-		final_icon.Insert(icon(file, state, use[dir]), state, dir)
+	for(var/list/pair as anything in (other_side ? other_sources : sources))
+		final_icon.Insert(icon(file, state, pair[2]), state, pair[1])
 	return final_icon
 
 /// Modifies a sprite to conform to pony body shapes
