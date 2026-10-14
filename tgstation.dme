@@ -7564,6 +7564,8 @@
 #include "voidcrew\modules\ponies\species.dm"
 #include "voidcrew\modules\ponies\sprite_accessories.dm"
 #include "voidcrew\modules\ponies\tk_hold.dm"
+#include "voidcrew\modules\ponymov\player.dm"
+#include "voidcrew\modules\ponymov\shed.dm"
 #include "voidcrew\modules\power\port_gen.dm"
 #include "voidcrew\modules\preferences\ship_categories_middleware.dm"
 #include "voidcrew\modules\reagents\chemistry\reagents\medicine_reagents.dm"
