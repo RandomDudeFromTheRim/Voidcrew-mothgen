@@ -1,156 +1,124 @@
 //MAP CONVERTED BY dmm2tgm.py THIS HEADER COMMENT PREVENTS RECONVERSION, DO NOT REMOVE
-"aA" = (
-/obj/effect/ponymov_scenery/writing/bunny_brain_corner,
-/turf/open/floor/wood,
-/area/ponymov_set
-)
-"aB" = (
-/turf/closed/indestructible/riveted,
-/area/ponymov_set
-)
-"aC" = (
-/turf/open/floor/iron/white,
-/area/ponymov_set
-)
-"aD" = (
-/turf/closed/wall/r_wall,
-/area/ponymov_set
-)
-"aE" = (
-/obj/structure/grille,
-/obj/structure/window/reinforced/fulltile,
-/turf/open/floor/iron/white,
-/area/ponymov_set
-)
-"aF" = (
-/obj/structure/mineral_door/iron,
-/turf/open/floor/iron/white,
-/area/ponymov_set
-)
 "aa" = (
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ab" = (
 /turf/open/floor/stone,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ac" = (
 /turf/closed/wall/mineral/wood,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ad" = (
 /obj/structure/window/fulltile,
 /turf/open/floor/wood,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ae" = (
 /obj/structure/flora/bush/flowers_yw,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "af" = (
 /obj/structure/mineral_door/wood,
 /turf/open/floor/wood,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ag" = (
 /obj/structure/flora/bush/flowers_pp,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ah" = (
 /obj/structure/flora/tree/jungle/small/style_2,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ai" = (
 /turf/open/misc/dirt,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "aj" = (
 /obj/structure/flora/grass/green,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ak" = (
 /obj/structure/flora/grass/green/style_2,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "al" = (
 /obj/structure/flora/tree/jungle/small/style_3,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "am" = (
 /obj/structure/flora/tree/jungle/small,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "an" = (
 /obj/structure/flora/tree/jungle/small/style_4,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ao" = (
 /obj/structure/flora/grass/both/style_3,
 /turf/open/misc/grass,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ap" = (
 /turf/open/indestructible/white,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "aq" = (
 /turf/open/floor/carpet/blue,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ar" = (
 /turf/open/floor/wood/large,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "as" = (
 /obj/structure/curtain/cloth/fancy{
 	icon_state = "cur_fancy-closed";
 	open = 0
 	},
 /turf/open/floor/wood/large,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "at" = (
 /turf/open/floor/carpet/red,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "au" = (
 /obj/effect/ponymov_scenery/writing/prom_banner,
 /turf/closed/wall/mineral/wood,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "av" = (
 /obj/effect/ponymov_scenery/microphone,
 /turf/open/floor/carpet/red,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "aw" = (
 /turf/open/floor/wood,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ax" = (
 /obj/item/reagent_containers/cup/bucket,
 /turf/open/floor/wood,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "ay" = (
 /obj/machinery/microwave,
 /turf/open/floor/wood,
-/area/ponymov_set
-)
+/area/ponymov_set)
 "az" = (
 /obj/effect/ponymov_scenery/lever,
 /turf/open/floor/wood,
-/area/ponymov_set
-)
+/area/ponymov_set)
+"aA" = (
+/obj/effect/ponymov_scenery/writing/bunny_brain_corner,
+/turf/open/floor/wood,
+/area/ponymov_set)
+"aB" = (
+/turf/closed/indestructible/riveted,
+/area/ponymov_set)
+"aC" = (
+/turf/open/floor/iron/white,
+/area/ponymov_set)
+"aD" = (
+/turf/closed/wall/r_wall,
+/area/ponymov_set)
+"aE" = (
+/obj/structure/grille,
+/obj/structure/window/reinforced/fulltile,
+/turf/open/floor/iron/white,
+/area/ponymov_set)
+"aF" = (
+/obj/structure/mineral_door/iron,
+/turf/open/floor/iron/white,
+/area/ponymov_set)
 
 (1,1,1) = {"
 aa
@@ -171,7 +139,6 @@ aa
 aa
 aa
 "}
-
 (2,1,1) = {"
 aa
 ac
@@ -191,7 +158,6 @@ aa
 aa
 aa
 "}
-
 (3,1,1) = {"
 aa
 ac
@@ -211,7 +177,6 @@ ac
 ac
 ac
 "}
-
 (4,1,1) = {"
 aa
 ac
@@ -231,7 +196,6 @@ ac
 ac
 ac
 "}
-
 (5,1,1) = {"
 aa
 ac
@@ -251,7 +215,6 @@ ac
 ac
 ac
 "}
-
 (6,1,1) = {"
 aa
 ac
@@ -271,7 +234,6 @@ ac
 ac
 ac
 "}
-
 (7,1,1) = {"
 aa
 aa
@@ -291,7 +253,6 @@ ac
 ac
 ac
 "}
-
 (8,1,1) = {"
 aa
 ac
@@ -311,7 +272,6 @@ ac
 ac
 ac
 "}
-
 (9,1,1) = {"
 aa
 ac
@@ -331,7 +291,6 @@ ac
 ac
 ac
 "}
-
 (10,1,1) = {"
 aa
 ac
@@ -351,7 +310,6 @@ aa
 aa
 aa
 "}
-
 (11,1,1) = {"
 aa
 ac
@@ -371,7 +329,6 @@ aa
 aa
 aa
 "}
-
 (12,1,1) = {"
 aa
 ac
@@ -391,7 +348,6 @@ ac
 ac
 ac
 "}
-
 (13,1,1) = {"
 aa
 aa
@@ -411,7 +367,6 @@ ac
 ac
 ac
 "}
-
 (14,1,1) = {"
 aa
 ac
@@ -431,7 +386,6 @@ ac
 ac
 ac
 "}
-
 (15,1,1) = {"
 aa
 ac
@@ -451,7 +405,6 @@ ac
 ac
 ac
 "}
-
 (16,1,1) = {"
 aa
 ac
@@ -471,7 +424,6 @@ ac
 ac
 ac
 "}
-
 (17,1,1) = {"
 aa
 ac
@@ -491,7 +443,6 @@ ac
 ac
 ac
 "}
-
 (18,1,1) = {"
 aa
 ac
@@ -511,7 +462,6 @@ ac
 ac
 ac
 "}
-
 (19,1,1) = {"
 aa
 ac
@@ -531,7 +481,6 @@ aa
 aa
 aa
 "}
-
 (20,1,1) = {"
 aa
 aa
@@ -551,7 +500,6 @@ aa
 aa
 aa
 "}
-
 (21,1,1) = {"
 aa
 aa
@@ -571,7 +519,6 @@ aa
 aa
 aa
 "}
-
 (22,1,1) = {"
 aa
 aa
@@ -591,7 +538,6 @@ aa
 aa
 aa
 "}
-
 (23,1,1) = {"
 aa
 aa
@@ -611,7 +557,6 @@ aa
 aa
 aa
 "}
-
 (24,1,1) = {"
 aa
 aa
@@ -631,7 +576,6 @@ aa
 aa
 aa
 "}
-
 (25,1,1) = {"
 aa
 aa
@@ -651,7 +595,6 @@ aa
 aa
 aa
 "}
-
 (26,1,1) = {"
 aa
 aa
@@ -671,7 +614,6 @@ aa
 aa
 aa
 "}
-
 (27,1,1) = {"
 aa
 aa
@@ -691,7 +633,6 @@ aa
 aa
 aa
 "}
-
 (28,1,1) = {"
 aa
 aa
@@ -711,7 +652,6 @@ aa
 am
 aa
 "}
-
 (29,1,1) = {"
 aa
 aa
@@ -731,7 +671,6 @@ aa
 aa
 aa
 "}
-
 (30,1,1) = {"
 aa
 aa
@@ -751,7 +690,6 @@ aa
 aa
 aa
 "}
-
 (31,1,1) = {"
 aa
 aa
@@ -771,7 +709,6 @@ aa
 aa
 aa
 "}
-
 (32,1,1) = {"
 aa
 aa
@@ -791,7 +728,6 @@ aa
 aa
 aa
 "}
-
 (33,1,1) = {"
 aa
 aa
@@ -811,7 +747,6 @@ aa
 aa
 aa
 "}
-
 (34,1,1) = {"
 aa
 an
@@ -831,7 +766,6 @@ am
 aa
 aa
 "}
-
 (35,1,1) = {"
 aa
 aa
@@ -851,7 +785,6 @@ aa
 aa
 aa
 "}
-
 (36,1,1) = {"
 aa
 aa
@@ -871,7 +804,6 @@ aa
 aa
 aa
 "}
-
 (37,1,1) = {"
 aa
 aa
@@ -891,7 +823,6 @@ ak
 aa
 aa
 "}
-
 (38,1,1) = {"
 aa
 aa
@@ -911,7 +842,6 @@ aa
 aa
 aa
 "}
-
 (39,1,1) = {"
 aa
 aa
@@ -931,7 +861,6 @@ aa
 am
 aa
 "}
-
 (40,1,1) = {"
 aa
 aa
@@ -951,7 +880,6 @@ aa
 aa
 aa
 "}
-
 (41,1,1) = {"
 aa
 aa
@@ -971,7 +899,6 @@ aa
 aa
 aa
 "}
-
 (42,1,1) = {"
 aa
 aa
@@ -991,7 +918,6 @@ aa
 aa
 aa
 "}
-
 (43,1,1) = {"
 ap
 ap
@@ -1011,7 +937,6 @@ ap
 ap
 ap
 "}
-
 (44,1,1) = {"
 ap
 ap
@@ -1031,7 +956,6 @@ ap
 ap
 ap
 "}
-
 (45,1,1) = {"
 ap
 ap
@@ -1051,7 +975,6 @@ ap
 ap
 ap
 "}
-
 (46,1,1) = {"
 ap
 ap
@@ -1071,7 +994,6 @@ ap
 ap
 ap
 "}
-
 (47,1,1) = {"
 ap
 ap
@@ -1091,7 +1013,6 @@ ap
 ap
 ap
 "}
-
 (48,1,1) = {"
 ap
 ap
@@ -1111,7 +1032,6 @@ ap
 ap
 ap
 "}
-
 (49,1,1) = {"
 ap
 ap
@@ -1131,7 +1051,6 @@ ap
 ap
 ap
 "}
-
 (50,1,1) = {"
 ap
 ap
@@ -1151,7 +1070,6 @@ ap
 ap
 ap
 "}
-
 (51,1,1) = {"
 ap
 ap
@@ -1171,7 +1089,6 @@ ap
 ap
 ap
 "}
-
 (52,1,1) = {"
 ap
 ap
@@ -1191,7 +1108,6 @@ ap
 ap
 ap
 "}
-
 (53,1,1) = {"
 ap
 ap
@@ -1211,7 +1127,6 @@ ap
 ap
 ap
 "}
-
 (54,1,1) = {"
 ap
 ap
@@ -1231,7 +1146,6 @@ ap
 ap
 ap
 "}
-
 (55,1,1) = {"
 ap
 ap
@@ -1251,7 +1165,6 @@ ap
 ap
 ap
 "}
-
 (56,1,1) = {"
 ap
 ap
@@ -1271,7 +1184,6 @@ ap
 ap
 ap
 "}
-
 (57,1,1) = {"
 ap
 ap
@@ -1291,7 +1203,6 @@ ap
 ap
 ap
 "}
-
 (58,1,1) = {"
 ap
 ap
@@ -1311,7 +1222,6 @@ ap
 ap
 ap
 "}
-
 (59,1,1) = {"
 ap
 ap
@@ -1331,7 +1241,6 @@ ap
 ap
 ap
 "}
-
 (60,1,1) = {"
 ap
 ap
@@ -1351,7 +1260,6 @@ ap
 ap
 ap
 "}
-
 (61,1,1) = {"
 ap
 ap
@@ -1371,7 +1279,6 @@ ap
 ap
 ap
 "}
-
 (62,1,1) = {"
 ap
 ap
@@ -1391,7 +1298,6 @@ ap
 ap
 ap
 "}
-
 (63,1,1) = {"
 ap
 ap
@@ -1411,7 +1317,6 @@ ap
 ap
 ap
 "}
-
 (64,1,1) = {"
 ac
 ac
@@ -1431,7 +1336,6 @@ ac
 ac
 ac
 "}
-
 (65,1,1) = {"
 ac
 ac
@@ -1451,7 +1355,6 @@ ar
 ar
 ac
 "}
-
 (66,1,1) = {"
 ac
 ac
@@ -1471,7 +1374,6 @@ ar
 ar
 ac
 "}
-
 (67,1,1) = {"
 ac
 ac
@@ -1491,7 +1393,6 @@ ar
 ar
 ac
 "}
-
 (68,1,1) = {"
 ac
 ac
@@ -1511,7 +1412,6 @@ ar
 ar
 ac
 "}
-
 (69,1,1) = {"
 ac
 ac
@@ -1531,7 +1431,6 @@ ar
 ar
 ac
 "}
-
 (70,1,1) = {"
 ac
 ac
@@ -1551,7 +1450,6 @@ ar
 ar
 ac
 "}
-
 (71,1,1) = {"
 ac
 ac
@@ -1571,7 +1469,6 @@ ar
 ar
 ac
 "}
-
 (72,1,1) = {"
 ac
 ac
@@ -1591,7 +1488,6 @@ ar
 ar
 ac
 "}
-
 (73,1,1) = {"
 ac
 ac
@@ -1611,7 +1507,6 @@ ar
 ar
 ac
 "}
-
 (74,1,1) = {"
 ac
 ac
@@ -1631,7 +1526,6 @@ ar
 ar
 ac
 "}
-
 (75,1,1) = {"
 ac
 ac
@@ -1651,7 +1545,6 @@ ar
 ar
 ac
 "}
-
 (76,1,1) = {"
 ac
 ac
@@ -1671,7 +1564,6 @@ ar
 ar
 ac
 "}
-
 (77,1,1) = {"
 ac
 ac
@@ -1691,7 +1583,6 @@ ar
 ar
 ac
 "}
-
 (78,1,1) = {"
 ac
 ac
@@ -1711,7 +1602,6 @@ ar
 ar
 ac
 "}
-
 (79,1,1) = {"
 ac
 ac
@@ -1731,7 +1621,6 @@ ar
 ar
 ac
 "}
-
 (80,1,1) = {"
 ac
 ac
@@ -1751,7 +1640,6 @@ ar
 ar
 ac
 "}
-
 (81,1,1) = {"
 ac
 ac
@@ -1771,7 +1659,6 @@ ar
 ar
 ac
 "}
-
 (82,1,1) = {"
 ac
 ac
@@ -1791,7 +1678,6 @@ ar
 ar
 ac
 "}
-
 (83,1,1) = {"
 ac
 ac
@@ -1811,7 +1697,6 @@ ar
 ar
 ac
 "}
-
 (84,1,1) = {"
 ac
 ac
@@ -1831,7 +1716,6 @@ ac
 ac
 ac
 "}
-
 (85,1,1) = {"
 aa
 aa
@@ -1851,7 +1735,6 @@ aa
 aa
 aa
 "}
-
 (86,1,1) = {"
 aa
 aa
@@ -1871,7 +1754,6 @@ aa
 aa
 aa
 "}
-
 (87,1,1) = {"
 aa
 aa
@@ -1891,7 +1773,6 @@ ac
 aa
 aa
 "}
-
 (88,1,1) = {"
 aa
 aa
@@ -1911,7 +1792,6 @@ ac
 aa
 aa
 "}
-
 (89,1,1) = {"
 aa
 aa
@@ -1931,7 +1811,6 @@ ac
 aa
 aa
 "}
-
 (90,1,1) = {"
 aa
 aa
@@ -1951,7 +1830,6 @@ ac
 aa
 aa
 "}
-
 (91,1,1) = {"
 aa
 aa
@@ -1971,7 +1849,6 @@ ac
 aa
 aa
 "}
-
 (92,1,1) = {"
 aa
 aa
@@ -1991,7 +1868,6 @@ ac
 aa
 aa
 "}
-
 (93,1,1) = {"
 aa
 aa
@@ -2011,7 +1887,6 @@ ac
 aa
 aa
 "}
-
 (94,1,1) = {"
 aa
 aa
@@ -2031,7 +1906,6 @@ ac
 aa
 aa
 "}
-
 (95,1,1) = {"
 aa
 aa
@@ -2051,7 +1925,6 @@ af
 aa
 aa
 "}
-
 (96,1,1) = {"
 aa
 aa
@@ -2071,7 +1944,6 @@ ac
 aa
 aa
 "}
-
 (97,1,1) = {"
 aa
 aa
@@ -2091,7 +1963,6 @@ ac
 aa
 aa
 "}
-
 (98,1,1) = {"
 aa
 aa
@@ -2111,7 +1982,6 @@ ac
 aa
 aa
 "}
-
 (99,1,1) = {"
 aa
 aa
@@ -2131,7 +2001,6 @@ ac
 aa
 aa
 "}
-
 (100,1,1) = {"
 aa
 aa
@@ -2151,7 +2020,6 @@ ac
 aa
 aa
 "}
-
 (101,1,1) = {"
 aa
 aa
@@ -2171,7 +2039,6 @@ ac
 aa
 aa
 "}
-
 (102,1,1) = {"
 aa
 aa
@@ -2191,7 +2058,6 @@ ac
 aa
 aa
 "}
-
 (103,1,1) = {"
 aa
 aa
@@ -2211,7 +2077,6 @@ ac
 aa
 aa
 "}
-
 (104,1,1) = {"
 aa
 aa
@@ -2231,7 +2096,6 @@ aa
 aa
 aa
 "}
-
 (105,1,1) = {"
 aa
 aa
@@ -2251,7 +2115,6 @@ aa
 aa
 aa
 "}
-
 (106,1,1) = {"
 aB
 aB
@@ -2271,7 +2134,6 @@ aB
 aB
 aB
 "}
-
 (107,1,1) = {"
 aB
 aB
@@ -2291,7 +2153,6 @@ aB
 aB
 aB
 "}
-
 (108,1,1) = {"
 aB
 aB
@@ -2311,7 +2172,6 @@ aB
 aB
 aB
 "}
-
 (109,1,1) = {"
 aB
 aB
@@ -2331,7 +2191,6 @@ aB
 aB
 aB
 "}
-
 (110,1,1) = {"
 aB
 aB
@@ -2351,7 +2210,6 @@ aB
 aB
 aB
 "}
-
 (111,1,1) = {"
 aB
 aB
@@ -2371,7 +2229,6 @@ aD
 aB
 aB
 "}
-
 (112,1,1) = {"
 aB
 aB
@@ -2391,7 +2248,6 @@ aD
 aB
 aB
 "}
-
 (113,1,1) = {"
 aB
 aB
@@ -2411,7 +2267,6 @@ aD
 aB
 aB
 "}
-
 (114,1,1) = {"
 aB
 aB
@@ -2431,7 +2286,6 @@ aD
 aB
 aB
 "}
-
 (115,1,1) = {"
 aB
 aB
@@ -2451,7 +2305,6 @@ aD
 aC
 aC
 "}
-
 (116,1,1) = {"
 aB
 aB
@@ -2471,7 +2324,6 @@ aF
 aC
 aC
 "}
-
 (117,1,1) = {"
 aB
 aB
@@ -2491,7 +2343,6 @@ aD
 aC
 aC
 "}
-
 (118,1,1) = {"
 aB
 aB
@@ -2511,7 +2362,6 @@ aD
 aB
 aB
 "}
-
 (119,1,1) = {"
 aB
 aB
@@ -2531,7 +2381,6 @@ aD
 aB
 aB
 "}
-
 (120,1,1) = {"
 aB
 aB
@@ -2551,7 +2400,6 @@ aD
 aB
 aB
 "}
-
 (121,1,1) = {"
 aB
 aB
@@ -2571,7 +2419,6 @@ aD
 aB
 aB
 "}
-
 (122,1,1) = {"
 aB
 aB
@@ -2591,7 +2438,6 @@ aB
 aB
 aB
 "}
-
 (123,1,1) = {"
 aB
 aB
@@ -2611,7 +2457,6 @@ aB
 aB
 aB
 "}
-
 (124,1,1) = {"
 aB
 aB
@@ -2631,7 +2476,6 @@ aB
 aB
 aB
 "}
-
 (125,1,1) = {"
 aB
 aB
@@ -2651,7 +2495,6 @@ aB
 aB
 aB
 "}
-
 (126,1,1) = {"
 aB
 aB

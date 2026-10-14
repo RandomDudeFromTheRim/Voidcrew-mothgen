@@ -410,11 +410,11 @@
 	soundloop = new(src)
 
 /obj/item/organ/pony_horn/Destroy()
+	. = ..() // out of whoever had it first, while it's still all there to take off them
 	QDEL_NULL(soundloop)
 	QDEL_NULL(toggle)
 	QDEL_NULL(kinesis_icon)
 	QDEL_NULL(kinesis_catcher)
-	return ..()
 
 
 
@@ -729,9 +729,11 @@
 	jumping_power.our_wings = src
 
 /obj/item/organ/pony_wings/Destroy()
-	qdel(tackler)
-	qdel(jumping_power)
-	. = ..()
+	. = ..() // out of whoever had them first, which takes the tackle and the flight off them
+	QDEL_NULL(tackler)
+	if(jumping_power)
+		jumping_power.our_wings = null
+	QDEL_NULL(jumping_power)
 
 /obj/item/organ/pony_wings/proc/allow_flight()
 	if(!owner || !owner.client)
@@ -756,7 +758,8 @@
 	remove_organ_trait(TRAIT_CATLIKE_GRACE)
 	remove_organ_trait(TRAIT_SOFT_FALL)
 	remove_organ_trait(TRAIT_IMMUNODEFICIENCY)
-	jumping_power.Remove(organ_owner)
+	QDEL_NULL(tackler)
+	jumping_power?.Remove(organ_owner)
 
 /datum/bodypart_overlay/mutant/pony_wings
 	dyable = TRUE
@@ -844,11 +847,11 @@
 
 /obj/item/organ/earth_pony_core/on_mob_insert(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
-	hind_kick.Grant(organ_owner)
+	hind_kick?.Grant(organ_owner)
 
 /obj/item/organ/earth_pony_core/on_mob_remove(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
-	hind_kick.Remove(organ_owner)
+	hind_kick?.Remove(organ_owner)
 
 /obj/item/organ/earth_pony_core/Initialize(mapload)
 	. = ..()
@@ -861,8 +864,8 @@
 	hind_kick.panel = "Genetic"
 
 /obj/item/organ/earth_pony_core/Destroy()
+	. = ..()
 	QDEL_NULL(hind_kick)
-	return ..()
 
 /datum/action/cooldown/spell/touch/pony_kick
 	name = "Hind-leg Kick"
@@ -933,8 +936,8 @@
 	telepathy_power.panel = "Genetic"
 
 /obj/item/organ/brain/pony/Destroy()
-	qdel(telepathy_power)
 	. = ..()
+	QDEL_NULL(telepathy_power)
 
 /obj/item/organ/brain/pony/on_mob_insert(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
@@ -947,7 +950,7 @@
 /obj/item/organ/brain/pony/on_mob_remove(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
 	remove_organ_trait(TRAIT_EMPATH)
-	telepathy_power.Remove(organ_owner)
+	telepathy_power?.Remove(organ_owner)
 	UnregisterSignal(organ_owner, COMSIG_MOVABLE_MOVED)
 	UnregisterSignal(organ_owner, COMSIG_CARBON_SEE_GAIN_WOUND)
 	UnregisterSignal(organ_owner, COMSIG_MOVABLE_HEAR)
