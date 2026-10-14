@@ -105,7 +105,7 @@
 	/// The screenplay: list(seconds, verb, args...), in order.
 	var/list/screenplay = list()
 	/// How long the episode runs, in seconds.
-	var/length = 0
+	var/running_time = 0
 
 	var/datum/turf_reservation/stage
 	var/turf/came_from
@@ -271,7 +271,7 @@
 	for(var/list/line as anything in screenplay)
 		PONYMOV_AT(line[1])
 		run_line(line)
-	PONYMOV_AT(length)
+	PONYMOV_AT(running_time)
 	finish()
 
 /// The host's subtitles, each said by its speaker if they're in the cast, and shown along the bottom.
@@ -312,8 +312,8 @@
  * * "beat", name: anything else, the episode's beat_<name>() proc.
  */
 /datum/ponymov/proc/run_line(list/line)
-	var/verb = line[2]
-	switch(verb)
+	var/action = line[2]
+	switch(action)
 		if("cut")
 			// Held far enough in that a 19 by 15 view doesn't see past the set.
 			var/x = clamp(length(line) >= 5 ? line[4] : 11, 10, PONYMOV_SET_WIDTH - 9)
@@ -329,7 +329,7 @@
 			zoom(line[3], length(line) >= 5 ? line[5] : 0.5)
 		if("pan")
 			victim.reset_perspective(camera)
-			INVOKE_ASYNC(src, PROC_REF(walk), camera, line[3], line[4], line[5])
+			INVOKE_ASYNC(src, PROC_REF(walk_to_spot), camera, line[3], line[4], line[5])
 		if("card")
 			show_card(line[3], length(line) >= 4 ? line[4] : null)
 		if("black")
@@ -342,7 +342,7 @@
 			actor.setDir(length(line) >= 7 ? line[7] : SOUTH)
 			actor.alpha = 255
 		if("walk")
-			INVOKE_ASYNC(src, PROC_REF(walk), cast[line[3]], line[4], line[5], line[6])
+			INVOKE_ASYNC(src, PROC_REF(walk_to_spot), cast[line[3]], line[4], line[5], line[6])
 		if("carry")
 			var/mob/living/carbon/human/rider = cast[line[3]]
 			var/mob/living/carbon/human/carrier = cast[line[4]]
@@ -382,7 +382,7 @@
 		if("beat")
 			call(src, "beat_[line[3]]")()
 		else
-			stack_trace("pony.mov: [episode]'s screenplay has an unknown verb, [verb].")
+			stack_trace("pony.mov: [episode]'s screenplay has an unknown verb, [action].")
 
 /datum/ponymov/proc/show_card(text, seconds)
 	blackout.alpha = 255
@@ -397,7 +397,7 @@
 	blackout.alpha = 0
 
 /// Walks one of the cast (or the camera) to x, y in their set: along first, then up or down, gliding.
-/datum/ponymov/proc/walk(atom/movable/actor, x, y, seconds)
+/datum/ponymov/proc/walk_to_spot(atom/movable/actor, x, y, seconds)
 	var/list/at = where(actor)
 	var/steps = abs(x - at[2]) + abs(y - at[3])
 	if(!steps)
@@ -491,7 +491,7 @@
 /proc/ponymov_read_srt(text)
 	. = list()
 	var/regex/timing = new(@"(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[,.](\d+)")
-	for(var/block in splittext(replacetext(text, "\r", ""), "\n\n"))
+	for(var/block in splittext(replacetext(text, ascii2text(13), ""), "\n\n"))
 		var/list/lines = splittext(trim(block), "\n")
 		var/timing_line = 0
 		for(var/i in 1 to length(lines))

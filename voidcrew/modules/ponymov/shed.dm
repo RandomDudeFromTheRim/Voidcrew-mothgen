@@ -59,7 +59,7 @@
 /datum/ponymov/shed
 	episode = "shed"
 	set_names = list("town", "woods", "memory", "prom", "shed", "asylum")
-	length = 283
+	running_time = 283
 	parts = list(
 		// part = list(name, species, coat, mane, hairstyle, eyes, pony archetype)
 		"rainbow" = list(null, /datum/species/pony, "#8fd3f5", "#e8403a", "Punk Rocker (Equestrian)", "#9b2c6e", "Pegasus"),
@@ -533,7 +533,7 @@
 		window?.deconstruct(FALSE)
 		runner.forceMove(window_turf)
 		runner.SpinAnimation(speed = 0.4 SECONDS, loops = 1)
-		INVOKE_ASYNC(src, PROC_REF(walk), runner, escape[3], 9, 0.3)
+		INVOKE_ASYNC(src, PROC_REF(walk_to_spot), runner, escape[3], 9, 0.3)
 	sleep(1 SECONDS)
 	if(QDELETED(src))
 		return
