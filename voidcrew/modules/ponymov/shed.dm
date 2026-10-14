@@ -125,6 +125,7 @@
 		list(37.1, "zoom", 2, "spike", 0),
 		list(37.1, "beat", "smoke"),
 		list(37.5, "beat", "read_arm"),
+		list(42.9, "unprop", "arm writing"),
 		list(42.9, "zoom", 2.5, "pinkie", 0),
 		list(47.1, "zoom", 1.5, "spike", 0),
 		list(47.1, "face", "spike", SOUTH),
