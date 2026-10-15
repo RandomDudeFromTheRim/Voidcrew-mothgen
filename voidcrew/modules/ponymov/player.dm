@@ -235,19 +235,32 @@
  * rhythm battles do (see /datum/fnf_side/proc/zoom_screen()). Their HUD planes, which hold the
  * episode's blackout, card and subtitles, stay as they are.
  */
-/datum/ponymov/proc/zoom(scale, seconds)
+/datum/ponymov/proc/zoom(scale, seconds, aim_y = 0, aim_x = 0)
 	zoomed = scale
-	var/atom/movable/plane_master_controller/screen = victim.hud_used?.plane_master_controllers[PLANE_MASTERS_NON_MASTER]
-	if(!screen)
-		return
-	for(var/atom/movable/screen/plane_master/plate as anything in screen.get_planes())
-		if(plate.plane >= HUD_PLANE)
-			continue
+	// Aimed this many pixels up (and across) from the middle of whatever it's on: a face, rather than the belly.
+	if(victim.client)
+		animate(victim.client, pixel_x = aim_x, pixel_y = aim_y, time = seconds * 10, easing = SINE_EASING)
+	for(var/atom/movable/screen/plane_master/plate as anything in get_world_planes())
 		if(scale == 1)
 			plate.appearance_flags = (plate.appearance_flags & ~PIXEL_SCALE) | (initial(plate.appearance_flags) & PIXEL_SCALE)
 		else
 			plate.appearance_flags |= PIXEL_SCALE
 		animate(plate, transform = matrix() * scale, time = seconds * 10, easing = SINE_EASING)
+
+/// Punches the zoom in a little and lets it ease back, on a hit or a scream, as the rhythm battles do on the beat.
+/datum/ponymov/proc/bump(amount, seconds)
+	for(var/atom/movable/screen/plane_master/plate as anything in get_world_planes())
+		plate.appearance_flags |= PIXEL_SCALE
+		animate(plate, transform = matrix() * (zoomed * (1 + amount)), time = 0.5)
+		animate(transform = matrix() * zoomed, time = seconds * 10, easing = SINE_EASING | EASE_OUT)
+
+/// The victim's plane masters the world's drawn on, which zoom() scales: not the HUD's.
+/datum/ponymov/proc/get_world_planes()
+	. = list()
+	var/atom/movable/plane_master_controller/screen = victim.hud_used?.plane_master_controllers[PLANE_MASTERS_NON_MASTER]
+	for(var/atom/movable/screen/plane_master/plate as anything in screen?.get_planes())
+		if(plate.plane < HUD_PLANE)
+			. += plate
 
 /// Everyone in their places: the victim made a pony and put in their part, the rest new.
 /datum/ponymov/proc/cast_everyone()
@@ -311,8 +324,10 @@
  * One line of the screenplay, list(seconds, verb, args...). The verbs:
  *
  * * "cut", set, [x, y]: the camera's put on the set (on its middle, or this spot), zoomed out.
- * * "zoom", scale, [part], [seconds]: zooms in (or back out, at 1), held on one of the cast if given,
- *   who it then follows about. A close-up.
+ * * "zoom", scale, [part], [seconds], [aim y], [aim x]: zooms in (or back out, at 1), held on one of the
+ *   cast (or a prop) if given, who it then follows about, aimed that many pixels up and across from
+ *   their middle. A close-up.
+ * * "bump", [amount], [seconds]: the zoom punches in by that much more (0.1 is a tenth) and eases back.
  * * "pan", x, y, seconds: the camera glides to there in its set.
  * * "black", seconds: the view goes black for that long.
  * * "card", text, [seconds]: big words on black, for that long (or until the next card, with none).
@@ -335,13 +350,15 @@
 			var/y = clamp(length(line) >= 5 ? line[5] : 9, 8, PONYMOV_SET_HEIGHT - 7)
 			camera.forceMove(set_turf(line[3], x, y))
 			victim.reset_perspective(camera)
-			if(zoomed != 1)
+			if(zoomed != 1 || victim.client?.pixel_y || victim.client?.pixel_x)
 				zoom(1, 0)
 		if("zoom")
-			var/mob/living/carbon/human/subject = length(line) >= 4 ? cast[line[4]] : null
+			var/atom/movable/subject = length(line) >= 4 ? (cast[line[4]] || props[line[4]]) : null
 			if(subject)
 				victim.reset_perspective(subject)
-			zoom(line[3], length(line) >= 5 ? line[5] : 0.5)
+			zoom(line[3], length(line) >= 5 ? line[5] : 0.5, length(line) >= 6 ? line[6] : 0, length(line) >= 7 ? line[7] : 0)
+		if("bump")
+			bump(length(line) >= 3 ? line[3] : 0.12, length(line) >= 4 ? line[4] : 0.3)
 		if("pan")
 			victim.reset_perspective(camera)
 			INVOKE_ASYNC(src, PROC_REF(walk_to_spot), camera, line[3], line[4], line[5])
@@ -467,7 +484,7 @@
 		if(victim.client)
 			victim.client.color = null
 			victim.stop_sound_channel(CHANNEL_ADMIN)
-		if(zoomed != 1)
+		if(zoomed != 1 || victim.client?.pixel_y || victim.client?.pixel_x)
 			zoom(1, 0)
 		if(old_hud_version)
 			victim.hud_used?.show_hud(old_hud_version)
