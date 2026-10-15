@@ -401,7 +401,7 @@
 /// The foot comes down on Apple Bloom.
 /datum/ponymov/shed/proc/beat_squash()
 	var/mob/living/carbon/human/bloom = cast["applebloom"]
-	bloom.set_body_position(LYING_DOWN)
+	lay(bloom, TRUE)
 	animate(bloom, transform = matrix(1.5, 0, 0, 0, 0.2, -12), time = 0.1 SECONDS)
 	splatter("town", 11, 8, 6)
 	new /obj/effect/decal/cleanable/blood/gibs(set_turf("town", 11, 8))
@@ -440,7 +440,7 @@
 	var/mob/living/carbon/human/pinkie = cast["pinkie"]
 	shy.forceMove(set_turf("memory", 11, 10))
 	shy.alpha = 255
-	shy.set_body_position(LYING_DOWN)
+	lay(shy, TRUE)
 	rainbow.forceMove(set_turf("memory", 10, 10))
 	rainbow.setDir(EAST)
 	pinkie.forceMove(set_turf("memory", 12, 10))
@@ -456,7 +456,7 @@
 		sleep(0.5 SECONDS)
 		if(QDELETED(src))
 			return
-	shy.set_body_position(STANDING_UP)
+	lay(shy, FALSE)
 	shy.setDir(SOUTH)
 
 /datum/ponymov/shed/proc/beat_prom()
@@ -696,7 +696,7 @@
 	shy.equip_to_slot_or_del(new /obj/item/clothing/suit/jacket/straight_jacket(shy), ITEM_SLOT_OCLOTHING)
 	shy.equip_to_slot_or_del(new /obj/item/clothing/mask/muzzle(shy), ITEM_SLOT_MASK)
 	shy.forceMove(set_turf("asylum", 11, 1))
-	shy.set_body_position(LYING_DOWN)
+	lay(shy, TRUE)
 	run_line(list(0, "place", "doctor1", "asylum", 10, 2, NORTH))
 	run_line(list(0, "place", "doctor2", "asylum", 12, 2, NORTH))
 	for(var/part in list("officer1", "officer2"))

@@ -18,7 +18,7 @@
 #define PONYMOV_SET_HEIGHT 17
 
 /// Sleeps until this many seconds into the episode, and gives up if it ended meanwhile.
-#define PONYMOV_AT(seconds) sleep(started + (seconds) * 10 - world.time); if(QDELETED(src)) { return }
+#define PONYMOV_AT(seconds) wait_until(seconds); if(QDELETED(src)) { return }
 
 /mob/living/carbon/human
 	/// The pony.mov episode they're in, if any.
@@ -109,7 +109,8 @@
 
 	var/datum/turf_reservation/stage
 	var/turf/came_from
-	var/started
+	/// The real time of day the episode started (REALTIMEOFDAY), which the soundtrack keeps to.
+	var/real_start
 	var/obj/effect/abstract/ponymov_camera/camera
 	/// Who's playing what, the victim among them.
 	var/list/mob/living/carbon/human/cast = list()
@@ -154,10 +155,38 @@
 /datum/ponymov/proc/prepare()
 	if(!set_up())
 		return
+	preload_soundtrack()
 	sleep(2 SECONDS) // everyone's sprites get sent meanwhile
 	if(QDELETED(src))
 		return
 	run_screenplay()
+
+/**
+ * Gets the soundtrack to the victim's game before it's needed, as the rhythm battles do: the file
+ * goes over first, a ping goes after it (when it's back, the file's there), and the sound's sent
+ * paused, to start by unpausing. Sent at the start instead, it'd still be downloading for the first
+ * seconds of the episode, and play late against everything else all the way through.
+ */
+/datum/ponymov/proc/preload_soundtrack()
+	if(!soundtrack || !victim.client)
+		return
+	victim.client << browse_rsc(soundtrack.file, "ponymov_[episode].ogg")
+	victim.client?.browse_queue_flush(300)
+	if(QDELETED(src) || !victim.client)
+		return
+	soundtrack.status = SOUND_PAUSED
+	SEND_SOUND(victim, soundtrack)
+
+/**
+ * Sleeps until this far into the episode. The soundtrack plays on in real time whatever the server
+ * does, while world.time slows down when it lags, so this goes by the real clock.
+ */
+/datum/ponymov/proc/wait_until(seconds)
+	while(!QDELETED(src))
+		var/left = real_start + seconds * 10 - REALTIMEOFDAY
+		if(left <= 0)
+			return
+		sleep(left)
 
 /// Loads the sets and puts everyone in them, the victim made their part. FALSE if it couldn't.
 /datum/ponymov/proc/set_up()
@@ -291,9 +320,11 @@
 	actor.update_body(is_creating = TRUE)
 
 /datum/ponymov/proc/run_screenplay()
-	started = world.time
+	real_start = REALTIMEOFDAY
 	if(soundtrack)
-		SEND_SOUND(victim, soundtrack)
+		var/sound/unpause = sound(null, channel = soundtrack.channel, volume = soundtrack.volume)
+		unpause.status = SOUND_UPDATE
+		SEND_SOUND(victim, unpause)
 	INVOKE_ASYNC(src, PROC_REF(run_cues))
 	animate(blackout, alpha = 0, time = 0.5 SECONDS)
 	for(var/list/line as anything in screenplay)
@@ -389,11 +420,9 @@
 			var/mob/living/carbon/human/actor = cast[line[3]]
 			actor.setDir(line[4])
 		if("lie")
-			var/mob/living/carbon/human/actor = cast[line[3]]
-			actor.set_body_position(LYING_DOWN)
+			lay(cast[line[3]], TRUE)
 		if("stand")
-			var/mob/living/carbon/human/actor = cast[line[3]]
-			actor.set_body_position(STANDING_UP)
+			lay(cast[line[3]], FALSE)
 		if("hide")
 			var/mob/living/carbon/human/actor = cast[line[3]]
 			actor.alpha = 0
@@ -453,6 +482,14 @@
 	rider.set_glide_size(carrier.glide_size)
 	rider.forceMove(carrier.loc)
 	rider.setDir(carrier.dir)
+
+/**
+ * Lays one of the cast down, or stands them back up. Lying down is two things: the body position
+ * (what the game thinks) and the lying angle (the sprite turned over). Both, or they're left on the floor.
+ */
+/datum/ponymov/proc/lay(mob/living/carbon/human/actor, down)
+	actor.set_body_position(down ? LYING_DOWN : STANDING_UP)
+	actor.set_lying_angle(down ? (actor.dir & WEST ? LYING_ANGLE_WEST : LYING_ANGLE_EAST) : 0)
 
 /// Lets one of the cast down off whoever's carrying them.
 /datum/ponymov/proc/drop_rider(mob/living/carbon/human/carrier)
