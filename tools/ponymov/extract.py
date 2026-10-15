@@ -94,9 +94,14 @@ def hear_words(soundtrack):
         from faster_whisper import WhisperModel
     except ImportError:
         return None
-    print("hearing the words (faster-whisper)...")
+    import numpy
+    print("hearing the words (faster-whisper; a few minutes, and a download the first time)...")
+    # Decoded here rather than by faster-whisper, whose own decoding breaks on newer PyAV.
+    raw = subprocess.run([find_ffmpeg(), "-loglevel", "error", "-i", str(soundtrack), "-f", "s16le", "-ac", "1", "-ar", "16000", "-"],
+                         check=True, capture_output=True).stdout
+    audio = numpy.frombuffer(raw, numpy.int16).astype(numpy.float32) / 32768
     model = WhisperModel("small.en", device="cpu", compute_type="int8")
-    segments, _ = model.transcribe(str(soundtrack), word_timestamps=True)
+    segments, _ = model.transcribe(audio, word_timestamps=True)
     return [(word.start, word.word.strip()) for segment in segments for word in segment.words]
 
 
