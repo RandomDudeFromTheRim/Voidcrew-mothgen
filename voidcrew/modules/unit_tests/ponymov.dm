@@ -55,6 +55,12 @@
 
 	TEST_ASSERT(istype(victim.dna.species, /datum/species/pony), "The [part] part wasn't made a pony.")
 	TEST_ASSERT_EQUAL(showing.cast[part], victim, "The victim isn't playing [part].")
+	// Ponies are rigged, and trot and gallop on it.
+	victim.update_limb_rig()
+	TEST_ASSERT(istype(victim.limb_rig, /datum/limb_rig/sprites/humanoid/pony), "The [part] part isn't on the pony rig.")
+	for(var/running in list(FALSE, TRUE))
+		victim.limb_rig.play(victim.limb_rig.get_own_step(5, running, FALSE))
+	victim.limb_rig.settle()
 
 	for(var/list/line as anything in showing.screenplay)
 		showing.run_line(line)

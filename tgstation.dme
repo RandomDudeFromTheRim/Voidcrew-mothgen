@@ -7561,6 +7561,7 @@
 #include "voidcrew\modules\ponies\mood_events.dm"
 #include "voidcrew\modules\ponies\ponish.dm"
 #include "voidcrew\modules\ponies\pony_worn.dm"
+#include "voidcrew\modules\ponies\rig.dm"
 #include "voidcrew\modules\ponies\species.dm"
 #include "voidcrew\modules\ponies\sprite_accessories.dm"
 #include "voidcrew\modules\ponies\tk_hold.dm"

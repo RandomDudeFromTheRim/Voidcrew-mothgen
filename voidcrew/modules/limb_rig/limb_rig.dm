@@ -459,8 +459,9 @@
 	if(!has_quirk(/datum/quirk/overanimated) && (!shape?["always"] || (shape["optional"] && !human_self.limb_rig_wanted)))
 		return FALSE
 	var/obj/item/bodypart/chest/chest = get_bodypart(BODY_ZONE_CHEST)
-	// The masks are cut for a human-shaped body. Monkeys and xenos are built differently.
-	return chest && (chest.bodyshape & BODYSHAPE_HUMANOID) && !(chest.bodyshape & BODYSHAPE_MONKEY)
+	// The masks are cut for a human-shaped body, unless the species says it's cut for another
+	// (ponies). Monkeys and xenos are built differently.
+	return chest && (chest.bodyshape & (shape?["bodyshape"] || BODYSHAPE_HUMANOID)) && !(chest.bodyshape & BODYSHAPE_MONKEY)
 
 /// Adds or removes the rig to match can_have_limb_rig(), and keeps its shape matching the species.
 /mob/living/carbon/proc/update_limb_rig()
@@ -499,6 +500,7 @@
 	 * - "rig_type": a /datum/limb_rig subtype with the species' own animations
 	 * - "posture": a pose added to every pose (see animations.dm)
 	 * - "walk": a RIG_WALK_ define
+	 * - "bodyshape": the BODYSHAPE_ the body must have to be rigged, if not BODYSHAPE_HUMANOID
 	 */
 	var/list/limb_rig_shape
 

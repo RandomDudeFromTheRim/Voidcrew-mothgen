@@ -393,6 +393,8 @@
 	visual = TRUE
 	organ_flags = ORGAN_ORGANIC | ORGAN_VIRGIN | ORGAN_EXTERNAL | ORGAN_VITAL
 	bodypart_overlay = /datum/bodypart_overlay/mutant/pony_horn
+	// Nothing in the DNA picks a horn: there's the one.
+	sprite_accessory_override = /datum/sprite_accessory/pony_horn/pony
 	slot = ORGAN_SLOT_EXTERNAL_PONY_HORN
 	zone = BODY_ZONE_HEAD
 	var/grab_range = 3
@@ -425,7 +427,6 @@
 	toggle.Grant(organ_owner)
 	add_organ_trait(TRAIT_IMMUNODEFICIENCY)
 	RegisterSignal(organ_owner, COMSIG_MOB_CLICKON, PROC_REF(start_kinesis))
-	RegisterSignal(organ_owner, COMSIG_ATOM_EMP_ACT, PROC_REF(on_emp_act))
 
 /obj/item/organ/pony_horn/on_mob_remove(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
@@ -443,11 +444,11 @@
 	qdel(toggle)
 	clear_grab(playsound = FALSE)
 	UnregisterSignal(organ_owner, COMSIG_MOB_CLICKON)
-	UnregisterSignal(organ_owner, COMSIG_ATOM_EMP_ACT)
 
-/obj/item/organ/pony_horn/proc/on_emp_act(datum/source, severity, protection)
-	SIGNAL_HANDLER
-	if(protection & EMP_PROTECT_SELF)
+// The head passes EMPs on to what's in it, the horn included.
+/obj/item/organ/pony_horn/emp_act(severity)
+	. = ..()
+	if(!owner || (. & EMP_PROTECT_SELF))
 		return
 	if(grabbed_atom || HAS_TRAIT(owner, TRAIT_FLOATING_HELD))
 		new /obj/effect/temp_visual/pony_aura_feedback(get_turf(owner), owner.dna.features[FEATURE_PONY_TK_COLOR] ? owner.dna.features[FEATURE_PONY_TK_COLOR] : "#FF99FF")
@@ -701,6 +702,7 @@
 	organ_flags = ORGAN_ORGANIC | ORGAN_VIRGIN | ORGAN_EXTERNAL | ORGAN_VITAL
 	visual = TRUE
 	bodypart_overlay = /datum/bodypart_overlay/mutant/pony_wings
+	sprite_accessory_override = /datum/sprite_accessory/pony_wings/pony
 	slot = ORGAN_SLOT_EXTERNAL_PONY_WINGS
 	zone = BODY_ZONE_CHEST
 	var/datum/action/cooldown/spell/icarian_flight/jumping_power
