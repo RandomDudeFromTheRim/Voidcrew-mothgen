@@ -16,6 +16,7 @@
 #include "mod_night_vision.dm"
 #include "overmap_spawn_density.dm"
 #include "pipeline_reconciliation.dm"
+#include "ponymov.dm"
 #include "reagent_holder_teardown.dm"
 #include "shuttle_cling_lifecycle.dm"
 #include "shuttle_cling_rethrow.dm"

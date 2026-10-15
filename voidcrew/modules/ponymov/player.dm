@@ -131,23 +131,36 @@
 	var/zoomed = 1
 	/// Their HUD before it was hidden, to give back.
 	var/old_hud_version
+	/// Played without anyone watching: for the unit tests, which step through it themselves.
+	var/headless = FALSE
 
-/datum/ponymov/New(mob/living/carbon/human/victim, role)
+/datum/ponymov/New(mob/living/carbon/human/victim, role, headless = FALSE)
 	. = ..()
-	if(!victim?.client)
+	src.headless = headless
+	if(!victim || (!victim.client && !headless))
 		qdel(src)
 		return
 	src.victim = victim
 	src.role = role || pick_role()
 	victim.ponymov = src
 	RegisterSignals(victim, list(COMSIG_QDELETING, COMSIG_MOB_LOGOUT), PROC_REF(on_lost))
-	INVOKE_ASYNC(src, PROC_REF(prepare))
+	if(!headless)
+		INVOKE_ASYNC(src, PROC_REF(prepare))
 
 /// Which part a victim gets when the admin doesn't pick.
 /datum/ponymov/proc/pick_role()
 	return pick(parts)
 
 /datum/ponymov/proc/prepare()
+	if(!set_up())
+		return
+	sleep(2 SECONDS) // everyone's sprites get sent meanwhile
+	if(QDELETED(src))
+		return
+	run_screenplay()
+
+/// Loads the sets and puts everyone in them, the victim made their part. FALSE if it couldn't.
+/datum/ponymov/proc/set_up()
 	var/static/list/templates = list()
 	var/datum/map_template/template = templates[episode]
 	if(!template)
@@ -157,11 +170,14 @@
 	if(!stage)
 		message_admins("pony.mov couldn't take [key_name_admin(victim)]: there's no room for it.")
 		qdel(src)
-		return
-	template.load(stage.bottom_left_turfs[1])
+		return FALSE
+	if(!template.load(stage.bottom_left_turfs[1]))
+		message_admins("pony.mov couldn't load [episode]'s sets for [key_name_admin(victim)].")
+		qdel(src)
+		return FALSE
 	load_data()
 	if(QDELETED(src))
-		return
+		return FALSE
 	came_from = get_turf(victim)
 	camera = new(set_turf(set_names[1], 11, 9))
 	victim.add_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_GODMODE), PONYMOV_TRAIT)
@@ -173,10 +189,7 @@
 	if(victim.hud_used)
 		old_hud_version = victim.hud_used.hud_version
 		victim.hud_used.show_hud(HUD_STYLE_NOHUD)
-	sleep(2 SECONDS) // everyone's sprites get sent meanwhile
-	if(QDELETED(src))
-		return
-	run_screenplay()
+	return TRUE
 
 /// Reads what the host has cut from the episode: soundtrack and subtitles.
 /datum/ponymov/proc/load_data()
@@ -205,6 +218,8 @@
 	card = new(null, null)
 	vignette = new(null, null)
 	subtitle = new(null, null)
+	if(!victim.client)
+		return
 	victim.client.screen += list(blackout, card, vignette, subtitle)
 	fit_to_view(blackout, 32, 32)
 	fit_to_view(vignette, 304, 240)
@@ -378,7 +393,8 @@
 		if("vignette")
 			animate(vignette, alpha = line[3] ? 255 : 0, time = 0.5 SECONDS)
 		if("tint")
-			animate(victim.client, color = line[3], time = (length(line) >= 4 ? line[4] : 0) * 10)
+			if(victim.client)
+				animate(victim.client, color = line[3], time = (length(line) >= 4 ? line[4] : 0) * 10)
 		if("beat")
 			call(src, "beat_[line[3]]")()
 		else

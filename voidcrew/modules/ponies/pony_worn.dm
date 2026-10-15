@@ -95,7 +95,7 @@
 	var/state = worn.worn_icon_state || worn.icon_state
 	var/file = worn.worn_icon || icon_file
 	var/icon/blank = icon('icons/blanks/32x32.dmi', "nothing")
-	var/icon/final_icon = icon('icons/testing/greyscale_error.dmi', "")
+	var/icon/final_icon = icon()
 	final_icon.Insert(blank, state, SOUTH)
 	final_icon.Insert(blank, state, NORTH)
 	final_icon.Insert(icon(file, state, SOUTH), state, EAST)
@@ -115,7 +115,7 @@
 	var/file = suit.worn_icon || icon_file
 	var/icon/new_north = icon(file, state, NORTH)
 	new_north.Blend(north_mask, ICON_SUBTRACT)
-	var/icon/final_icon = icon('icons/testing/greyscale_error.dmi', "")
+	var/icon/final_icon = icon()
 	final_icon.Insert(icon(file, state, SOUTH), state, SOUTH)
 	final_icon.Insert(new_north, state, NORTH)
 	final_icon.Insert(icon(file, state, EAST), state, EAST)
@@ -129,7 +129,7 @@
 	// list(dir drawn, dir of the sprite drawn there), for each of the four
 	var/static/list/sources = list(list(SOUTH, WEST), list(NORTH, EAST), list(EAST, SOUTH), list(WEST, NORTH))
 	var/static/list/other_sources = list(list(SOUTH, EAST), list(NORTH, WEST), list(EAST, NORTH), list(WEST, SOUTH))
-	var/icon/final_icon = icon('icons/testing/greyscale_error.dmi', "")
+	var/icon/final_icon = icon()
 	for(var/list/pair as anything in (other_side ? other_sources : sources))
 		final_icon.Insert(icon(file, state, pair[2]), state, pair[1])
 	return final_icon

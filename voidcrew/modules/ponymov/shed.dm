@@ -504,7 +504,7 @@
 	var/obj/effect/ponymov_scenery/saw = scenery("chainsaw", 'icons/obj/weapons/chainsaw.dmi', "chainsaw_on", "shed", 11, 4, 10, 6)
 	saw.vis_flags = VIS_INHERIT_ID
 	saw.layer = ABOVE_MOB_LAYER
-	saw.forceMove(null)
+	saw.moveToNullspace()
 	shy.vis_contents += saw
 	playsound(shy, 'sound/items/weapons/chainsaw_start.ogg', 80, FALSE)
 
@@ -602,6 +602,8 @@
 	run_line(list(0, "walk", "officer2", 12, 6, 0.8))
 
 /datum/ponymov/shed/proc/police_lights()
+	if(!victim?.client)
+		return
 	for(var/i in 1 to 6)
 		animate(victim.client, color = "#e05050", time = 0.25 SECONDS)
 		animate(color = "#5060f0", time = 0.25 SECONDS)
@@ -618,7 +620,8 @@
 	animate(shy, transform = null, time = 0.6 SECONDS)
 	shy.forceMove(set_turf("shed", 12, 9))
 	shy.setDir(SOUTH)
-	animate(victim.client, color = null, time = 1 SECONDS)
+	if(victim.client)
+		animate(victim.client, color = null, time = 1 SECONDS)
 
 /datum/ponymov/shed/proc/beat_peel()
 	var/obj/effect/ponymov_scenery/half = props["left half"]
