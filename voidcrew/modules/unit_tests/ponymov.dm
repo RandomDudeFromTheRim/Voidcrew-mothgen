@@ -54,6 +54,13 @@
 	TEST_ASSERT_EQUAL(curtain?.icon_state, "cur_fancy-closed", "The prom's curtains aren't drawn.")
 
 	TEST_ASSERT(istype(victim.dna.species, /datum/species/pony), "The [part] part wasn't made a pony.")
+	// Every bit of the eyes is somewhere: a state an icon hasn't got draws its default, an ERROR.
+	var/obj/item/organ/eyes/eyes = victim.get_organ_slot(ORGAN_SLOT_EYES)
+	for(var/mutable_appearance/eye as anything in eyes.generate_body_overlay(victim))
+		if(eye.icon)
+			TEST_ASSERT(eye.icon_state in icon_states(eye.icon), "The [part] part's eyes draw [eye.icon_state], which [eye.icon] hasn't got.")
+	for(var/obj/effect/abstract/eyelid_effect/eyelid in list(eyes.eyelid_left, eyes.eyelid_right))
+		TEST_ASSERT(eyelid.icon_state in icon_states(eyelid.icon), "The [part] part's eyelids are [eyelid.icon_state], which [eyelid.icon] hasn't got.")
 	TEST_ASSERT_EQUAL(showing.cast[part], victim, "The victim isn't playing [part].")
 	// Ponies are rigged, and trot and gallop on it.
 	victim.update_limb_rig()
