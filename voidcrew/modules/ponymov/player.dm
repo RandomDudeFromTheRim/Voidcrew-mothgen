@@ -310,6 +310,8 @@
 		var/mob/living/carbon/human/actor = (part == role) ? victim : new /mob/living/carbon/human(set_turf(set_names[1], 1, 1))
 		if(actor == victim)
 			old_species = victim.dna.species.type
+		// Nobody blinks: eyelids blink by way of hidden render targets, which the zoom blows up out of all proportion.
+		ADD_TRAIT(actor, TRAIT_PREVENT_BLINKING, PONYMOV_TRAIT)
 		dress_actor(actor, part)
 		actor.density = FALSE
 		if(actor != victim)
@@ -570,7 +572,7 @@
 		if(old_hud_version)
 			victim.hud_used?.show_hud(old_hud_version)
 		victim.reset_perspective()
-		victim.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_GODMODE), PONYMOV_TRAIT)
+		victim.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_GODMODE, TRAIT_PREVENT_BLINKING), PONYMOV_TRAIT)
 		victim.buckled?.unbuckle_mob(victim, force = TRUE)
 		victim.uncuff()
 		victim.remove_atom_colour(TEMPORARY_COLOUR_PRIORITY)

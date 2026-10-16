@@ -239,24 +239,10 @@
 
 /obj/item/organ/eyes/pony
 	name = "pony eyes"
-	eye_icon_state = "pony_eye"
-
-/obj/item/organ/eyes/pony/Initialize(mapload)
-	. = ..()
-	eyelid_left?.icon = 'voidcrew/modules/ponies/icons/pony_face.dmi'
-	eyelid_right?.icon = 'voidcrew/modules/ponies/icons/pony_face.dmi'
-
-// Eyes are drawn from the human face's sprites, which has no pony eyes: asked for one, it draws its
-// default, a big blue ERROR. Draw them from the pony's face instead.
-/obj/item/organ/eyes/pony/generate_body_overlay(mob/living/carbon/human/parent)
-	. = ..()
-	for(var/mutable_appearance/eye as anything in .)
-		if(eye.icon == 'icons/mob/human/human_face.dmi' && findtext(eye.icon_state, eye_icon_state) == 1)
-			eye.icon = 'voidcrew/modules/ponies/icons/pony_face.dmi'
-
-/obj/item/organ/eyes/pony/generate_body_overlay_before_eyelids(mob/living/carbon/human/parent)
-	var/mutable_appearance/eyelashes = mutable_appearance('voidcrew/modules/ponies/icons/pony_face.dmi', "pony_eyelids", -BODY_LAYER, parent)
-	return list(eyelashes)
+	// The pony's head sprite has its eyes drawn on. No eye overlays, and so no eyelids either: those
+	// blink by way of hidden render targets, which a zoomed screen (pony.mov's) blows up out of all proportion.
+	eye_icon_state = null
+	blink_animation = FALSE
 
 /obj/item/organ/ears/pony
 	icon = 'voidcrew/modules/ponies/icons/bodyparts.dmi'
