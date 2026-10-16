@@ -4,7 +4,7 @@
  * of it dead), the Pinkie part (out the window during the song, and still around at the asylum after)
  * or the Apple Bloom part (stepped on before the title, and watching the rest from under the foot).
  *
- * The cast are ponies of our own, coloured after their parts, with names off the pony list.
+ * The cast go by their parts' names; the crowd, the police and the doctors by names off the pony list.
  * shed.dmm has six sets, left to right: Ponyville's main street, the woods with the shed's
  * outside, the white of the flashbacks, the prom, the shed's inside and the asylum. The episode's
  * close-ups are zooms on whoever they're of; nothing of the episode's own pictures is shown.
@@ -62,20 +62,20 @@
 	running_time = 283
 	parts = list(
 		// part = list(name, species, coat, mane, hairstyle, eyes, pony archetype)
-		"rainbow" = list(null, /datum/species/pony, "#8fd3f5", "#e8403a", "Punk Rocker (Equestrian)", "#9b2c6e", "Pegasus"),
-		"pinkie" = list(null, /datum/species/pony, "#f5a3cf", "#e83e8c", "Dork (Equestrian)", "#5fb6e6", "Earth"),
-		"applebloom" = list(null, /datum/species/pony, "#f3ee9a", "#e2324f", "Soldier (Equestrian)", "#e0773a", "Earth"),
-		"fluttershy" = list(null, /datum/species/pony, "#fbf29a", "#f5b7d2", "Timid (Equestrian)", "#2f9fa6", "Pegasus"),
-		"spike" = list(null, /datum/species/lizard, "#9b59b6", "#9b59b6", "Bald", "#3fbf3f", null),
-		"twilight" = list(null, /datum/species/pony, "#d3a8e6", "#2b2a68", "Bookworm (Equestrian)", "#6b3b8f", "Unicorn"),
-		"sweetie" = list(null, /datum/species/pony, "#f4f2f6", "#b58ad6", "Fatale (Equestrian)", "#4bbd6b", "Unicorn"),
-		"scootaloo" = list(null, /datum/species/pony, "#f7a948", "#bb5ab6", "Punk Rocker (Equestrian)", "#8a4fa0", "Pegasus"),
+		"rainbow" = list("Rainbow Dash", /datum/species/pony, "#8fd3f5", "#e8403a", "Punk Rocker (Equestrian)", "#9b2c6e", "Pegasus"),
+		"pinkie" = list("Pinkie Pie", /datum/species/pony, "#f5a3cf", "#e83e8c", "Dork (Equestrian)", "#5fb6e6", "Earth"),
+		"applebloom" = list("Apple Bloom", /datum/species/pony, "#f3ee9a", "#e2324f", "Soldier (Equestrian)", "#e0773a", "Earth"),
+		"fluttershy" = list("Fluttershy", /datum/species/pony, "#fbf29a", "#f5b7d2", "Timid (Equestrian)", "#2f9fa6", "Pegasus"),
+		"spike" = list("Spike", /datum/species/lizard, "#9b59b6", "#9b59b6", "Bald", "#3fbf3f", null),
+		"twilight" = list("Twilight Sparkle", /datum/species/pony, "#d3a8e6", "#2b2a68", "Bookworm (Equestrian)", "#6b3b8f", "Unicorn"),
+		"sweetie" = list("Sweetie Belle", /datum/species/pony, "#f4f2f6", "#b58ad6", "Fatale (Equestrian)", "#4bbd6b", "Unicorn"),
+		"scootaloo" = list("Scootaloo", /datum/species/pony, "#f7a948", "#bb5ab6", "Punk Rocker (Equestrian)", "#8a4fa0", "Pegasus"),
 		"announcer" = list(null, /datum/species/pony, "#b98a5e", "#5a3a20", "Soldier (Equestrian)", "#3a2a10", "Earth"),
 		"officer1" = list(null, /datum/species/pony, "#7fd18a", "#2d5f2d", "Soldier (Equestrian)", "#2d2d2d", "Earth"),
 		"officer2" = list(null, /datum/species/pony, "#6fa0e0", "#203860", "Soldier (Equestrian)", "#2d2d2d", "Earth"),
 		"doctor1" = list(null, /datum/species/pony, "#a9adb3", "#6a6e74", "Soldier (Equestrian)", "#2d2d2d", "Earth"),
 		"doctor2" = list(null, /datum/species/pony, "#c8b8a8", "#7a6050", "Bookworm (Equestrian)", "#2d2d2d", "Earth"),
-		"derpy" = list(null, /datum/species/pony, "#b9b9c3", "#f0e06a", "Dork (Equestrian)", "#e8d05a", "Pegasus"),
+		"derpy" = list("Derpy", /datum/species/pony, "#b9b9c3", "#f0e06a", "Dork (Equestrian)", "#e8d05a", "Pegasus"),
 		"crowd1" = list(null, /datum/species/pony, "#e04848", "#f0a030", "Soldier (Equestrian)", "#2d6f2d", "Earth"),
 		"crowd2" = list(null, /datum/species/pony, "#f0f0f8", "#6040a0", "Fatale (Equestrian)", "#3050c0", "Unicorn"),
 		"crowd3" = list(null, /datum/species/pony, "#f0b050", "#d0d0c0", "Dork (Equestrian)", "#307030", "Earth"),
@@ -396,7 +396,7 @@
 /datum/ponymov/shed/proc/beat_cutie_mark()
 	var/mob/living/carbon/human/bloom = cast["applebloom"]
 	bloom.SpinAnimation(speed = 0.6 SECONDS, loops = 1)
-	bloom.emote("smile", forced = TRUE)
+	act(bloom, "smile")
 
 /// The foot comes down on Apple Bloom.
 /datum/ponymov/shed/proc/beat_squash()
@@ -458,6 +458,14 @@
 			return
 	lay(shy, FALSE)
 	shy.setDir(SOUTH)
+	// Off they go, either way out of the shot, leaving her to it.
+	run_line(list(0, "walk", "rainbow", 3, 10, 2.5))
+	run_line(list(0, "walk", "pinkie", 19, 10, 2.5))
+	sleep(2.6 SECONDS)
+	if(QDELETED(src))
+		return
+	run_line(list(0, "hide", "rainbow"))
+	run_line(list(0, "hide", "pinkie"))
 
 /datum/ponymov/shed/proc/beat_prom()
 	var/mob/living/carbon/human/shy = cast["fluttershy"]
@@ -505,7 +513,7 @@
 		laughers += "crowd[i]"
 	for(var/part in shuffle(laughers))
 		var/mob/living/carbon/human/laugher = cast[part]
-		laugher.emote("laugh", forced = TRUE)
+		act(laugher, "laugh")
 		sleep(rand(2, 6))
 		if(QDELETED(src))
 			return
@@ -526,7 +534,7 @@
 	run_line(list(0, "place", "rainbow", "woods", 12, 9, EAST))
 	run_line(list(0, "place", "pinkie", "woods", 14, 9, WEST))
 	var/mob/living/carbon/human/spike = cast["spike"]
-	spike.emote("grin", forced = TRUE)
+	act(spike, "grin")
 
 /datum/ponymov/shed/proc/beat_magazine()
 	var/mob/living/carbon/human/spike = cast["spike"]
@@ -543,7 +551,7 @@
 /datum/ponymov/shed/proc/beat_toaster_cozy()
 	var/mob/living/carbon/human/spike = cast["spike"]
 	spike.setDir(NORTH)
-	spike.emote("hug", forced = TRUE)
+	act(spike, "hug")
 
 /// Fluttershy in the doorway, dark.
 /datum/ponymov/shed/proc/beat_doorway()
@@ -771,7 +779,7 @@
 /// Fluttershy sobbing, blood all down her, the screen shaking with it.
 /datum/ponymov/shed/proc/beat_sob()
 	var/mob/living/carbon/human/shy = cast["fluttershy"]
-	shy.emote("cry", forced = TRUE)
+	act(shy, "cry")
 	shy.Shake(1, 1, 8 SECONDS)
 
 /// The eye in the bucket, up close.

@@ -260,9 +260,9 @@
 	thing.transform = matrix(scale, 0, (width - world.icon_size) / -2, 0, scale, (height - world.icon_size) / -2)
 
 /**
- * Zooms the victim's screen in on whatever it's looking at, by scaling the world's planes as the
- * rhythm battles do (see /datum/fnf_side/proc/zoom_screen()). Their HUD planes, which hold the
- * episode's blackout, card and subtitles, stay as they are.
+ * Zooms the victim's screen in on whatever it's looking at, by scaling the game's rendering plate as
+ * the rhythm battles do (see /datum/fnf_side/proc/zoom_screen() and get_world_planes()). The
+ * episode's blackout, card and subtitles stay as they are.
  */
 /datum/ponymov/proc/zoom(scale, seconds, aim_y = 0, aim_x = 0)
 	zoomed = scale
@@ -283,13 +283,26 @@
 		animate(plate, transform = matrix() * (zoomed * (1 + amount)), time = 0.5)
 		animate(transform = matrix() * zoomed, time = seconds * 10, easing = SINE_EASING | EASE_OUT)
 
-/// The victim's plane masters the world's drawn on, which zoom() scales: not the HUD's.
+/**
+ * What zoom() scales: the one game rendering plate the victim's actually shown, which the whole world
+ * is drawn into once, and the speech bubbles, which draw onto the interface's plate but have to
+ * stay over their speakers. Nothing else: not the interface (the subtitles, the card, the
+ * flashback's cloud), and nothing drawn into that plate on its way, or it comes out scaled twice.
+ *
+ * Each level of a multi-z stack has its own copy of every plate, the copies below drawing into the
+ * ones above, up to the copy at the level being looked from. That's the one to scale. (Scaling
+ * every copy below the interface's planes, as this first did, missed it and blew up all the rest.)
+ */
 /datum/ponymov/proc/get_world_planes()
 	. = list()
-	var/atom/movable/plane_master_controller/screen = victim.hud_used?.plane_master_controllers[PLANE_MASTERS_NON_MASTER]
-	for(var/atom/movable/screen/plane_master/plate as anything in screen?.get_planes())
-		if(plate.plane < HUD_PLANE)
-			. += plate
+	var/datum/hud/screen = victim.hud_used
+	if(!screen)
+		return
+	var/datum/plane_master_group/main = screen.master_groups[PLANE_GROUP_MAIN]
+	. += screen.get_plane_master(GET_NEW_PLANE(RENDER_PLANE_GAME, main?.active_offset || 0))
+	for(var/true_plane in list(RUNECHAT_PLANE, BALLOON_CHAT_PLANE))
+		. += screen.get_true_plane_masters(true_plane)
+	. -= null
 
 /// Everyone in their places: the victim made a pony and put in their part, the rest new.
 /datum/ponymov/proc/cast_everyone()
@@ -343,8 +356,29 @@
 			continue
 		if(speaker && speaker.alpha)
 			speaker.say(text, language = /datum/language/common, forced = "pony.mov")
+			if(!within_earshot(speaker))
+				victim.create_chat_message(speaker, /datum/language/common, text)
 		subtitle.maptext = MAPTEXT("<div align='center'><span style='color:#ffffff;-dm-text-outline:1px #000000'>[html_encode(text)]</span></div>")
 		INVOKE_ASYNC(src, PROC_REF(clear_cue), text, cue[2])
+
+/**
+ * Whether the victim hears this one of the cast where they are. What's heard goes by where the
+ * victim's own part stands, not by the camera, and their part's often in another set, or up in the
+ * rafters: what's said and done out of earshot is shown them anyway (see act()), the episode being
+ * all for them.
+ */
+/datum/ponymov/proc/within_earshot(mob/living/actor)
+	return !victim.client || actor == victim || (victim in get_hearers_in_view(DEFAULT_MESSAGE_RANGE, actor))
+
+/// One of the cast does an emote, which the victim sees wherever they are.
+/datum/ponymov/proc/act(mob/living/carbon/human/actor, emote_key)
+	actor.emote(emote_key, forced = TRUE)
+	if(within_earshot(actor))
+		return
+	var/list/emotes = GLOB.emote_list[emote_key]
+	var/datum/emote/done = emotes?[1]
+	if(done?.message)
+		victim.create_chat_message(actor, null, done.message, runechat_flags = EMOTE_MESSAGE)
 
 /datum/ponymov/proc/clear_cue(text, ends)
 	PONYMOV_AT(ends)
@@ -370,7 +404,7 @@
  * * "prop", name, type, set, x, y: brings something on. "unprop", name takes it off again.
  * * "vignette", on: the flashback's white edge, in or out.
  * * "tint", colour, seconds: the colour of everything, fading to it. Null to go back.
- * * "beat", name: anything else, the episode's beat_<name>() proc.
+ * * "beat", name: anything else, the episode's beat_<name>() proc, which goes on alongside the rest.
  */
 /datum/ponymov/proc/run_line(list/line)
 	var/action = line[2]
@@ -427,8 +461,7 @@
 			var/mob/living/carbon/human/actor = cast[line[3]]
 			actor.alpha = 0
 		if("emote")
-			var/mob/living/carbon/human/actor = cast[line[3]]
-			actor.emote(line[4], forced = TRUE)
+			act(cast[line[3]], line[4])
 		if("prop")
 			var/prop_type = line[4]
 			props[line[3]] = new prop_type(set_turf(line[5], line[6], line[7]))
@@ -442,7 +475,12 @@
 			if(victim.client)
 				animate(victim.client, color = line[3], time = (length(line) >= 4 ? line[4] : 0) * 10)
 		if("beat")
-			call(src, "beat_[line[3]]")()
+			// Alongside the screenplay: a beat that takes its time (seven seconds of kicking) mustn't
+			// hold up what comes after it. Unwatched (the unit tests), it's done there and then.
+			if(headless)
+				run_beat(line[3])
+			else
+				INVOKE_ASYNC(src, PROC_REF(run_beat), line[3])
 		else
 			stack_trace("pony.mov: [episode]'s screenplay has an unknown verb, [action].")
 
@@ -482,6 +520,12 @@
 	rider.set_glide_size(carrier.glide_size)
 	rider.forceMove(carrier.loc)
 	rider.setDir(carrier.dir)
+
+/// Calls the episode's beat_<name>(), if the episode's still on by the time it gets to it.
+/datum/ponymov/proc/run_beat(name)
+	if(QDELETED(src))
+		return
+	call(src, "beat_[name]")()
 
 /**
  * Lays one of the cast down, or stands them back up. Lying down is two things: the body position

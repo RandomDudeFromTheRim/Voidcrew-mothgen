@@ -76,6 +76,21 @@
 	TEST_ASSERT_EQUAL(showing.where(shy)[1], "asylum", "Fluttershy didn't end up in the asylum.")
 	TEST_ASSERT(istype(shy.wear_suit, /obj/item/clothing/suit/jacket/straight_jacket), "Fluttershy isn't in her straitjacket.")
 
+	// Zooming scales the game's plate (and the speech bubbles over it) and nothing else: not the
+	// interface, nor anything drawn into the game plate, which would come out scaled twice.
+	if(!victim.hud_used)
+		victim.hud_used = new victim.hud_type(victim)
+	var/list/zoomed_planes = showing.get_world_planes()
+	TEST_ASSERT(length(zoomed_planes), "SHED.MOV's zoom has no planes to scale.")
+	var/game_plates = 0
+	for(var/atom/movable/screen/plane_master/plate as anything in zoomed_planes)
+		var/true_plane = PLANE_TO_TRUE(plate.plane)
+		TEST_ASSERT(true_plane == RENDER_PLANE_GAME || true_plane == RUNECHAT_PLANE || true_plane == BALLOON_CHAT_PLANE, "SHED.MOV's zoom scales [plate] (plane [true_plane]), which isn't the game's plate.")
+		if(true_plane == RENDER_PLANE_GAME)
+			game_plates++
+	TEST_ASSERT_EQUAL(game_plates, 1, "SHED.MOV's zoom should scale the one game plate that's shown.")
+	QDEL_NULL(victim.hud_used)
+
 	qdel(showing)
 	TEST_ASSERT_EQUAL(get_turf(victim), start, "The [part] part didn't come back where they were.")
 	if(part == "rainbow")
